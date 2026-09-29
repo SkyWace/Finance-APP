@@ -1,0 +1,91 @@
+package com.financeapp.core.settings;
+
+import com.financeapp.core.available.HorizonType;
+import com.financeapp.core.port.SettingsRepository;
+
+import java.util.Currency;
+
+/** Acces type aux parametres utilisateur, avec valeurs par defaut. */
+public final class SettingsService {
+
+    static final String BASE_CURRENCY = "base.currency";
+    static final String AVAILABLE_HORIZON = "available.horizon";
+    static final String AVAILABLE_INCLUDE_INCOME = "available.include_income";
+    static final String BACKUP_AUTO_ENABLED = "backup.auto.enabled";
+    static final String BACKUP_AUTO_KEEP = "backup.auto.keep";
+    static final String PRIVACY_MODE = "ui.privacy_mode";
+
+    public static final int MIN_BACKUPS_KEPT = 2;
+
+    private final SettingsRepository repository;
+
+    public SettingsService(SettingsRepository repository) {
+        this.repository = repository;
+    }
+
+    /** Devise de reference des totaux. Aucune conversion n'est faite entre devises. */
+    public Currency baseCurrency() {
+        try {
+            return repository.get(BASE_CURRENCY).map(Currency::getInstance).orElse(Currency.getInstance("EUR"));
+        } catch (IllegalArgumentException e) {
+            return Currency.getInstance("EUR");
+        }
+    }
+
+    public void setBaseCurrency(Currency currency) {
+        repository.put(BASE_CURRENCY, currency.getCurrencyCode());
+    }
+
+    public HorizonType defaultHorizon() {
+        try {
+            return repository.get(AVAILABLE_HORIZON).map(HorizonType::valueOf).orElse(HorizonType.END_OF_MONTH);
+        } catch (IllegalArgumentException e) {
+            return HorizonType.END_OF_MONTH;
+        }
+    }
+
+    public void setDefaultHorizon(HorizonType type) {
+        repository.put(AVAILABLE_HORIZON, type.name());
+    }
+
+    public boolean includeCertainIncome() {
+        return bool(AVAILABLE_INCLUDE_INCOME, true);
+    }
+
+    public void setIncludeCertainIncome(boolean value) {
+        repository.put(AVAILABLE_INCLUDE_INCOME, Boolean.toString(value));
+    }
+
+    public boolean autoBackupEnabled() {
+        return bool(BACKUP_AUTO_ENABLED, true);
+    }
+
+    public void setAutoBackupEnabled(boolean value) {
+        repository.put(BACKUP_AUTO_ENABLED, Boolean.toString(value));
+    }
+
+    /** Nombre de sauvegardes automatiques conservees (rotation). */
+    public int autoBackupKeep() {
+        try {
+            return repository.get(BACKUP_AUTO_KEEP).map(Integer::parseInt).map(v -> Math.max(MIN_BACKUPS_KEPT, v)).orElse(10);
+        } catch (NumberFormatException e) {
+            return 10;
+        }
+    }
+
+    public void setAutoBackupKeep(int value) {
+        repository.put(BACKUP_AUTO_KEEP, Integer.toString(Math.max(MIN_BACKUPS_KEPT, value)));
+    }
+
+    public boolean privacyMode() {
+        return bool(PRIVACY_MODE, false);
+    }
+
+    public void setPrivacyMode(boolean value) {
+        repository.put(PRIVACY_MODE, Boolean.toString(value));
+    }
+
+    private boolean bool(String key, boolean defaultValue) {
+        return repository.get(key).map(Boolean::parseBoolean).orElse(defaultValue);
+    }
+}
