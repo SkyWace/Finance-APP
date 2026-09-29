@@ -22,7 +22,8 @@ import com.financeapp.infra.db.JdbcCategoryRepository;
 import com.financeapp.infra.db.JdbcRecurringRuleRepository;
 import com.financeapp.infra.db.JdbcSettingsRepository;
 import com.financeapp.infra.db.JdbcTransactionRepository;
-import com.financeapp.infra.db.SqliteDataSourceFactory;
+import com.financeapp.infra.security.DatabaseKey;
+import com.financeapp.infra.security.EncryptedDataSource;
 import com.financeapp.infra.storage.AppDirectories;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -32,9 +33,6 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.sql.SQLException;
 import java.time.Clock;
 
 /**
@@ -51,19 +49,12 @@ public class AppConfiguration {
     }
 
     /**
-     * La base est ouverte ici, et seulement apres application d'une eventuelle
-     * restauration en attente, puis migree avant tout usage.
+     * Base chiffree : les connexions ne sont accordees que si la cle a ete
+     * deverrouillee ({@link DatabaseKey}, fournie au demarrage du contexte).
      */
     @Bean
-    DataSource dataSource(AppDirectories directories, Clock clock) {
-        try {
-            BackupService.applyPendingRestore(directories, clock);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Restauration impossible", e);
-        } catch (SQLException e) {
-            throw new IllegalStateException("Restauration impossible", e);
-        }
-        return SqliteDataSourceFactory.create(directories.databaseFile());
+    DataSource dataSource(AppDirectories directories, DatabaseKey databaseKey) {
+        return new EncryptedDataSource(directories.databaseFile(), databaseKey);
     }
 
     @Bean
@@ -160,8 +151,8 @@ public class AppConfiguration {
     }
 
     @Bean
-    BackupService backupService(DataSource dataSource, AppDirectories directories, DatabaseMigrator migrator,
-                                Clock clock) {
-        return new BackupService(dataSource, directories, migrator.latestKnownVersion(), clock);
+    BackupService backupService(DataSource dataSource, AppDirectories directories, DatabaseKey databaseKey,
+                                DatabaseMigrator migrator, Clock clock) {
+        return new BackupService(dataSource, directories, databaseKey, migrator.latestKnownVersion(), clock);
     }
 }

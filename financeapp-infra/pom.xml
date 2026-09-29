@@ -13,8 +13,8 @@
   <artifactId>financeapp-infra</artifactId>
   <name>FinanceApp Infrastructure</name>
   <description>
-    Implementations SQLite des ports du core (Spring JDBC), migrations Flyway,
-    sauvegardes locales. Aucune dependance JavaFX.
+    Implementations SQLite chiffrees des ports du core (Spring JDBC), migrations
+    Flyway, sauvegardes locales, mot de passe maitre et gestion de la cle. Aucune dependance JavaFX.
   </description>
 
   <dependencies>
@@ -27,8 +27,13 @@
       <artifactId>spring-jdbc</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.xerial</groupId>
+      <groupId>io.github.willena</groupId>
       <artifactId>sqlite-jdbc</artifactId>
+    </dependency>
+    <!-- Argon2id (derivation du mot de passe maitre) : implementation Java pure, eprouvee -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
     </dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>

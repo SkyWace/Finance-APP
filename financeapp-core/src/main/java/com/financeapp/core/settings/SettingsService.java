@@ -14,6 +14,7 @@ public final class SettingsService {
     static final String BACKUP_AUTO_ENABLED = "backup.auto.enabled";
     static final String BACKUP_AUTO_KEEP = "backup.auto.keep";
     static final String PRIVACY_MODE = "ui.privacy_mode";
+    static final String AUTO_LOCK_MINUTES = "security.auto_lock_minutes";
 
     public static final int MIN_BACKUPS_KEPT = 2;
 
@@ -83,6 +84,19 @@ public final class SettingsService {
 
     public void setPrivacyMode(boolean value) {
         repository.put(PRIVACY_MODE, Boolean.toString(value));
+    }
+
+    /** Verrouillage automatique apres ce nombre de minutes d'inactivite ; 0 = jamais. */
+    public int autoLockMinutes() {
+        try {
+            return repository.get(AUTO_LOCK_MINUTES).map(Integer::parseInt).map(v -> Math.max(0, v)).orElse(5);
+        } catch (NumberFormatException e) {
+            return 5;
+        }
+    }
+
+    public void setAutoLockMinutes(int minutes) {
+        repository.put(AUTO_LOCK_MINUTES, Integer.toString(Math.max(0, minutes)));
     }
 
     private boolean bool(String key, boolean defaultValue) {

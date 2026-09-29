@@ -6,10 +6,10 @@ import java.util.function.Consumer;
 
 /**
  * Ce que chaque page recoit : services, formatage (confidentialite),
- * evenements de donnees et navigation.
+ * evenements de donnees, navigation et commandes de securite.
  */
 public record UiContext(AppServices services, Formats formats, DataEvents events,
-                        Window window, Consumer<String> navigator) {
+                        Window window, Consumer<String> navigator, SecurityControls security) {
 
     public void navigate(String pageId) {
         navigator.accept(pageId);

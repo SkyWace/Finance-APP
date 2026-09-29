@@ -96,6 +96,9 @@
             </goals>
             <configuration>
               <includeScope>runtime</includeScope>
+              <!-- Toujours recopier : deux pilotes sqlite-jdbc differents portent le meme nom de fichier -->
+              <overWriteReleases>true</overWriteReleases>
+              <overWriteSnapshots>true</overWriteSnapshots>
               <outputDirectory>${project.build.directory}/lib</outputDirectory>
             </configuration>
           </execution>

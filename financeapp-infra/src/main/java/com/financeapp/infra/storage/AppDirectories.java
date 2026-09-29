@@ -48,6 +48,16 @@ public record AppDirectories(Path root) {
         return root.resolve("logs");
     }
 
+    /** Trousseau : cle de la base enveloppee par le mot de passe maitre et la cle de recuperation. */
+    public Path keystoreFile() {
+        return root.resolve("data").resolve("keystore.properties");
+    }
+
+    /** Trousseau associe a une restauration en attente (sauvegarde d'une autre cle). */
+    public Path pendingRestoreKeystore() {
+        return root.resolve("data").resolve("pending-restore.keystore");
+    }
+
     /** Sauvegarde validee en attente de restauration au prochain demarrage. */
     public Path pendingRestoreFile() {
         return root.resolve("data").resolve("pending-restore.db");
