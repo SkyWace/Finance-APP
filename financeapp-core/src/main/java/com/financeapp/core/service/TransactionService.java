@@ -30,6 +30,11 @@ public final class TransactionService {
         return transactions.search(query);
     }
 
+    /** Totaux de la recherche sur tous les resultats (nombre, depenses, revenus, moyenne). */
+    public com.financeapp.core.port.SearchTotals summarize(TransactionQuery query, java.util.Currency currency) {
+        return transactions.summarize(query, currency);
+    }
+
     public Transaction get(long id) {
         return transactions.findById(id).orElseThrow(() -> new BusinessException("Opération introuvable"));
     }

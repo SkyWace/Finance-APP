@@ -2,7 +2,15 @@ package com.financeapp.core.testing;
 
 import com.financeapp.core.account.Account;
 import com.financeapp.core.category.Category;
+import com.financeapp.core.budget.Budget;
+import com.financeapp.core.goal.SavingsGoal;
+import com.financeapp.core.money.Money;
 import com.financeapp.core.port.AccountRepository;
+import com.financeapp.core.port.BudgetRepository;
+import com.financeapp.core.port.SavingsGoalRepository;
+import com.financeapp.core.port.SearchTotals;
+import com.financeapp.core.transaction.TransactionStatus;
+import com.financeapp.core.transaction.TransactionType;
 import com.financeapp.core.port.CategoryRepository;
 import com.financeapp.core.port.OccurrenceKey;
 import com.financeapp.core.port.RecurringRuleRepository;
@@ -34,6 +42,8 @@ public final class InMemoryStore {
     private final Map<Long, Transaction> transactionMap = new LinkedHashMap<>();
     private final Map<Long, RecurringRule> ruleMap = new LinkedHashMap<>();
     private final Map<String, String> settingsMap = new HashMap<>();
+    private final Map<Long, Budget> budgetMap = new LinkedHashMap<>();
+    private final Map<Long, SavingsGoal> goalMap = new LinkedHashMap<>();
 
     public final AccountRepository accounts = new AccountRepository() {
         public List<Account> findAll() { return List.copyOf(accountMap.values()); }
@@ -79,17 +89,37 @@ public final class InMemoryStore {
         public List<Transaction> findByTransferGroup(String group) {
             return transactionMap.values().stream().filter(t -> group.equals(t.transferGroup())).toList();
         }
-        public List<Transaction> search(TransactionQuery q) {
+        private java.util.stream.Stream<Transaction> matching(TransactionQuery q) {
+            Set<Long> categories = q.categoryId() == null ? null : new java.util.HashSet<>(java.util.List.of(q.categoryId()));
+            if (categories != null) {
+                categoryMap.values().stream().filter(c -> q.categoryId().equals(c.parentId())).forEach(c -> categories.add(c.id()));
+            }
             return transactionMap.values().stream()
                     .filter(t -> q.accountId() == null || t.accountId() == q.accountId())
                     .filter(t -> q.from() == null || !t.date().isBefore(q.from()))
                     .filter(t -> q.to() == null || !t.date().isAfter(q.to()))
                     .filter(t -> q.text() == null || t.label().toLowerCase().contains(q.text().toLowerCase()))
-                    .filter(t -> q.categoryId() == null || q.categoryId().equals(t.categoryId()))
+                    .filter(t -> categories == null || categories.contains(t.categoryId()))
                     .filter(t -> q.statuses() == null || q.statuses().contains(t.status()))
+                    .filter(t -> q.type() == null || t.type() == q.type())
+                    .filter(t -> q.minAmount() == null || t.amount().abs().amount().compareTo(q.minAmount()) >= 0)
+                    .filter(t -> q.maxAmount() == null || t.amount().abs().amount().compareTo(q.maxAmount()) <= 0);
+        }
+        public List<Transaction> search(TransactionQuery q) {
+            return matching(q)
                     .sorted(Comparator.comparing(Transaction::date).thenComparing(Transaction::id).reversed())
                     .skip(q.offset()).limit(q.limit())
                     .toList();
+        }
+        public SearchTotals summarize(TransactionQuery q, java.util.Currency currency) {
+            List<Transaction> rows = matching(q)
+                    .filter(t -> t.status() != TransactionStatus.CANCELLED && t.type() != TransactionType.TRANSFER)
+                    .filter(t -> t.amount().currency().equals(currency)).toList();
+            Money zero = Money.zero(currency);
+            List<Transaction> expenses = rows.stream().filter(t -> t.type() == TransactionType.EXPENSE).toList();
+            return new SearchTotals(rows.size(), expenses.size(),
+                    expenses.stream().map(Transaction::amount).reduce(zero, Money::plus),
+                    rows.stream().filter(t -> t.type() == TransactionType.INCOME).map(Transaction::amount).reduce(zero, Money::plus));
         }
         public Map<Long, Long> sumCountedMinorByAccount() {
             return transactionMap.values().stream().filter(t -> t.status().countsInBalance())
@@ -130,6 +160,28 @@ public final class InMemoryStore {
     public final SettingsRepository settings = new SettingsRepository() {
         public Optional<String> get(String key) { return Optional.ofNullable(settingsMap.get(key)); }
         public void put(String key, String value) { settingsMap.put(key, value); }
+    };
+
+    public final BudgetRepository budgets = new BudgetRepository() {
+        public List<Budget> findAll() { return List.copyOf(budgetMap.values()); }
+        public Optional<Budget> findById(long id) { return Optional.ofNullable(budgetMap.get(id)); }
+        public Budget save(Budget b) {
+            Budget saved = b.id() == null ? b.withId(ids.getAndIncrement()) : b;
+            budgetMap.put(saved.id(), saved);
+            return saved;
+        }
+        public void delete(long id) { budgetMap.remove(id); }
+    };
+
+    public final SavingsGoalRepository goals = new SavingsGoalRepository() {
+        public List<SavingsGoal> findAll() { return List.copyOf(goalMap.values()); }
+        public Optional<SavingsGoal> findById(long id) { return Optional.ofNullable(goalMap.get(id)); }
+        public SavingsGoal save(SavingsGoal g) {
+            SavingsGoal saved = g.id() == null ? g.withId(ids.getAndIncrement()) : g;
+            goalMap.put(saved.id(), saved);
+            return saved;
+        }
+        public void delete(long id) { goalMap.remove(id); }
     };
 
     public List<Transaction> allTransactions() {

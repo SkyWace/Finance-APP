@@ -1,6 +1,8 @@
 package com.financeapp.desktop;
 
 import com.financeapp.core.port.AccountRepository;
+import com.financeapp.core.port.BudgetRepository;
+import com.financeapp.core.port.SavingsGoalRepository;
 import com.financeapp.core.port.CategoryRepository;
 import com.financeapp.core.port.RecurringRuleRepository;
 import com.financeapp.core.port.SettingsRepository;
@@ -8,6 +10,11 @@ import com.financeapp.core.port.TransactionRepository;
 import com.financeapp.core.recurring.RecurrenceEngine;
 import com.financeapp.core.service.AccountService;
 import com.financeapp.core.service.AvailableBalanceService;
+import com.financeapp.core.service.BudgetService;
+import com.financeapp.core.service.CalendarService;
+import com.financeapp.core.service.SavingsGoalService;
+import com.financeapp.core.service.StatisticsService;
+import com.financeapp.core.service.SubscriptionService;
 import com.financeapp.core.service.CategoryService;
 import com.financeapp.core.service.DashboardService;
 import com.financeapp.core.service.ForecastService;
@@ -18,6 +25,8 @@ import com.financeapp.core.settings.SettingsService;
 import com.financeapp.infra.backup.BackupService;
 import com.financeapp.infra.db.DatabaseMigrator;
 import com.financeapp.infra.db.JdbcAccountRepository;
+import com.financeapp.infra.db.JdbcBudgetRepository;
+import com.financeapp.infra.db.JdbcSavingsGoalRepository;
 import com.financeapp.infra.db.JdbcCategoryRepository;
 import com.financeapp.infra.db.JdbcRecurringRuleRepository;
 import com.financeapp.infra.db.JdbcSettingsRepository;
@@ -34,6 +43,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.time.Clock;
+import java.util.List;
 
 /**
  * Assemblage explicite des composants : les classes du core et de l'infra
@@ -132,9 +142,50 @@ public class AppConfiguration {
     }
 
     @Bean
+    BudgetRepository budgetRepository(JdbcClient jdbc) {
+        return new JdbcBudgetRepository(jdbc);
+    }
+
+    @Bean
+    SavingsGoalRepository savingsGoalRepository(JdbcClient jdbc) {
+        return new JdbcSavingsGoalRepository(jdbc);
+    }
+
+    @Bean
+    BudgetService budgetService(BudgetRepository budgets, TransactionRepository transactions, PlanningService planning,
+                                CategoryService categories, SettingsService settings) {
+        return new BudgetService(budgets, transactions, planning, categories, settings);
+    }
+
+    @Bean
+    SavingsGoalService savingsGoalService(SavingsGoalRepository goals, AccountService accounts, PlanningService planning) {
+        return new SavingsGoalService(goals, accounts, planning);
+    }
+
+    /** Le reste des budgets et l'effort des objectifs marques "a reserver" sont deduits du disponible. */
+    @Bean
     AvailableBalanceService availableBalanceService(AccountService accounts, PlanningService planning,
-                                                    RecurringService recurring, SettingsService settings) {
-        return new AvailableBalanceService(accounts, planning, recurring, settings);
+                                                    RecurringService recurring, SettingsService settings,
+                                                    BudgetService budgets, SavingsGoalService goals) {
+        return new AvailableBalanceService(accounts, planning, recurring, settings, List.of(budgets, goals));
+    }
+
+    @Bean
+    SubscriptionService subscriptionService(RecurringService recurring, CategoryService categories,
+                                            TransactionRepository transactions, PlanningService planning,
+                                            SettingsService settings) {
+        return new SubscriptionService(recurring, categories, transactions, planning, settings);
+    }
+
+    @Bean
+    StatisticsService statisticsService(TransactionRepository transactions, CategoryService categories,
+                                        AccountService accounts, PlanningService planning, SettingsService settings) {
+        return new StatisticsService(transactions, categories, accounts, planning, settings);
+    }
+
+    @Bean
+    CalendarService calendarService(TransactionRepository transactions, PlanningService planning, ForecastService forecast) {
+        return new CalendarService(transactions, planning, forecast);
     }
 
     @Bean

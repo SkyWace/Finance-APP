@@ -7,11 +7,14 @@ import com.financeapp.core.available.AvailableBalanceInput;
 import com.financeapp.core.available.AvailableBalanceResult;
 import com.financeapp.core.available.Horizon;
 import com.financeapp.core.available.HorizonType;
+import com.financeapp.core.available.Reservation;
+import com.financeapp.core.available.ReservationProvider;
 import com.financeapp.core.settings.SettingsService;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,14 +30,22 @@ public final class AvailableBalanceService {
     private final PlanningService planning;
     private final RecurringService recurring;
     private final SettingsService settings;
+    private final List<ReservationProvider> reservationProviders;
     private final AvailableBalanceEngine engine = new AvailableBalanceEngine();
 
     public AvailableBalanceService(AccountService accounts, PlanningService planning,
                                    RecurringService recurring, SettingsService settings) {
+        this(accounts, planning, recurring, settings, List.of());
+    }
+
+    /** @param reservationProviders budgets, objectifs d'epargne... dont le reste est mis de cote */
+    public AvailableBalanceService(AccountService accounts, PlanningService planning, RecurringService recurring,
+                                   SettingsService settings, List<ReservationProvider> reservationProviders) {
         this.accounts = accounts;
         this.planning = planning;
         this.recurring = recurring;
         this.settings = settings;
+        this.reservationProviders = List.copyOf(reservationProviders);
     }
 
     /** Comptes du perimetre : actifs, dans la devise de reference, marques "inclus dans le disponible". */
@@ -67,13 +78,19 @@ public final class AvailableBalanceService {
     }
 
     public AvailableBalanceResult compute(Horizon horizon) {
+        LocalDate today = planning.today();
+        List<Reservation> reservations = new ArrayList<>();
+        for (ReservationProvider provider : reservationProviders) {
+            reservations.addAll(provider.reservations(settings.baseCurrency(), today, horizon.end()));
+        }
+        reservations.removeIf(r -> r.amount().isZero());
         AvailableBalanceInput input = new AvailableBalanceInput(
                 settings.baseCurrency(),
-                planning.today(),
+                today,
                 horizon.end(),
                 scope(),
                 planning.upcoming(horizon.end()),
-                List.of(),
+                reservations,
                 settings.includeCertainIncome());
         return engine.compute(input);
     }

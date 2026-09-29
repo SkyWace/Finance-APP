@@ -42,6 +42,10 @@ public final class SqliteTestDb {
     public final RecurringService recurring;
     public final PlanningService planning;
     public final AvailableBalanceService available;
+    public final JdbcBudgetRepository budgetRepo;
+    public final JdbcSavingsGoalRepository goalRepo;
+    public final com.financeapp.core.service.BudgetService budgets;
+    public final com.financeapp.core.service.SavingsGoalService goals;
 
     public SqliteTestDb(Path root, LocalDate today) {
         this(root, today, randomKey());
@@ -69,7 +73,11 @@ public final class SqliteTestDb {
         transactions = new TransactionService(accountRepo, transactionRepo);
         recurring = new RecurringService(ruleRepo, transactionRepo, accountRepo, transactions, new RecurrenceEngine(), clock);
         planning = new PlanningService(transactionRepo, recurring, clock);
-        available = new AvailableBalanceService(accounts, planning, recurring, settings);
+        budgetRepo = new JdbcBudgetRepository(jdbc);
+        goalRepo = new JdbcSavingsGoalRepository(jdbc);
+        budgets = new com.financeapp.core.service.BudgetService(budgetRepo, transactionRepo, planning, categories, settings);
+        goals = new com.financeapp.core.service.SavingsGoalService(goalRepo, accounts, planning);
+        available = new AvailableBalanceService(accounts, planning, recurring, settings, java.util.List.of(budgets, goals));
     }
 
     public static byte[] randomKey() {

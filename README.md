@@ -13,16 +13,21 @@ toutes mes dépenses futures prises en compte ? »*
 - Conception détaillée (architecture, risques, schéma, étapes) :
   [`docs/CONCEPTION.md`](docs/CONCEPTION.md).
 
-## Fonctionnalités (MVP V1)
+## Fonctionnalités (V1 → V2)
 
 | Écran | Contenu |
 |---|---|
 | Tableau de bord | Patrimoine, comptes courants, épargne, **disponible réel** (cliquable), revenus/dépenses du mois, à venir, prévision 30 jours, prochaines et dernières opérations |
 | Comptes | Création, solde initial, type, couleur, inclusion dans le disponible, archivage |
-| Transactions | Dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, filtres, recherche |
+| Transactions | Dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
+| Calendrier | Mois en grille : opérations réelles et prévues, solde en fin de journée (réel puis prévu), détail du jour |
+| Budgets | Plafond mensuel par catégorie, progression, alertes (proche / atteint / dépassé, en texte et symbole), reste réservé dans le disponible |
+| Épargne | Objectifs (montant, échéance), suivi via un compte ou manuel, épargne mensuelle nécessaire |
+| Abonnements | Coût mensuel et annuel, détection des paiements réguliers dans l'historique |
+| Analyses | Revenus/dépenses/épargne du mois et taux d'épargne vs mois précédent, 12 mois, catégories, comparaison (montants + %) |
 | À venir | Opérations prévues + occurrences récurrentes ; valider (date et montant réels) ou ignorer |
 | Récurrences | Hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel |
-| Disponible réel | Échéance : fin de semaine, prochaine paie, fin du mois, date personnalisée ; **détail ligne à ligne** du calcul |
+| Disponible réel | Échéance : fin de semaine, prochaine paie, fin du mois, date personnalisée ; **détail ligne à ligne** du calcul, budgets et objectifs réservés, « si aucune autre dépense variable » |
 | Prévisions | Courbe réel (plein) / prévu (pointillés), 7 j à 12 mois, point bas, alerte de solde négatif |
 | Catégories | Catégories par défaut + personnelles, sous-catégories, archivage |
 | Paramètres | Devise de référence, échéance par défaut, **sécurité** (verrouillage auto, changement de mot de passe, nouvelle clé de récupération), **mode confidentialité**, sauvegardes chiffrées (auto à la fermeture avec rotation, export, restauration) |
@@ -44,7 +49,7 @@ Détails et limites : [`docs/CONCEPTION.md`](docs/CONCEPTION.md), section 11.
 
 Raccourcis : `Ctrl+N` nouvelle opération · `Ctrl+M` masquer les montants ·
 `Ctrl+L` verrouiller ·
-`Ctrl+1`…`Ctrl+9` navigation.
+`Ctrl+1`…`Ctrl+9` navigation (neuf premiers écrans).
 
 ## Lancer
 
@@ -110,7 +115,7 @@ devise), centimes (`INTEGER`) en base. Dates : `java.time`.
 
 - Une seule devise de référence pour les totaux ; pas de conversion.
 - Ne pas ouvrir deux instances sur le même dossier de données.
-- Budgets, calendrier, objectifs d'épargne, import CSV, crédits et
-  simulations : versions suivantes (V2 à V4).
+- Import CSV, catégorisation automatique, crédits et simulations : versions
+  suivantes (V3, V4). Étiquettes (tags) non encore disponibles.
 - Installateur Windows (`jpackage`) non encore fourni : le jar + `lib/`
   produits par `mvn package` en sont l'entrée prévue.

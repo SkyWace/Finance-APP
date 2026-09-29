@@ -290,3 +290,41 @@
 .strength-weak { -fx-text-fill: -fa-negative; }
 .strength-fair { -fx-text-fill: -fa-warning; }
 .strength-good { -fx-text-fill: -fa-positive; }
+
+/* ---------- V2 : progression, budgets, calendrier, analyses ---------- */
+.fa-progress { -fx-pref-height: 12; }
+.fa-progress > .track { -fx-background-color: #10151d; -fx-background-radius: 6; -fx-background-insets: 0; }
+.fa-progress > .bar { -fx-background-radius: 6; -fx-background-insets: 0; -fx-padding: 6; }
+.fa-progress.progress-ok > .bar { -fx-background-color: #4c8dff; }
+.fa-progress.progress-done > .bar { -fx-background-color: #3ecf8e; }
+.fa-progress.progress-warning > .bar { -fx-background-color: #f5b942; }
+.fa-progress.progress-danger > .bar { -fx-background-color: #ff6b6b; }
+.fa-progress.progress-neutral > .bar { -fx-background-color: #7d8aa3; }
+.budget-percent { -fx-font-weight: bold; -fx-min-width: 64; -fx-alignment: center-right; }
+.budget-compact { -fx-padding: 2 0 6 0; }
+.badge-danger-small { -fx-text-fill: #ffb0b0; -fx-background-color: #341819; -fx-border-color: #6b2b2d; }
+.month-label { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -fa-text; }
+.field-invalid { -fx-border-color: -fa-negative; }
+.table-header { -fx-text-fill: -fa-muted; -fx-font-weight: bold; -fx-font-size: 12px; }
+
+.calendar-weekday { -fx-text-fill: -fa-muted; -fx-font-weight: bold; -fx-font-size: 12px; }
+.calendar-cell {
+    -fx-background-color: -fa-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -fa-border;
+    -fx-border-radius: 8;
+    -fx-padding: 6 8 6 8;
+}
+.calendar-cell:hover { -fx-border-color: #3a4558; }
+.calendar-past { -fx-background-color: #141922; }
+.calendar-today { -fx-border-color: -fa-accent; -fx-border-width: 2; }
+.calendar-selected { -fx-background-color: #1c2a44; }
+.calendar-day-number { -fx-font-weight: bold; -fx-text-fill: -fa-text; }
+.calendar-op { -fx-font-size: 11px; -fx-text-overrun: ellipsis; }
+.calendar-op-planned { -fx-font-style: italic; -fx-opacity: 0.85; }
+.calendar-balance { -fx-font-size: 11px; }
+
+.income-expense-chart .default-color0.chart-bar { -fx-bar-fill: #3ecf8e; }
+.income-expense-chart .default-color1.chart-bar { -fx-bar-fill: #ff7a7a; }
+.income-expense-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: #3ecf8e; }
+.income-expense-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: #ff7a7a; }

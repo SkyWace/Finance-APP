@@ -42,7 +42,7 @@ Le produit doit donc savoir, à tout instant :
 | Dashboard | Usage quotidien | Moyenne | MVP |
 | Sauvegarde locale + restauration + rotation | Sécurité des données | Moyenne | MVP |
 | Mode confidentialité (masquage des montants) | Faible coût, fort usage | Faible | MVP (bonus) |
-| Budgets, calendrier, épargne, abonnements, stats, recherche | Pilotage | Moyenne | V2 |
+| Budgets, calendrier, épargne, abonnements, stats, recherche | Pilotage | Moyenne | **V2 — livrée** (section 12) |
 | Import CSV, règles de catégorisation, Inbox, doublons | Gain de temps | Élevée | V3 |
 | Crédits, amortissement, simulations *What If* | Décision | Élevée | V4 |
 | Synchronisation bancaire (DSP2 via prestataire agréé) | Confort | Très élevée + réglementaire | V5 (étude) |
@@ -358,3 +358,60 @@ clé nécessaire au démarrage).
   console.
 - Mot de passe **et** clé de récupération perdus = données irrécupérables (par
   conception).
+
+---
+
+## 12. V2 — Pilotage
+
+### Nouveaux modèles et tables (migration `V3__budgets_and_savings_goals.sql`)
+
+| Modèle | Table | Points clés |
+|---|---|---|
+| `Budget` | `budgets` | Plafond mensuel d'une catégorie **et de ses sous-catégories** ; un seul budget actif par catégorie (index unique partiel) ; option « réserver dans le disponible ». |
+| `SavingsGoal` | `savings_goals` | Montant visé, échéance facultative ; épargne suivie via le **solde d'un compte** (livret dédié) ou **à la main** (versements/retraits) ; option « réserver l'effort mensuel ». |
+
+Les abonnements ne sont pas une table : ce sont les récurrences de dépense de la
+catégorie *Abonnements* (`system_code = SUBSCRIPTIONS`) et de ses
+sous-catégories. Les paiements détectés que l'utilisateur écarte sont mémorisés
+dans `settings` (`subscriptions.dismissed`).
+
+### Moteurs (Java pur, testés)
+
+- **`BudgetEngine`** : progression (dépensé / limite, %, reste) et état
+  `OK` / `Proche de la limite` (≥ 80 %) / `Atteint` / `Dépassé`, chacun avec un
+  libellé et un symbole. **Réserve** pour le disponible réel : reste du mois
+  courant *moins les dépenses déjà prévues dans la catégorie* (jamais comptées
+  deux fois), au prorata des jours couverts par l'échéance, plus un prorata du
+  budget des mois suivants si l'échéance les atteint.
+- **`SavingsGoalCalculator`** : reste, %, mois restants (du mois suivant au mois
+  de l'échéance inclus), épargne mensuelle nécessaire (exemple du brief :
+  1 750 € sur 15 mois = 116,67 €), objectif atteint / échéance dépassée.
+- **`RecurringPaymentDetector`** : libellé normalisé (casse, accents, chiffres,
+  préfixes bancaires), intervalle stable (hebdomadaire → annuel), montant stable
+  (± 15 %), non encore enregistré, non interrompu. Rien n'est créé sans
+  validation.
+- **`StatisticsEngine`** : bilans mensuels (revenus, dépenses, épargné, taux
+  d'épargne), moyenne sur les mois complets, répartition par catégorie racine,
+  comparaison de périodes **avec montants absolus et pourcentages** (pas de
+  pourcentage depuis zéro).
+
+### Intégration au disponible réel
+
+`AvailableBalanceService` reçoit des `ReservationProvider` (budgets, objectifs).
+Chaque réservation apparaît comme une ligne du détail. La ligne **« Si aucune
+autre dépense variable »** (vue *Fin de mois* du brief) donne le disponible hors
+réservations.
+
+### Écrans ajoutés
+
+Calendrier (grille mensuelle, solde réel puis prévu en fin de journée, détail
+du jour) · Budgets · Épargne · Abonnements (coût mensuel **et annuel**,
+détection) · Analyses (trajectoire du mois vs mois précédent, revenus/dépenses
+sur 12 mois, catégories, comparaison) · Recherche avancée dans Transactions
+(catégorie, période personnalisée, montant min./max., totaux calculés sur tous
+les résultats : nombre, total dépensé, moyenne, revenus).
+
+### Reporté
+
+Étiquettes (tags) et leur filtre ; budgets non mensuels ; comparaison de
+périodes arbitraires (V3, « analyses avancées »).

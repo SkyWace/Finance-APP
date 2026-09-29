@@ -15,6 +15,7 @@ public final class SettingsService {
     static final String BACKUP_AUTO_KEEP = "backup.auto.keep";
     static final String PRIVACY_MODE = "ui.privacy_mode";
     static final String AUTO_LOCK_MINUTES = "security.auto_lock_minutes";
+    static final String DISMISSED_PAYMENTS = "subscriptions.dismissed";
 
     public static final int MIN_BACKUPS_KEPT = 2;
 
@@ -97,6 +98,18 @@ public final class SettingsService {
 
     public void setAutoLockMinutes(int minutes) {
         repository.put(AUTO_LOCK_MINUTES, Integer.toString(Math.max(0, minutes)));
+    }
+
+    /** Libelles normalises des paiements reguliers que l'utilisateur a choisi d'ignorer. */
+    public java.util.Set<String> dismissedRecurringPayments() {
+        return repository.get(DISMISSED_PAYMENTS)
+                .map(v -> java.util.Arrays.stream(v.split("\n")).filter(x -> !x.isBlank())
+                        .collect(java.util.stream.Collectors.toCollection(java.util.TreeSet::new)))
+                .orElseGet(java.util.TreeSet::new);
+    }
+
+    public void setDismissedRecurringPayments(java.util.Set<String> labels) {
+        repository.put(DISMISSED_PAYMENTS, String.join("\n", new java.util.TreeSet<>(labels)));
     }
 
     private boolean bool(String key, boolean defaultValue) {

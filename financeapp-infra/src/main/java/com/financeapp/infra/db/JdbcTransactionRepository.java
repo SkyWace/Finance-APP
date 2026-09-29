@@ -1,6 +1,8 @@
 package com.financeapp.infra.db;
 
+import com.financeapp.core.money.Money;
 import com.financeapp.core.port.OccurrenceKey;
+import com.financeapp.core.port.SearchTotals;
 import com.financeapp.core.port.TransactionQuery;
 import com.financeapp.core.port.TransactionRepository;
 import com.financeapp.core.transaction.Transaction;
@@ -128,8 +130,33 @@ public final class JdbcTransactionRepository implements TransactionRepository {
 
     @Override
     public List<Transaction> search(TransactionQuery q) {
-        StringBuilder sql = new StringBuilder(SELECT).append(" WHERE 1 = 1");
         Map<String, Object> params = new HashMap<>();
+        String sql = SELECT + " WHERE " + where(q, params) + " ORDER BY t.date DESC, t.id DESC LIMIT :limit OFFSET :offset";
+        params.put("limit", q.limit());
+        params.put("offset", q.offset());
+        return jdbc.sql(sql).params(params).query(MAPPER).list();
+    }
+
+    @Override
+    public SearchTotals summarize(TransactionQuery q, Currency currency) {
+        Map<String, Object> params = new HashMap<>();
+        String sql = """
+                SELECT count(*) AS n,
+                       coalesce(sum(CASE WHEN t.type = 'EXPENSE' THEN 1 ELSE 0 END), 0) AS n_expenses,
+                       coalesce(sum(CASE WHEN t.type = 'EXPENSE' THEN t.amount_minor ELSE 0 END), 0) AS expenses,
+                       coalesce(sum(CASE WHEN t.type = 'INCOME' THEN t.amount_minor ELSE 0 END), 0) AS income
+                FROM transactions t JOIN accounts a ON a.id = t.account_id
+                WHERE\s""" + where(q, params) + " AND a.currency = :currency AND t.status <> 'CANCELLED' AND t.type <> 'TRANSFER'";
+        params.put("currency", currency.getCurrencyCode());
+        return jdbc.sql(sql).params(params).query((rs, i) -> new SearchTotals(
+                rs.getLong("n"), rs.getLong("n_expenses"),
+                Money.ofMinor(rs.getLong("expenses"), currency),
+                Money.ofMinor(rs.getLong("income"), currency))).single();
+    }
+
+    /** Clause WHERE commune a la recherche et a ses totaux. */
+    private static String where(TransactionQuery q, Map<String, Object> params) {
+        StringBuilder sql = new StringBuilder("1 = 1");
         if (q.accountId() != null) {
             sql.append(" AND t.account_id = :account");
             params.put("account", q.accountId());
@@ -154,10 +181,20 @@ public final class JdbcTransactionRepository implements TransactionRepository {
             sql.append(" AND t.status IN (:statuses)");
             params.put("statuses", q.statuses().stream().map(Enum::name).toList());
         }
-        sql.append(" ORDER BY t.date DESC, t.id DESC LIMIT :limit OFFSET :offset");
-        params.put("limit", q.limit());
-        params.put("offset", q.offset());
-        return jdbc.sql(sql.toString()).params(params).query(MAPPER).list();
+        if (q.type() != null) {
+            sql.append(" AND t.type = :type");
+            params.put("type", q.type().name());
+        }
+        // Montants filtres en valeur absolue ; conversion en centimes (devises a 2 decimales).
+        if (q.minAmount() != null) {
+            sql.append(" AND abs(t.amount_minor) >= :minAmount");
+            params.put("minAmount", q.minAmount().movePointRight(2).setScale(0, java.math.RoundingMode.CEILING).longValueExact());
+        }
+        if (q.maxAmount() != null) {
+            sql.append(" AND abs(t.amount_minor) <= :maxAmount");
+            params.put("maxAmount", q.maxAmount().movePointRight(2).setScale(0, java.math.RoundingMode.FLOOR).longValueExact());
+        }
+        return sql.toString();
     }
 
     private static String escapeLike(String text) {
