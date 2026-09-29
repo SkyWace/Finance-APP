@@ -66,6 +66,19 @@ public final class Formats {
         return f.format(m.amount());
     }
 
+    /** Pourcentage a la francaise : "73,6 %" ; masque en mode confidentialite si demande. */
+    public static String percent(java.math.BigDecimal value) {
+        return value == null ? "—" : value.stripTrailingZeros().toPlainString().replace('.', ',') + " %";
+    }
+
+    /** Pourcentage signe : "+14 %", "-8 %". */
+    public static String signedPercent(java.math.BigDecimal value) {
+        if (value == null) {
+            return "nouveau";
+        }
+        return (value.signum() > 0 ? "+" : "") + percent(value);
+    }
+
     public static String symbol(Currency c) {
         return c.getSymbol(LOCALE);
     }

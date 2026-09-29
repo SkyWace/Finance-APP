@@ -33,6 +33,12 @@ public interface TransactionRepository {
 
     List<Transaction> search(TransactionQuery query);
 
+    /**
+     * Totaux sur l'ensemble des resultats de la requete (sans pagination), pour les
+     * comptes de la devise donnee ; operations annulees et virements internes exclus.
+     */
+    SearchTotals summarize(TransactionQuery query, java.util.Currency currency);
+
     /** Somme, en unites mineures, des operations comptees dans le solde, par compte. */
     Map<Long, Long> sumCountedMinorByAccount();
 

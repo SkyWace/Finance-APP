@@ -9,6 +9,11 @@ import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
 import com.financeapp.desktop.ui.dialogs.TransactionDialog;
 import com.financeapp.desktop.ui.pages.AccountsPage;
+import com.financeapp.desktop.ui.pages.AnalysisPage;
+import com.financeapp.desktop.ui.pages.BudgetsPage;
+import com.financeapp.desktop.ui.pages.CalendarPage;
+import com.financeapp.desktop.ui.pages.SavingsGoalsPage;
+import com.financeapp.desktop.ui.pages.SubscriptionsPage;
 import com.financeapp.desktop.ui.pages.AvailablePage;
 import com.financeapp.desktop.ui.pages.CategoriesPage;
 import com.financeapp.desktop.ui.pages.DashboardPage;
@@ -50,9 +55,14 @@ public final class MainWindow {
             new NavEntry("accounts", "▣", "Comptes", AccountsPage::new),
             new NavEntry("transactions", "≡", "Transactions", TransactionsPage::new),
             new NavEntry("upcoming", "◷", "À venir", UpcomingPage::new),
-            new NavEntry("recurring", "↻", "Récurrences", RecurringPage::new),
+            new NavEntry("calendar", "▤", "Calendrier", CalendarPage::new),
+            new NavEntry("budgets", "◔", "Budgets", BudgetsPage::new),
+            new NavEntry("goals", "◆", "Épargne", SavingsGoalsPage::new),
             new NavEntry("available", "◎", "Disponible réel", AvailablePage::new),
             new NavEntry("forecast", "↗", "Prévisions", ForecastPage::new),
+            new NavEntry("recurring", "↻", "Récurrences", RecurringPage::new),
+            new NavEntry("subscriptions", "♺", "Abonnements", SubscriptionsPage::new),
+            new NavEntry("analysis", "▥", "Analyses", AnalysisPage::new),
             new NavEntry("categories", "▦", "Catégories", CategoriesPage::new),
             new NavEntry("settings", "⚙", "Paramètres", SettingsPage::new),
     };

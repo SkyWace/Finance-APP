@@ -8,6 +8,11 @@ import com.financeapp.core.recurring.RecurrenceEngine;
 import com.financeapp.core.recurring.RecurringRule;
 import com.financeapp.core.service.AccountService;
 import com.financeapp.core.service.AvailableBalanceService;
+import com.financeapp.core.service.BudgetService;
+import com.financeapp.core.service.CalendarService;
+import com.financeapp.core.service.SavingsGoalService;
+import com.financeapp.core.service.StatisticsService;
+import com.financeapp.core.service.SubscriptionService;
 import com.financeapp.core.service.CategoryService;
 import com.financeapp.core.service.DashboardService;
 import com.financeapp.core.service.ForecastService;
@@ -39,6 +44,11 @@ public final class TestApp {
     public final AvailableBalanceService available;
     public final ForecastService forecast;
     public final DashboardService dashboard;
+    public final BudgetService budgets;
+    public final SavingsGoalService goals;
+    public final SubscriptionService subscriptions;
+    public final StatisticsService statistics;
+    public final CalendarService calendar;
 
     public TestApp(LocalDate today) {
         this.today = today;
@@ -50,9 +60,14 @@ public final class TestApp {
         recurring = new RecurringService(store.rules, store.transactions, store.accounts, transactions,
                 new RecurrenceEngine(), clock);
         planning = new PlanningService(store.transactions, recurring, clock);
-        available = new AvailableBalanceService(accounts, planning, recurring, settings);
+        budgets = new BudgetService(store.budgets, store.transactions, planning, categories, settings);
+        goals = new SavingsGoalService(store.goals, accounts, planning);
+        available = new AvailableBalanceService(accounts, planning, recurring, settings, java.util.List.of(budgets, goals));
+        subscriptions = new SubscriptionService(recurring, categories, store.transactions, planning, settings);
+        statistics = new StatisticsService(store.transactions, categories, accounts, planning, settings);
         forecast = new ForecastService(available, planning, store.transactions, settings);
         dashboard = new DashboardService(accounts, store.transactions, planning, available, settings);
+        calendar = new CalendarService(store.transactions, planning, forecast);
     }
 
     public Account account(String name, AccountType type, String initialBalance) {
@@ -62,6 +77,11 @@ public final class TestApp {
     public Transaction expense(Account a, LocalDate date, String label, String amount, TransactionStatus status) {
         return transactions.create(new TransactionDraft(a.id(), date, label, new BigDecimal(amount),
                 TransactionType.EXPENSE, status, null, null));
+    }
+
+    public Transaction expense(Account a, LocalDate date, String label, String amount, Long categoryId) {
+        return transactions.create(new TransactionDraft(a.id(), date, label, new BigDecimal(amount),
+                TransactionType.EXPENSE, TransactionStatus.COMPLETED, categoryId, null));
     }
 
     public Transaction income(Account a, LocalDate date, String label, String amount, TransactionStatus status) {

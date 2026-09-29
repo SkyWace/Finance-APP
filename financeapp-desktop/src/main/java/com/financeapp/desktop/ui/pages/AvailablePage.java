@@ -100,6 +100,13 @@ public final class AvailablePage extends Page {
         HBox totalRow = Widgets.row(Widgets.label("= DISPONIBLE RÉEL", "total-label"), Widgets.spacer(), total);
         totalRow.getStyleClass().add("total-row");
         explanation.getChildren().add(totalRow);
+        if (r.section(AvailableBalanceResult.SectionKind.RESERVATIONS).isPresent()) {
+            // Vue "fin de mois" : distinction depenses obligatoires / budgets variables.
+            HBox without = Widgets.row(Widgets.label("SI AUCUNE AUTRE DÉPENSE VARIABLE", "total-label"), Widgets.spacer(),
+                    Widgets.label(f.money(r.availableBeforeReservations()), "op-label"));
+            Label hint = Widgets.label("Ce montant ne tient pas compte des budgets et objectifs réservés ci-dessus.", "op-detail");
+            explanation.getChildren().addAll(without, hint);
+        }
 
         Label how = Widgets.label("Solde actuel des comptes inclus dans le disponible (effectué + en attente), "
                 + "moins les dépenses prévues et récurrentes jusqu'à l'échéance (retards compris), moins les virements "

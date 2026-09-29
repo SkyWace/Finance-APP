@@ -36,8 +36,10 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
     private final CheckBox active = new CheckBox("Récurrence active");
     private final TextField note = new TextField();
 
+    /** @param existing regle a modifier, ou modele pre-rempli sans identifiant (creation), ou {@code null} */
     public RecurringDialog(UiContext ctx, RecurringRule existing) {
-        super(ctx, existing == null ? "Nouvelle opération récurrente" : "Modifier la récurrence", "Enregistrer");
+        super(ctx, existing == null || existing.id() == null ? "Nouvelle opération récurrente" : "Modifier la récurrence",
+                "Enregistrer");
         this.existing = existing;
         var accounts = ctx.services().accounts().findAll();
 

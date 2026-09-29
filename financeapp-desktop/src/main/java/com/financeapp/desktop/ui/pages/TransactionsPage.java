@@ -49,7 +49,7 @@ public final class TransactionsPage extends Page {
 
     private enum Period {
         ALL("Toutes les dates"), THIS_MONTH("Ce mois-ci"), LAST_MONTH("Mois précédent"),
-        LAST_3_MONTHS("3 derniers mois"), THIS_YEAR("Cette année"), FUTURE("À venir");
+        LAST_3_MONTHS("3 derniers mois"), THIS_YEAR("Cette année"), FUTURE("À venir"), CUSTOM("Période personnalisée…");
 
         final String label;
 
@@ -68,6 +68,11 @@ public final class TransactionsPage extends Page {
     private final ComboBox<Choice<Set<TransactionStatus>>> statusFilter = new ComboBox<>();
     private final ComboBox<Period> periodFilter = new ComboBox<>();
     private final TextField search = new TextField();
+    private final ComboBox<Choice<Long>> categoryFilter = new ComboBox<>();
+    private final TextField minAmount = new TextField();
+    private final TextField maxAmount = new TextField();
+    private final javafx.scene.control.DatePicker fromDate = Widgets.datePicker(null);
+    private final javafx.scene.control.DatePicker toDate = Widgets.datePicker(null);
     private final Label footer = Widgets.label("", "muted");
     private final Button loadMore = new Button("Charger plus");
     private Map<Long, Account> accounts = Map.of();
@@ -99,6 +104,22 @@ public final class TransactionsPage extends Page {
         accountFilter.setOnAction(e -> resetAndRefresh());
         statusFilter.setOnAction(e -> resetAndRefresh());
         periodFilter.setOnAction(e -> resetAndRefresh());
+        categoryFilter.setOnAction(e -> resetAndRefresh());
+        categoryFilter.setPrefWidth(210);
+        minAmount.setPromptText("Montant min.");
+        maxAmount.setPromptText("max.");
+        minAmount.setPrefWidth(105);
+        maxAmount.setPrefWidth(80);
+        minAmount.textProperty().addListener((o, old, v) -> debounce.playFromStart());
+        maxAmount.textProperty().addListener((o, old, v) -> debounce.playFromStart());
+        for (var picker : new javafx.scene.control.DatePicker[]{fromDate, toDate}) {
+            picker.setPrefWidth(135);
+            picker.visibleProperty().bind(periodFilter.valueProperty().isEqualTo(Period.CUSTOM));
+            picker.managedProperty().bind(picker.visibleProperty());
+            picker.valueProperty().addListener((o, old, v) -> resetAndRefresh());
+        }
+        fromDate.setPromptText("Du");
+        toDate.setPromptText("Au");
         loadMore.getStyleClass().add("ghost");
         loadMore.setOnAction(e -> {
             limit += PAGE_SIZE;
@@ -106,7 +127,9 @@ public final class TransactionsPage extends Page {
         });
 
         HBox actions = Widgets.row(expense, income, transfer, Widgets.spacer(), search);
-        HBox filters = Widgets.row(Widgets.label("Filtres", "muted"), accountFilter, periodFilter, statusFilter);
+        javafx.scene.layout.FlowPane filters = new javafx.scene.layout.FlowPane(8, 8, Widgets.label("Filtres", "muted"),
+                accountFilter, categoryFilter, periodFilter, fromDate, toDate, statusFilter, minAmount, maxAmount);
+        filters.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         HBox bottom = Widgets.row(footer, Widgets.spacer(), loadMore);
         VBox.setVgrow(table, Priority.ALWAYS);
         content.getChildren().setAll(actions, filters, table, bottom);
@@ -142,6 +165,19 @@ public final class TransactionsPage extends Page {
         }
         accountFilter.setOnAction(e -> resetAndRefresh());
 
+        Long selectedCategory = Widgets.selected(categoryFilter);
+        categoryFilter.setOnAction(null);
+        categoryFilter.getItems().setAll(new Choice<>(null, "Toutes les catégories"));
+        ctx.services().categories().activeTree().forEach((root, children) -> {
+            categoryFilter.getItems().add(new Choice<>(root.id(), root.name()));
+            children.forEach(c -> categoryFilter.getItems().add(new Choice<>(c.id(), "   " + root.name() + " › " + c.name())));
+        });
+        Widgets.select(categoryFilter, selectedCategory);
+        if (categoryFilter.getValue() == null) {
+            categoryFilter.getSelectionModel().selectFirst();
+        }
+        categoryFilter.setOnAction(e -> resetAndRefresh());
+
         LocalDate today = ctx.services().planning().today();
         LocalDate from = null;
         LocalDate to = null;
@@ -157,31 +193,45 @@ public final class TransactionsPage extends Page {
             case LAST_3_MONTHS -> from = today.minusMonths(3);
             case THIS_YEAR -> from = today.withDayOfYear(1);
             case FUTURE -> from = today.plusDays(1);
+            case CUSTOM -> {
+                from = fromDate.getValue();
+                to = toDate.getValue();
+            }
             case ALL -> { }
         }
         TransactionQuery query = new TransactionQuery(Widgets.selected(accountFilter), from, to,
-                search.getText().isBlank() ? null : search.getText(), null,
-                Widgets.selected(statusFilter), limit, 0);
+                search.getText().isBlank() ? null : search.getText(), Widgets.selected(categoryFilter),
+                Widgets.selected(statusFilter), null, amount(minAmount), amount(maxAmount), limit, 0);
         List<Transaction> rows = ctx.services().transactions().search(query);
         table.getItems().setAll(rows);
         loadMore.setVisible(rows.size() >= limit);
-        updateFooter(rows);
+        updateFooter(rows, query);
         table.refresh();
     }
 
-    private void updateFooter(List<Transaction> rows) {
-        Formats f = ctx.formats();
-        List<Transaction> counted = rows.stream()
-                .filter(t -> !t.isTransfer() && t.status() != TransactionStatus.CANCELLED).toList();
-        if (counted.isEmpty() || counted.stream().map(t -> t.amount().currency()).distinct().count() > 1) {
-            footer.setText(rows.size() + " opération(s)");
-            return;
+    /** Montant de filtre saisi (valeur absolue) ; saisie invalide signalee et ignoree. */
+    private static java.math.BigDecimal amount(TextField field) {
+        field.getStyleClass().remove("field-invalid");
+        if (field.getText().isBlank()) {
+            return null;
         }
-        Money zero = Money.zero(counted.getFirst().amount().currency());
-        Money in = counted.stream().map(Transaction::amount).filter(Money::isPositive).reduce(zero, Money::plus);
-        Money out = counted.stream().map(Transaction::amount).filter(Money::isNegative).reduce(zero, Money::plus);
-        footer.setText(rows.size() + " opération(s) · entrées " + f.signed(in) + " · sorties " + f.signed(out)
-                + " (virements internes et annulations exclus)");
+        var value = com.financeapp.desktop.ui.common.AmountParser.parse(field.getText()).map(java.math.BigDecimal::abs);
+        if (value.isEmpty()) {
+            field.getStyleClass().add("field-invalid");
+        }
+        return value.orElse(null);
+    }
+
+    /** Totaux calcules sur TOUS les resultats de la recherche, pas seulement les lignes chargees. */
+    private void updateFooter(List<Transaction> rows, TransactionQuery query) {
+        Formats f = ctx.formats();
+        var totals = ctx.services().transactions().summarize(query, ctx.services().settings().baseCurrency());
+        String shown = rows.size() >= limit ? " (" + rows.size() + " affichées)" : "";
+        footer.setText(totals.count() + " opération(s)" + shown
+                + " · total dépensé " + f.money(totals.expenses().negate())
+                + (totals.expenseCount() > 0 ? " · moyenne " + f.money(totals.averageExpense()) : "")
+                + " · revenus " + f.money(totals.income())
+                + "   (virements internes et annulations exclus)");
     }
 
     private void buildTable() {

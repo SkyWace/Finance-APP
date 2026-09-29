@@ -28,7 +28,8 @@ import java.util.stream.Collectors;
 /** Reponse immediate aux questions : combien ai-je, combien vais-je avoir, combien puis-je depenser. */
 public final class DashboardPage extends Page {
 
-    private record Data(DashboardSummary summary, Forecast forecast, List<Account> accounts) {
+    private record Data(DashboardSummary summary, Forecast forecast, List<Account> accounts,
+                        List<com.financeapp.core.budget.BudgetProgress> budgets) {
     }
 
     public DashboardPage(UiContext ctx) {
@@ -43,8 +44,8 @@ public final class DashboardPage extends Page {
     @Override
     public void refresh() {
         var s = ctx.services();
-        UiAsync.load(() -> new Data(s.dashboard().summary(), s.forecast().forecast(30, 30), s.accounts().findAll()),
-                this::render);
+        UiAsync.load(() -> new Data(s.dashboard().summary(), s.forecast().forecast(30, 30), s.accounts().findAll(),
+                s.budgets().progress(java.time.YearMonth.from(s.planning().today()))), this::render);
     }
 
     private void render(Data data) {
@@ -112,8 +113,18 @@ public final class DashboardPage extends Page {
             recent.getChildren().add(Widgets.emptyState("Aucune opération enregistrée pour l'instant."));
         }
         VBox recentCard = Widgets.section("Dernières opérations", recent, link("Toutes les transactions ›", "transactions"));
+        HBox.setHgrow(recentCard, javafx.scene.layout.Priority.ALWAYS);
+        HBox bottom = new HBox(14, recentCard);
+        if (!data.budgets().isEmpty()) {
+            VBox budgetList = new VBox(10);
+            data.budgets().stream().limit(4).forEach(p -> budgetList.getChildren().add(BudgetsPage.budgetCard(p, f, true)));
+            VBox budgetCard = Widgets.section("Budgets du mois", budgetList, link("Tous les budgets ›", "budgets"));
+            budgetCard.setPrefWidth(400);
+            budgetCard.setMinWidth(340);
+            bottom.getChildren().add(budgetCard);
+        }
 
-        content.getChildren().addAll(row1, row2, new HBox(14, chartCard, upcomingCard), recentCard);
+        content.getChildren().addAll(row1, row2, new HBox(14, chartCard, upcomingCard), bottom);
         if (s.excludedAccounts() > 0) {
             content.getChildren().add(Widgets.label(s.excludedAccounts()
                     + " compte(s) dans une autre devise ne sont pas inclus dans ces totaux (aucune conversion automatique).", "muted"));

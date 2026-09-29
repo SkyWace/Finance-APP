@@ -63,6 +63,27 @@ public final class CategoryService {
         return names;
     }
 
+    /** La categorie et ses sous-categories (un budget ou un filtre sur "Alimentation" couvre "Courses"). */
+    public java.util.Set<Long> selfAndChildren(long id) {
+        java.util.Set<Long> ids = new java.util.HashSet<>();
+        ids.add(id);
+        categories.findAll().stream().filter(c -> Objects.equals(c.parentId(), id)).forEach(c -> ids.add(c.id()));
+        return ids;
+    }
+
+    /** Categorie racine de chaque categorie (une racine est sa propre racine). */
+    public Map<Long, Long> rootIndex() {
+        Map<Long, Long> roots = new java.util.HashMap<>();
+        for (Category c : categories.findAll()) {
+            roots.put(c.id(), c.isRoot() ? c.id() : c.parentId());
+        }
+        return roots;
+    }
+
+    public Optional<Category> findBySystemCode(String code) {
+        return categories.findAll().stream().filter(c -> code.equals(c.systemCode())).findFirst();
+    }
+
     public Category create(Long parentId, String name, CategoryKind kind) {
         CategoryKind effectiveKind = kind;
         if (parentId != null) {

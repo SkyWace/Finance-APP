@@ -2,6 +2,11 @@ package com.financeapp.desktop.ui.common;
 
 import com.financeapp.core.service.AccountService;
 import com.financeapp.core.service.AvailableBalanceService;
+import com.financeapp.core.service.BudgetService;
+import com.financeapp.core.service.CalendarService;
+import com.financeapp.core.service.SavingsGoalService;
+import com.financeapp.core.service.StatisticsService;
+import com.financeapp.core.service.SubscriptionService;
 import com.financeapp.core.service.CategoryService;
 import com.financeapp.core.service.DashboardService;
 import com.financeapp.core.service.ForecastService;
@@ -27,7 +32,12 @@ public record AppServices(
         AvailableBalanceService available,
         ForecastService forecast,
         DashboardService dashboard,
-        BackupService backups) {
+        BackupService backups,
+        BudgetService budgets,
+        SavingsGoalService goals,
+        SubscriptionService subscriptions,
+        StatisticsService statistics,
+        CalendarService calendar) {
 
     public static AppServices from(ApplicationContext ctx) {
         return new AppServices(
@@ -42,6 +52,11 @@ public record AppServices(
                 ctx.getBean(AvailableBalanceService.class),
                 ctx.getBean(ForecastService.class),
                 ctx.getBean(DashboardService.class),
-                ctx.getBean(BackupService.class));
+                ctx.getBean(BackupService.class),
+                ctx.getBean(BudgetService.class),
+                ctx.getBean(SavingsGoalService.class),
+                ctx.getBean(SubscriptionService.class),
+                ctx.getBean(StatisticsService.class),
+                ctx.getBean(CalendarService.class));
     }
 }
