@@ -26,7 +26,9 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
     <spring-boot.version>4.1.1</spring-boot.version>
+    <!-- Fork de xerial sqlite-jdbc embarquant SQLite3MultipleCiphers (chiffrement compatible SQLCipher) -->
     <sqlite-jdbc.version>3.53.4.0</sqlite-jdbc.version>
+    <bouncycastle.version>1.86</bouncycastle.version>
     <javafx.version>21.0.12</javafx.version>
   </properties>
 
@@ -41,9 +43,14 @@
         <scope>import</scope>
       </dependency>
       <dependency>
-        <groupId>org.xerial</groupId>
+        <groupId>io.github.willena</groupId>
         <artifactId>sqlite-jdbc</artifactId>
         <version>${sqlite-jdbc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
       </dependency>
       <dependency>
         <groupId>com.financeapp</groupId>

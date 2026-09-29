@@ -257,3 +257,36 @@
 .scroll-bar .increment-arrow, .scroll-bar .decrement-arrow { -fx-shape: " "; -fx-padding: 0; }
 .tooltip { -fx-background-color: #232a36; -fx-text-fill: -fa-text; -fx-font-size: 12px; }
 .context-menu { -fx-background-color: #1e2430; }
+
+/* ---------- Ecran de verrouillage / mot de passe maitre ---------- */
+.lock-root { -fx-background-color: radial-gradient(center 50% 30%, radius 80%, #16213a, #0b0e14); }
+.lock-card {
+    -fx-background-color: -fa-surface;
+    -fx-background-radius: 16;
+    -fx-border-color: -fa-border;
+    -fx-border-radius: 16;
+    -fx-padding: 32 36 32 36;
+    -fx-max-width: 520;
+    -fx-pref-width: 520;
+}
+.lock-brand { -fx-text-fill: -fa-accent; -fx-font-size: 14px; -fx-font-weight: bold; }
+.lock-title { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: -fa-text; }
+.lock-text { -fx-text-fill: #c9ced8; -fx-font-size: 13px; }
+.lock-warning { -fx-text-fill: #ffd27a; -fx-font-size: 12px; }
+.lock-card .password-field, .lock-card .text-field { -fx-pref-height: 38; -fx-font-size: 14px; }
+.recovery-key {
+    -fx-font-family: "JetBrains Mono", "Consolas", "DejaVu Sans Mono", monospace;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-background-color: #0f1724;
+    -fx-border-color: -fa-accent;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14 16 14 16;
+}
+.recovery-input { -fx-font-family: "JetBrains Mono", "Consolas", "DejaVu Sans Mono", monospace; }
+.strength { -fx-font-size: 12px; }
+.strength-weak { -fx-text-fill: -fa-negative; }
+.strength-fair { -fx-text-fill: -fa-warning; }
+.strength-good { -fx-text-fill: -fa-positive; }

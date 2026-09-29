@@ -8,22 +8,25 @@ import com.financeapp.core.service.PlanningService;
 import com.financeapp.core.service.RecurringService;
 import com.financeapp.core.service.TransactionService;
 import com.financeapp.core.settings.SettingsService;
+import com.financeapp.infra.security.DatabaseKey;
+import com.financeapp.infra.security.EncryptedDataSource;
 import com.financeapp.infra.storage.AppDirectories;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.sqlite.SQLiteDataSource;
 
 import java.nio.file.Path;
+import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 
-/** Base SQLite reelle dans un dossier temporaire, migree, avec les services du core branches dessus. */
+/** Base SQLite chiffree reelle dans un dossier temporaire, migree, avec les services du core branches dessus. */
 public final class SqliteTestDb {
 
     public final AppDirectories dirs;
-    public final SQLiteDataSource dataSource;
+    public final DatabaseKey key;
+    public final EncryptedDataSource dataSource;
     public final DatabaseMigrator migrator;
     public final JdbcClient jdbc;
     public final JdbcAccountRepository accountRepo;
@@ -41,8 +44,15 @@ public final class SqliteTestDb {
     public final AvailableBalanceService available;
 
     public SqliteTestDb(Path root, LocalDate today) {
+        this(root, today, randomKey());
+    }
+
+    /** Base chiffree (comme en production) avec la cle donnee. */
+    public SqliteTestDb(Path root, LocalDate today, byte[] rawKey) {
         dirs = new AppDirectories(root).createAll();
-        dataSource = SqliteDataSourceFactory.create(dirs.databaseFile());
+        key = new DatabaseKey();
+        key.unlock(rawKey);
+        dataSource = new EncryptedDataSource(dirs.databaseFile(), key);
         migrator = new DatabaseMigrator(dataSource);
         migrator.migrate();
         jdbc = JdbcClient.create(dataSource);
@@ -60,5 +70,11 @@ public final class SqliteTestDb {
         recurring = new RecurringService(ruleRepo, transactionRepo, accountRepo, transactions, new RecurrenceEngine(), clock);
         planning = new PlanningService(transactionRepo, recurring, clock);
         available = new AvailableBalanceService(accounts, planning, recurring, settings);
+    }
+
+    public static byte[] randomKey() {
+        byte[] k = new byte[32];
+        new SecureRandom().nextBytes(k);
+        return k;
     }
 }

@@ -2,13 +2,18 @@ package com.financeapp.desktop.ui.pages;
 
 import com.financeapp.core.available.HorizonType;
 import com.financeapp.core.settings.SettingsService;
+import com.financeapp.desktop.ui.common.Choice;
 import com.financeapp.desktop.ui.common.Dialogs;
 import com.financeapp.desktop.ui.common.Formats;
 import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
+import com.financeapp.desktop.ui.dialogs.ChangePasswordDialog;
+import com.financeapp.desktop.ui.dialogs.PasswordPromptDialog;
+import com.financeapp.desktop.ui.security.RecoveryKeyPanel;
 import com.financeapp.infra.backup.BackupInfo;
 import com.financeapp.infra.backup.BackupService;
 import com.financeapp.infra.backup.InvalidBackupException;
+import com.financeapp.infra.security.InvalidSecretException;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -42,7 +47,7 @@ public final class SettingsPage extends Page {
 
     @Override
     public void refresh() {
-        content.getChildren().setAll(generalSection(), privacySection(), backupSection(), aboutSection());
+        content.getChildren().setAll(generalSection(), securitySection(), privacySection(), backupSection(), aboutSection());
     }
 
     private VBox generalSection() {
@@ -67,13 +72,72 @@ public final class SettingsPage extends Page {
                 income);
     }
 
+    private VBox securitySection() {
+        ComboBox<Choice<Integer>> autoLock = new ComboBox<>();
+        autoLock.getItems().setAll(List.of(new Choice<>(0, "Jamais"), new Choice<>(1, "Après 1 minute"),
+                new Choice<>(5, "Après 5 minutes"), new Choice<>(15, "Après 15 minutes"),
+                new Choice<>(30, "Après 30 minutes"), new Choice<>(60, "Après 1 heure")));
+        Widgets.select(autoLock, ctx.security().autoLockMinutesProperty().get());
+        if (autoLock.getValue() == null) {
+            autoLock.getSelectionModel().select(2);
+        }
+        autoLock.setOnAction(e -> ctx.security().autoLockMinutesProperty().set(Widgets.selected(autoLock)));
+
+        Button lock = new Button("Verrouiller maintenant");
+        lock.getStyleClass().add("secondary");
+        lock.setOnAction(e -> ctx.security().lockNow());
+        Button change = new Button("Changer le mot de passe maître…");
+        change.getStyleClass().add("secondary");
+        change.setOnAction(e -> new ChangePasswordDialog(ctx).showAndWait().ifPresent(ok ->
+                Dialogs.info(window(), "Mot de passe modifié", "Votre nouveau mot de passe maître est en place.")));
+        Button recovery = new Button("Générer une nouvelle clé de récupération…");
+        recovery.getStyleClass().add("ghost");
+        recovery.setOnAction(e -> regenerateRecoveryKey());
+
+        Label how = Widgets.label("Vos données sont chiffrées sur le disque (SQLCipher, AES-256). Leur clé est protégée par "
+                + "votre mot de passe maître (Argon2id) et par votre clé de récupération ; aucun mot de passe n'est stocké. "
+                + "Au verrouillage, la clé est effacée de la mémoire. Raccourci : Ctrl+L.", "muted");
+        how.setWrapText(true);
+        return Widgets.section("Sécurité",
+                labeled("Verrouillage automatique en cas d'inactivité", autoLock),
+                Widgets.row(lock, change, recovery),
+                how);
+    }
+
+    private void regenerateRecoveryKey() {
+        PasswordPromptDialog.ask(window(), "Nouvelle clé de récupération",
+                "L'ancienne clé de récupération cessera de fonctionner. Confirmez avec votre mot de passe maître.")
+                .ifPresent(password -> {
+                    try {
+                        char[] key = ctx.security().vault().regenerateRecoveryKey(password);
+                        javafx.scene.control.Dialog<Void> dialog = new javafx.scene.control.Dialog<>();
+                        dialog.setTitle("Nouvelle clé de récupération");
+                        Dialogs.style(dialog.getDialogPane(), window(), dialog);
+                        dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
+                        javafx.scene.Node closeButton = dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.CLOSE);
+                        closeButton.setVisible(false);
+                        closeButton.setManaged(false);
+                        dialog.getDialogPane().setContent(RecoveryKeyPanel.build(key, "Terminer", () -> {
+                            java.util.Arrays.fill(key, '\0');
+                            dialog.close();
+                        }));
+                        dialog.showAndWait();
+                    } catch (InvalidSecretException ex) {
+                        Dialogs.error(window(), new IllegalArgumentException("Mot de passe incorrect."));
+                    } catch (IOException ex) {
+                        Dialogs.error(window(), ex);
+                    } finally {
+                        java.util.Arrays.fill(password, '\0');
+                    }
+                });
+    }
+
     private VBox privacySection() {
         CheckBox privacy = new CheckBox("Masquer tous les montants (mode confidentialité)");
         privacy.selectedProperty().bindBidirectional(ctx.formats().privacyProperty());
         Label hint = Widgets.label("Raccourci : Ctrl+M, utilisable depuis n'importe quel écran (partage d'écran, lieu public).", "muted");
         Label local = Widgets.label("Les données restent sur cet ordinateur : aucune donnée financière n'est envoyée "
-                + "à un serveur, aucune télémétrie. Le mot de passe maître et le chiffrement de la base sont prévus "
-                + "dans une prochaine version.", "muted");
+                + "à un serveur, aucune télémétrie.", "muted");
         local.setWrapText(true);
         return Widgets.section("Confidentialité", privacy, hint, local);
     }
@@ -117,10 +181,12 @@ public final class SettingsPage extends Page {
                 restoreThis.getStyleClass().addAll("ghost", "compact");
                 restoreThis.setOnAction(e -> restore(info.file().toFile()));
                 String when = STAMP.format(LocalDateTime.ofInstant(info.modifiedAt(), ZoneId.systemDefault()));
+                String detail = info.sameKey()
+                        ? info.accounts() + " compte(s) · " + info.transactions() + " opération(s) · " + (info.sizeBytes() / 1024) + " Ko"
+                        : "chiffrée avec une autre clé : mot de passe de la sauvegarde requis · " + (info.sizeBytes() / 1024) + " Ko";
                 HBox row = Widgets.row(Widgets.label(when, "op-label"),
                         Widgets.badge(info.automatic() ? "auto" : "manuelle", info.automatic() ? "neutral" : "info"),
-                        Widgets.label(info.accounts() + " compte(s) · " + info.transactions() + " opération(s) · "
-                                + (info.sizeBytes() / 1024) + " Ko", "op-detail"),
+                        Widgets.label(detail, "op-detail"),
                         Widgets.spacer(), restoreThis);
                 row.getStyleClass().add("op-row");
                 list.getChildren().add(row);
@@ -172,16 +238,41 @@ public final class SettingsPage extends Page {
     }
 
     private void restore(File file) {
+        BackupService backups = ctx.services().backups();
+        BackupService.RestoreRequirement requirement;
+        try {
+            requirement = backups.restoreRequirement(file.toPath());
+        } catch (InvalidBackupException e) {
+            Dialogs.error(window(), new IllegalArgumentException(e.getMessage()));
+            return;
+        }
         if (!Dialogs.confirm(window(), "Restaurer une sauvegarde",
                 "Les données actuelles seront remplacées par celles de « " + file.getName() + " » au prochain démarrage.\n"
                         + "Une copie de sécurité des données actuelles sera faite automatiquement.", "Programmer la restauration")) {
             return;
         }
+        char[] password = null;
+        if (requirement == BackupService.RestoreRequirement.BACKUP_PASSWORD) {
+            password = PasswordPromptDialog.ask(window(), "Mot de passe de la sauvegarde",
+                    "Cette sauvegarde a été chiffrée avec une autre clé (autre installation, ou avant une réinitialisation). "
+                            + "Saisissez le mot de passe maître en vigueur lors de sa création.").orElse(null);
+            if (password == null) {
+                return;
+            }
+        }
+        char[] secret = password;
         run(() -> {
-            BackupInfo info = ctx.services().backups().scheduleRestore(file.toPath());
-            Dialogs.info(window(), "Restauration programmée", "Sauvegarde valide (" + info.accounts() + " compte(s), "
-                    + info.transactions() + " opération(s)).\nFermez puis relancez l'application pour l'appliquer.");
-            refresh();
+            try {
+                BackupInfo info = backups.scheduleRestore(file.toPath(), secret);
+                Dialogs.info(window(), "Restauration programmée", "Sauvegarde valide (" + info.accounts() + " compte(s), "
+                        + info.transactions() + " opération(s)).\nFermez puis relancez l'application pour l'appliquer."
+                        + (secret != null ? "\nVous déverrouillerez ensuite avec le mot de passe de cette sauvegarde." : ""));
+                refresh();
+            } finally {
+                if (secret != null) {
+                    java.util.Arrays.fill(secret, '\0');
+                }
+            }
         });
     }
 

@@ -24,6 +24,9 @@ public final class Dialogs {
      * detail uniquement dans le log (qui ne contient pas de donnees financieres).
      */
     public static void error(Window owner, Throwable e) {
+        if (isLocked(e)) {
+            return; // verrouillage survenu pendant une operation : rien a signaler
+        }
         String message;
         if (e instanceof BusinessException || e instanceof IllegalArgumentException) {
             message = e.getMessage();
@@ -36,6 +39,16 @@ public final class Dialogs {
         alert.setTitle("Opération impossible");
         style(alert.getDialogPane(), owner, alert);
         alert.showAndWait();
+    }
+
+    /** Vrai si l'erreur vient d'un acces a la base pendant que l'application est verrouillee. */
+    public static boolean isLocked(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause() == t ? null : t.getCause()) {
+            if (t instanceof com.financeapp.infra.security.DatabaseLockedException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void info(Window owner, String title, String message) {

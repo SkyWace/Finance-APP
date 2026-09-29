@@ -4,6 +4,7 @@ import com.financeapp.core.transaction.TransactionType;
 import com.financeapp.desktop.ui.common.AppServices;
 import com.financeapp.desktop.ui.common.DataEvents;
 import com.financeapp.desktop.ui.common.Formats;
+import com.financeapp.desktop.ui.common.SecurityControls;
 import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
 import com.financeapp.desktop.ui.dialogs.TransactionDialog;
@@ -66,10 +67,10 @@ public final class MainWindow {
     private final ToggleButton privacyButton = new ToggleButton();
     private Page current;
 
-    public MainWindow(AppServices services, Stage stage) {
+    public MainWindow(AppServices services, Stage stage, SecurityControls security) {
         Formats formats = new Formats();
         DataEvents events = new DataEvents();
-        ctx = new UiContext(services, formats, events, stage, this::show);
+        ctx = new UiContext(services, formats, events, stage, this::show, security);
         formats.privacyProperty().set(services.settings().privacyMode());
 
         root.getStyleClass().add("app-root");
@@ -131,7 +132,11 @@ public final class MainWindow {
         add.setOnAction(e -> newTransaction());
         privacyButton.getStyleClass().add("ghost");
         privacyButton.selectedProperty().bindBidirectional(ctx.formats().privacyProperty());
-        HBox header = new HBox(12, pageTitle, Widgets.spacer(), privacyButton, add);
+        Button lock = new Button("⊘  Verrouiller");
+        lock.getStyleClass().add("ghost");
+        lock.setTooltip(new Tooltip("Verrouiller l'application : la clé des données est effacée de la mémoire (Ctrl+L)"));
+        lock.setOnAction(e -> ctx.security().lockNow());
+        HBox header = new HBox(12, pageTitle, Widgets.spacer(), lock, privacyButton, add);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("header");
         return header;
@@ -146,6 +151,13 @@ public final class MainWindow {
     private void newTransaction() {
         new TransactionDialog(ctx, null, TransactionType.EXPENSE, null).showAndWait()
                 .ifPresent(t -> ctx.events().fireChanged());
+    }
+
+    /** Recharge la page affichee (apres un deverrouillage, par exemple). */
+    public void refreshCurrent() {
+        if (current != null) {
+            current.refresh();
+        }
     }
 
     public void show(String id) {
@@ -167,17 +179,26 @@ public final class MainWindow {
         page.refresh();
     }
 
-    /** Raccourcis : Ctrl+1..9 navigation, Ctrl+N nouvelle operation, Ctrl+M masquer les montants. */
+    /** Raccourcis : Ctrl+1..9 navigation, Ctrl+N nouvelle operation, Ctrl+M masquer les montants (Ctrl+L : voir SecuritySession). */
     public void installShortcuts(Scene scene) {
         for (int i = 0; i < NAV.length && i < 9; i++) {
             String id = NAV[i].id();
             KeyCode digit = KeyCode.valueOf("DIGIT" + (i + 1));
-            scene.getAccelerators().put(new KeyCodeCombination(digit, KeyCombination.SHORTCUT_DOWN), () -> show(id));
+            scene.getAccelerators().put(new KeyCodeCombination(digit, KeyCombination.SHORTCUT_DOWN), guard(scene, () -> show(id)));
             KeyCode numpad = KeyCode.valueOf("NUMPAD" + (i + 1));
-            scene.getAccelerators().put(new KeyCodeCombination(numpad, KeyCombination.SHORTCUT_DOWN), () -> show(id));
+            scene.getAccelerators().put(new KeyCodeCombination(numpad, KeyCombination.SHORTCUT_DOWN), guard(scene, () -> show(id)));
         }
-        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.N, KeyCombination.SHORTCUT_DOWN), this::newTransaction);
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.N, KeyCombination.SHORTCUT_DOWN), guard(scene, this::newTransaction));
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.M, KeyCombination.SHORTCUT_DOWN),
-                () -> ctx.formats().privacyProperty().set(!ctx.formats().isPrivacy()));
+                guard(scene, () -> ctx.formats().privacyProperty().set(!ctx.formats().isPrivacy())));
+    }
+
+    /** Les raccourcis ne font rien tant que l'ecran de verrouillage est affiche. */
+    private Runnable guard(Scene scene, Runnable action) {
+        return () -> {
+            if (scene.getRoot() == root) {
+                action.run();
+            }
+        };
     }
 }

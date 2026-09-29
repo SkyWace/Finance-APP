@@ -46,7 +46,7 @@ Le produit doit donc savoir, à tout instant :
 | Import CSV, règles de catégorisation, Inbox, doublons | Gain de temps | Élevée | V3 |
 | Crédits, amortissement, simulations *What If* | Décision | Élevée | V4 |
 | Synchronisation bancaire (DSP2 via prestataire agréé) | Confort | Très élevée + réglementaire | V5 (étude) |
-| Mot de passe maître + chiffrement base | Confidentialité | Élevée | Dès que le MVP est stable (V1.1) |
+| Mot de passe maître + chiffrement base | Confidentialité | Élevée | **V1.1 — livrée** (section 11) |
 
 Points de modélisation déterminants dès le MVP (coûteux à changer ensuite) :
 
@@ -107,8 +107,8 @@ microservices : rien ne le justifie.
 | JavaFX 21 LTS | ✅ | Aligné sur Java 21. Graphiques natifs (`LineChart`, `PieChart`, `BarChart`) suffisants pour le MVP. |
 | ControlsFX | ❌ (pour l'instant) | Aucun besoin MVP que JavaFX ne couvre pas. Réévalué si besoin (ex. `CheckComboBox` pour les filtres V2). |
 | FXML | ❌ | Vues construites en code : refactoring sûr, pas de réflexion, cohérent avec le reste du dépôt. |
-| Argon2id | ✅ **V1.1** | Via Bouncy Castle (`Argon2BytesGenerator`), jamais d'implémentation maison. Paramètres cibles : m = 64 Mio, t = 3, p = 1, sel 16 o aléatoire, clé 32 o. |
-| Chiffrement base | ✅ **V1.1** | Candidat : `io.github.willena:sqlite-jdbc` (fork de xerial compatible SQLCipher, API JDBC identique → changement localisé dans `SqliteDataSourceFactory`). Alternative étudiée : chiffrer le fichier entier au repos (AES-GCM via JCA) — rejetée : fenêtre en clair sur disque pendant l'usage. |
+| Argon2id | ✅ V1.1 | Via Bouncy Castle (`Argon2BytesGenerator`), jamais d'implémentation maison. m = 64 Mio, t = 3, p = 1, sel 16 o aléatoire, clé 32 o (~0,3 s). |
+| Chiffrement base | ✅ V1.1 | `io.github.willena:sqlite-jdbc` (fork de xerial embarquant SQLite3MultipleCiphers, natifs Windows/macOS/Linux), format SQLCipher v4 (AES-256-CBC + HMAC-SHA512 par page). Alternative étudiée : chiffrer le fichier entier au repos (AES-GCM via JCA) — rejetée : fenêtre en clair sur disque pendant l'usage. |
 
 ## 4. Risques techniques
 
@@ -294,6 +294,67 @@ Définitions retenues :
 | 11 | Disponible réel, Prévisions, Tableau de bord | Réponse à la question centrale |
 | 12 | Paramètres (sauvegardes, confidentialité), script de lancement | Utilisable au quotidien |
 
-Après le MVP : V1.1 sécurité (mot de passe maître Argon2id, SQLCipher,
-verrouillage auto), puis V2 → V5 selon la roadmap du brief. Packaging
+Après le MVP : V1.1 sécurité (section 11), puis V2 → V5 selon la roadmap du
+brief. Packaging
 Windows via `jpackage` (runtime embarqué, pas d'installation de Java).
+
+---
+
+## 11. V1.1 — Mot de passe maître et chiffrement
+
+### Modèle de clés
+
+```
+mot de passe ──Argon2id(sel₁, 64 Mio, t=3)──► KEK ──AES-256-GCM──┐
+clé de récupération ─Argon2id(sel₂)──────────► KEK' ─AES-256-GCM─┼──► DEK (256 bits aléatoires)
+                                                                  │        │
+                         data/keystore.properties ◄───────────────┘        ▼
+                                                    base SQLCipher v4 (clé brute) + sauvegardes
+```
+
+- **La DEK n'est jamais dérivée du mot de passe.** Changer de mot de passe =
+  ré-envelopper la DEK : pas de rechiffrement, toutes les sauvegardes restent
+  lisibles.
+- **Aucun mot de passe stocké**, ni en clair ni sous forme d'empreinte : c'est
+  l'échec du tag GCM qui signale un mot de passe incorrect.
+- Les enveloppes sont liées à leur usage et à l'identifiant de la clé (AAD) :
+  un trousseau modifié est rejeté.
+- **Clé de récupération** : 160 bits aléatoires en Base32 (`XXXX-XXXX-…`),
+  affichée une seule fois ; régénérable (l'ancienne devient inutilisable).
+- Paramètres Argon2 enregistrés dans le trousseau et **bornés à la lecture**
+  (un trousseau forgé ne peut pas réclamer des Go de mémoire).
+- Seules briques cryptographiques : Bouncy Castle (Argon2id), JCA (AES-GCM),
+  SQLite3MultipleCiphers (SQLCipher). Aucun algorithme implémenté à la main.
+
+### Cycle de vie
+
+| Étape | Comportement |
+|---|---|
+| Démarrage | Aucun accès aux données avant le mot de passe. Contrôle que le pilote SQLite sait chiffrer (`sqlite3mc_version()`), sinon arrêt. |
+| Premier lancement | Création du mot de passe (≥ 10 caractères, indicateur de robustesse textuel), puis affichage unique de la clé de récupération. |
+| Données V1 en clair | Chiffrées à la création du mot de passe : base **et** anciennes sauvegardes. Copie cohérente → `rekey` en journal DELETE → vérification (intégrité, nombre d'objets, en-tête) → remplacement atomique. Le trousseau est écrit **avant** : une interruption reprend au déverrouillage suivant. |
+| Déverrouillage | Argon2id hors thread JavaFX ; délai croissant (2 à 30 s) après 3 échecs. |
+| Verrouillage | Bouton, `Ctrl+L` (depuis n'importe quelle fenêtre) ou inactivité (5 min par défaut, réglable, 0 = jamais). La DEK est remise à zéro en mémoire, la source de données refuse toute connexion, les dialogues ouverts sont fermés, les raccourcis sont neutralisés. |
+| Trousseau perdu | Détecté (base chiffrée sans trousseau) ; import d'un fichier `.key` de sauvegarde. |
+
+### Sauvegardes
+
+Une sauvegarde = `nom.db` (copie chiffrée par `VACUUM INTO`, même clé) +
+`nom.db.key` (copie du trousseau, sans secret en clair). Restaurer une
+sauvegarde d'une autre installation demande le mot de passe en vigueur lors de
+sa création ; son trousseau remplace alors le trousseau local. La copie de
+sécurité avant restauration est une copie brute des fichiers chiffrés (aucune
+clé nécessaire au démarrage).
+
+### Limites connues
+
+- Le pilote JDBC reçoit la clé sous forme de chaîne hexadécimale le temps
+  d'ouvrir chaque connexion, et JavaFX fournit les mots de passe sous forme de
+  `String` : ces copies ne peuvent pas être effacées explicitement en Java
+  (les `byte[]`/`char[]` que l'application contrôle le sont).
+- Pas d'effacement sécurisé des anciens fichiers en clair de la V1 (impossible
+  à garantir, notamment sur SSD).
+- Les journaux techniques démarrés avant le déverrouillage ne vont que sur la
+  console.
+- Mot de passe **et** clé de récupération perdus = données irrécupérables (par
+  conception).

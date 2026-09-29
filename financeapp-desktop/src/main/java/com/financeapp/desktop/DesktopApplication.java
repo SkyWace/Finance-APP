@@ -1,5 +1,6 @@
 package com.financeapp.desktop;
 
+import com.financeapp.infra.security.DatabaseKey;
 import com.financeapp.infra.storage.AppDirectories;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringBootConfiguration;
@@ -16,12 +17,16 @@ import org.springframework.context.annotation.Import;
 @Import(AppConfiguration.class)
 public class DesktopApplication {
 
-    public static ConfigurableApplicationContext start(AppDirectories directories, String... args) {
+    /** @param key cle de la base, deja deverrouillee (le contexte ouvre et migre la base au demarrage) */
+    public static ConfigurableApplicationContext start(AppDirectories directories, DatabaseKey key, String... args) {
         return new SpringApplicationBuilder(DesktopApplication.class)
                 .bannerMode(Banner.Mode.OFF)
                 .headless(false)
                 .properties("logging.file.name=" + directories.logsDir().resolve("financeapp.log"))
-                .initializers(ctx -> ctx.getBeanFactory().registerSingleton("appDirectories", directories))
+                .initializers(ctx -> {
+                    ctx.getBeanFactory().registerSingleton("appDirectories", directories);
+                    ctx.getBeanFactory().registerSingleton("databaseKey", key);
+                })
                 .run(args);
     }
 }
