@@ -74,6 +74,11 @@ public record RecurringRule(
         return type == TransactionType.INCOME ? amount : amount.negate();
     }
 
+    /** Equivalent mensuel moyen du montant signe (ex. 120 EUR/an -> 10 EUR/mois). */
+    public Money monthlyEquivalent() {
+        return signedAmount().multiply(frequency.occurrencesPerYear(interval)).divide(java.math.BigDecimal.valueOf(12));
+    }
+
     public RecurringRule withId(long newId) {
         return new RecurringRule(newId, accountId, toAccountId, type, label, amount, categoryId, frequency,
                 interval, startDate, endDate, trackedFrom, certain, active, note);

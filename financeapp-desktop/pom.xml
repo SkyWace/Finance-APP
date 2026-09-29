@@ -12,4 +12,95 @@
 
   <artifactId>financeapp-desktop</artifactId>
   <name>FinanceApp Desktop</name>
+  <description>
+    Application desktop JavaFX. Spring Boot (sans web, sans auto-configuration
+    de base de donnees) assure l'injection de dependances et la configuration.
+  </description>
+
+  <properties>
+    <main.class>com.financeapp.desktop.Launcher</main.class>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.financeapp</groupId>
+      <artifactId>financeapp-infra</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+      <version>${javafx.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>financeapp-desktop</finalName>
+    <resources>
+      <!-- Filtrage limite a application.properties (version de l'application) -->
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>application.properties</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <excludes>
+          <exclude>application.properties</exclude>
+        </excludes>
+      </resource>
+    </resources>
+    <plugins>
+      <!--
+        Jar executable "classique" : manifest avec Main-Class et Class-Path vers lib/.
+        Ce couple (jar + lib/) est aussi l'entree attendue par jpackage pour produire
+        un installateur embarquant son propre runtime Java.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.2</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>${main.class}</mainClass>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.8.1</version>
+        <executions>
+          <execution>
+            <id>copy-runtime-libs</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <includeScope>runtime</includeScope>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -179,7 +179,7 @@ categories(id, parent_id → categories, name, kind [EXPENSE|INCOME|BOTH],
 
 recurring_transactions(id, account_id → accounts, to_account_id → accounts,
            type, label, amount_minor (>0), category_id → categories,
-           frequency, interval_count, start_date, end_date, certain, active,
+           frequency, interval_count, start_date, end_date, tracked_from, certain, active,
            note, created_at, updated_at)
 
 transactions(id, account_id → accounts, date, label, amount_minor (signé),
@@ -232,6 +232,11 @@ Définitions retenues :
   = disponible réel
   ```
 
+  Une règle récurrente porte une date de suivi (`tracked_from`, par défaut
+  sa date de création) : une règle « salaire le 28 » créée le 29 ne fait pas
+  apparaître le salaire de la veille comme un revenu à venir. Une occurrence
+  non validée reste « en retard » (et comptée) pendant 14 jours au plus.
+
   Échéances : fin de semaine, prochaine paie (prochaine occurrence du plus
   gros revenu récurrent — revenu exclu, dépenses de la veille incluses),
   fin du mois, date personnalisée.
@@ -268,7 +273,7 @@ Définitions retenues :
   à ligne de chaque déduction.
 - **Prévisions** : `LineChart`, série « réel » (pleine) et « prévu »
   (pointillée), 7 j / 30 j / 90 j, point bas signalé.
-- **Mode confidentialité** : `Ctrl+Maj+M` (ou bouton) remplace tous les
+- **Mode confidentialité** : `Ctrl+M` (ou bouton) remplace tous les
   montants par `•••••• €`.
 - **Raccourcis** : `Ctrl+N` nouvelle transaction, `Ctrl+1…9` navigation.
 
