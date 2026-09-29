@@ -51,6 +51,18 @@ public final class CategoryService {
                 .orElse("");
     }
 
+    /** Libelles complets de toutes les categories (archivees comprises), en une seule lecture. */
+    public Map<Long, String> fullNames() {
+        List<Category> all = categories.findAll();
+        Map<Long, String> roots = all.stream().filter(Category::isRoot)
+                .collect(Collectors.toMap(Category::id, Category::name));
+        Map<Long, String> names = new java.util.HashMap<>();
+        for (Category c : all) {
+            names.put(c.id(), c.isRoot() ? c.name() : roots.getOrDefault(c.parentId(), "?") + " › " + c.name());
+        }
+        return names;
+    }
+
     public Category create(Long parentId, String name, CategoryKind kind) {
         CategoryKind effectiveKind = kind;
         if (parentId != null) {

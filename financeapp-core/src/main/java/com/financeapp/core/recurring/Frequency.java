@@ -1,5 +1,7 @@
 package com.financeapp.core.recurring;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
@@ -16,6 +18,8 @@ public enum Frequency {
     EVERY_N_DAYS("Tous les N jours", ChronoUnit.DAYS, 1, true),
     EVERY_N_WEEKS("Toutes les N semaines", ChronoUnit.WEEKS, 1, true),
     EVERY_N_MONTHS("Tous les N mois", ChronoUnit.MONTHS, 1, true);
+
+    private static final BigDecimal DAYS_PER_YEAR = new BigDecimal("365.25");
 
     private final String label;
     private final ChronoUnit unit;
@@ -55,15 +59,18 @@ public enum Frequency {
         return start.plus(n * step(interval), unit);
     }
 
-    /** Nombre approximatif d'occurrences par an, pour les estimations (couts annuels...). */
-    public double occurrencesPerYear(int interval) {
-        double perUnit = switch (unit) {
-            case DAYS -> 365.25;
-            case WEEKS -> 52.1775;
-            case MONTHS -> 12.0;
+    /**
+     * Nombre moyen d'occurrences par an (annee de 365,25 jours), exact pour
+     * les frequences mensuelles ; sert aux equivalents mensuels et annuels.
+     */
+    public BigDecimal occurrencesPerYear(int interval) {
+        BigDecimal step = BigDecimal.valueOf(step(interval));
+        return switch (unit) {
+            case DAYS -> DAYS_PER_YEAR.divide(step, 10, RoundingMode.HALF_EVEN);
+            case WEEKS -> DAYS_PER_YEAR.divide(step.multiply(BigDecimal.valueOf(7)), 10, RoundingMode.HALF_EVEN);
+            case MONTHS -> BigDecimal.valueOf(12).divide(step, 10, RoundingMode.HALF_EVEN);
             default -> throw new IllegalStateException(unit.toString());
         };
-        return perUnit / step(interval);
     }
 
     @Override

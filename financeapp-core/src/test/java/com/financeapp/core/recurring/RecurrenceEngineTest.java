@@ -93,4 +93,15 @@ class RecurrenceEngineTest {
         RecurringRule r = rule(Frequency.MONTHLY, 1, of(2026, 1, 10), null);
         assertEquals(of(2026, 10, 10), engine.nextOccurrence(r, of(2026, 9, 30)).orElseThrow());
     }
+
+    @Test
+    void monthlyEquivalents() {
+        // Montant de la regle de test : 10 EUR
+        assertEquals(Money.eur("-0.83"), rule(Frequency.YEARLY, 1, of(2026, 1, 1), null).monthlyEquivalent());
+        assertEquals(Money.eur("-10.00"), rule(Frequency.MONTHLY, 1, of(2026, 1, 1), null).monthlyEquivalent());
+        assertEquals(Money.eur("-3.33"), rule(Frequency.QUARTERLY, 1, of(2026, 1, 1), null).monthlyEquivalent());
+        assertEquals(Money.eur("-5.00"), rule(Frequency.EVERY_N_MONTHS, 2, of(2026, 1, 1), null).monthlyEquivalent());
+        // 10 EUR par semaine = 10 x 365,25 / 7 / 12 = 43,48 EUR par mois
+        assertEquals(Money.eur("-43.48"), rule(Frequency.WEEKLY, 1, of(2026, 1, 1), null).monthlyEquivalent());
+    }
 }
