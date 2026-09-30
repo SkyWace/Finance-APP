@@ -50,6 +50,7 @@ public class FinanceFxApplication extends Application {
 
     @Override
     public void start(Stage stage) {
+        com.financeapp.desktop.ui.common.Browser.init(getHostServices());
         if (startupError != null) {
             log.error("Echec du demarrage", startupError);
             Alert alert = new Alert(Alert.AlertType.ERROR,

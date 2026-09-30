@@ -19,6 +19,7 @@
   <modules>
     <module>financeapp-core</module>
     <module>financeapp-infra</module>
+    <module>financeapp-banksync</module>
     <module>financeapp-desktop</module>
   </modules>
 
@@ -60,6 +61,11 @@
       <dependency>
         <groupId>com.financeapp</groupId>
         <artifactId>financeapp-infra</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.financeapp</groupId>
+        <artifactId>financeapp-banksync</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

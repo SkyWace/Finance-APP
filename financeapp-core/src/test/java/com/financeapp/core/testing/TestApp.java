@@ -13,6 +13,7 @@ import com.financeapp.core.service.CategorizationService;
 import com.financeapp.core.service.ImportService;
 import com.financeapp.core.service.InboxService;
 import com.financeapp.core.service.LoanService;
+import com.financeapp.core.service.BankSyncService;
 import com.financeapp.core.service.SimulationService;
 import com.financeapp.core.service.CalendarService;
 import com.financeapp.core.service.SavingsGoalService;
@@ -59,6 +60,8 @@ public final class TestApp {
     public final ImportService imports;
     public final LoanService loans;
     public final SimulationService simulations;
+    public final FakeBankSync bank = new FakeBankSync();
+    public final BankSyncService bankSync;
 
     public TestApp(LocalDate today) {
         this.today = today;
@@ -83,6 +86,7 @@ public final class TestApp {
         imports = new ImportService(store.imports, store.transactions, accounts, planning, categorization);
         loans = new LoanService(store.loans, recurring, accounts, clock);
         simulations = new SimulationService(store.simulations, forecast, goals, planning);
+        bankSync = new BankSyncService(store.bankSync, bank, imports, accounts, clock);
     }
 
     public Account account(String name, AccountType type, String initialBalance) {

@@ -14,6 +14,7 @@ import com.financeapp.desktop.ui.pages.BudgetsPage;
 import com.financeapp.desktop.ui.pages.CalendarPage;
 import com.financeapp.desktop.ui.pages.ImportsPage;
 import com.financeapp.desktop.ui.pages.InboxPage;
+import com.financeapp.desktop.ui.pages.BankSyncPage;
 import com.financeapp.desktop.ui.pages.LoansPage;
 import com.financeapp.desktop.ui.pages.SimulationsPage;
 import com.financeapp.desktop.ui.pages.RulesPage;
@@ -72,6 +73,7 @@ public final class MainWindow {
             new NavEntry("loans", "▭", "Crédits", LoansPage::new),
             new NavEntry("analysis", "▥", "Analyses", AnalysisPage::new),
             new NavEntry("imports", "⇩", "Import", ImportsPage::new),
+            new NavEntry("banksync", "⇄", "Synchronisation", BankSyncPage::new),
             new NavEntry("rules", "⚑", "Règles", RulesPage::new),
             new NavEntry("categories", "▦", "Catégories", CategoriesPage::new),
             new NavEntry("settings", "⚙", "Paramètres", SettingsPage::new),

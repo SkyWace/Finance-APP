@@ -1,6 +1,8 @@
 # V5 — Étude : synchronisation bancaire
 
-> Statut : **étude préalable, aucune implémentation.** Conformément au cahier
+> Statut : étude validée (GO pour le prototype) — **prototype réalisé**, voir § 11.
+>
+> Statut initial : **étude préalable, aucune implémentation.** Conformément au cahier
 > des charges (« Ne pas implémenter cette partie sans étude spécifique
 > préalable »), ce document sert à décider *si* et *comment* FinanceApp pourrait
 > récupérer automatiquement les opérations bancaires. Il ne constitue pas un
@@ -183,3 +185,64 @@ synchronisation ne doit être écrite**, conformément au cahier des charges.
   <https://www.hoganlovells.com/en/publications/final-texts-for-psd3-and-psr-awaited-as-european-parliament-and-council-of-eu-announce-provisional> ;
   <https://www.nortonrosefulbright.com/en/knowledge/publications/cedd39c6/psd3-and-psr-from-provisional-agreement-to-2026-readiness>
 - FIDA, statut : <https://www.finapi.io/en/fida-regulation-status-pending/>
+
+## 11. État du prototype (septembre 2026)
+
+Décision : GO pour le prototype Enable Banking (option B).
+
+### Réalisé
+
+| Élément | Où |
+|---|---|
+| Port `BankSyncClient` (lecture seule) et service `BankSyncService` | `financeapp-core` (`banksync/`, `service/BankSyncService`) |
+| Adaptateur Enable Banking : JWT RS256 signé par le JDK (`SHA256withRSA`), clé PKCS#8, `GET /aspsps`, `POST /auth`, `POST /sessions`, `GET /accounts/{uid}/transactions` (pagination `continuation_key`), `DELETE /sessions/{id}` ; aucun endpoint de paiement | module optionnel `financeapp-banksync` (seul module réseau) |
+| Stockage : paramètres (dont la clé privée), connexions, comptes liés, journal des consultations — dans la base chiffrée | migration `V6__bank_sync.sql`, `JdbcBankSyncRepository` |
+| Écran « Synchronisation » désactivé par défaut, accord explicite, connexion d'une banque, association des comptes, désactivation avec révocation et effacement | `financeapp-desktop` |
+
+Choix appliqués pendant le prototype :
+
+- **Adresse de retour** : Enable Banking impose HTTPS en production ; une
+  application de bureau ne peut pas la recevoir elle-même. L'utilisateur
+  déclare `https://localhost/financeapp` et **colle l'adresse affichée par le
+  navigateur** après son accord. Le paramètre `state` (aléatoire, à usage
+  unique, valable une heure) est vérifié ; le `code` seul est inutilisable sans
+  la clé privée, restée sur l'ordinateur.
+- **Opérations en attente** : ignorées, puis proposées une fois comptabilisées
+  (identifiant plus stable).
+- **Reprise** : première récupération sur 90 jours, puis depuis la dernière
+  opération moins 5 jours ; « Tout reprendre » revient à 90 jours sans risque
+  de doublon (identifiant bancaire `eb:…`).
+- **Limites** : 4 consultations par compte sur 24 heures, consentement de
+  180 jours au plus (ou moins si la banque l'impose), refus de synchroniser un
+  consentement expiré.
+- **Sauvegardes** : la clé privée fait partie de la base, donc des sauvegardes
+  **chiffrées** ; une restauration sur un autre ordinateur restaure aussi la
+  configuration. « Désactiver et tout effacer » la supprime de la base (pas des
+  sauvegardes déjà faites : en cas de doute, révoquez la clé dans le portail
+  Enable Banking).
+- **Même chemin qu'un import** : aperçu, doublons décochés, rapprochement des
+  opérations prévues et des échéances, « À valider », lot annulable.
+
+### Vérifié
+
+- Tests automatisés : service (agrégateur simulé), client (serveur HTTP local
+  qui **vérifie la signature et les champs de chaque jeton**), dépôt SQLite
+  chiffré, migration d'une base V5 contenant des imports.
+- Parcours complet dans l'application contre un serveur Enable Banking simulé
+  (propriété `-Dfinanceapp.banksync.api=http://127.0.0.1:…`, acceptée
+  uniquement sur la boucle locale) : activation, liste des banques, accord,
+  association, synchronisation avec doublons détectés (y compris une opération
+  importée auparavant depuis un fichier), seconde synchronisation « à jour »,
+  désactivation avec révocation. Aucun secret ni donnée financière dans les
+  journaux.
+
+### Reste à valider avec un vrai compte (par vous)
+
+1. Créer l'application Enable Banking (production, mode restreint), lier vos
+   comptes, déclarer `https://localhost/financeapp` : **vérifier que cette
+   adresse est acceptée** par le portail (sinon, toute adresse HTTPS dont vous
+   maîtrisez le domaine convient).
+2. Vérifier sur 30 jours : identifiants d'opération stables, libellés
+   exploitables, aucune perte ni doublon (critère de sortie du § 9).
+3. Point juridique n° 3 du § 10 (conditions d'utilisation pour un logiciel
+   distribué) : toujours ouvert.

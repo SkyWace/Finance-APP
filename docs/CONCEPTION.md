@@ -597,3 +597,14 @@ trancher) est dans [`ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](ETUDE-V5-SYNCHRONISA
 Recommandation : prototype facultatif via un agrégateur agréé utilisé avec les
 clés de l'utilisateur (sans serveur FinanceApp), seulement après validation des
 points bloquants ; à défaut, l'import de fichiers reste la seule source.
+
+### Prototype de synchronisation (après décision GO)
+
+Réalisé selon l'option B de l'étude : module optionnel `financeapp-banksync`
+(adaptateur Enable Banking, seul module réseau), service
+`BankSyncService`, migration `V6__bank_sync.sql` (format `BANK_SYNC` pour les
+lots, tables `bank_sync_config`, `bank_connections`, `bank_account_links`,
+`bank_sync_fetches`), écran « Synchronisation » désactivé par défaut. Les
+opérations récupérées passent par l'aperçu d'import, la détection des doublons,
+les rapprochements et « À valider ». Détails, choix et points restant à valider :
+§ 11 de l'étude.
