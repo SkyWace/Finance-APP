@@ -67,7 +67,7 @@ public final class AvailableBalanceEngine {
         Money available = zero;
         Money reservations = zero;
         for (SectionKind kind : SectionKind.values()) {
-            List<Line> sectionLines = lines.getOrDefault(kind, List.of());
+            List<Line> sectionLines = new ArrayList<>(lines.getOrDefault(kind, List.of()));
             if (sectionLines.isEmpty() && kind != SectionKind.CURRENT_BALANCE) {
                 continue;
             }

@@ -1,0 +1,61 @@
+# Installateur Windows (.msi) construit avec jpackage sur une machine Windows :
+# jpackage ne produit que des paquets pour le systeme sur lequel il s'execute.
+#
+# - Lancement manuel : onglet Actions > "Installateur Windows" > Run workflow ;
+#   l'installateur est telechargeable dans les artefacts de l'execution.
+# - Etiquette v* (ex. v0.1.0) : l'installateur est aussi joint a une release GitHub.
+name: Installateur Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  msi:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # jpackage (JDK 21) s'appuie sur WiX Toolset 3.x pour produire le .msi.
+      - name: WiX Toolset 3
+        shell: pwsh
+        run: |
+          $bin = Get-Item "C:\Program Files (x86)\WiX Toolset v3*\bin" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $bin) {
+            choco install wixtoolset --version 3.14.1 -y --no-progress
+            $bin = Get-Item "C:\Program Files (x86)\WiX Toolset v3*\bin" | Select-Object -First 1
+          }
+          Write-Host "WiX : $($bin.FullName)"
+          $bin.FullName | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Compilation et tests
+        run: mvn -B verify
+
+      - name: Installateur (.msi)
+        shell: pwsh
+        run: packaging/windows/build-installer.ps1 -Type msi -SkipBuild
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FinanceApp-Windows-msi
+          path: financeapp-desktop/target/installer/*.msi
+          if-no-files-found: error
+
+      - name: Release GitHub (etiquettes v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $msi = Get-ChildItem financeapp-desktop/target/installer/*.msi | Select-Object -First 1
+          gh release create "${{ github.ref_name }}" $msi.FullName --title "FinanceApp ${{ github.ref_name }}" --generate-notes
