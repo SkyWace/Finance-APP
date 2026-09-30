@@ -79,7 +79,19 @@ public abstract class FormDialog<R> extends Dialog<R> {
         row++;
     }
 
+    /** A appeler quand un texte de la fenetre change de hauteur (apercu) : la fenetre s'ajuste. */
+    protected void fitToContent() {
+        if (getDialogPane().getScene() != null && getDialogPane().getScene().getWindow() != null
+                && getDialogPane().getScene().getWindow().isShowing()) {
+            javafx.application.Platform.runLater(() -> getDialogPane().getScene().getWindow().sizeToScene());
+        }
+    }
+
     protected void addFullRow(Node node) {
+        if (node instanceof Label l && l.isWrapText()) {
+            // Sans cela, un texte sur plusieurs lignes est tronque ("...") dans la grille.
+            l.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        }
         grid.add(node, 0, row, 2, 1);
         row++;
     }

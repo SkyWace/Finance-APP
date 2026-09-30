@@ -12,6 +12,8 @@ import com.financeapp.core.service.BudgetService;
 import com.financeapp.core.service.CategorizationService;
 import com.financeapp.core.service.ImportService;
 import com.financeapp.core.service.InboxService;
+import com.financeapp.core.service.LoanService;
+import com.financeapp.core.service.SimulationService;
 import com.financeapp.core.service.CalendarService;
 import com.financeapp.core.service.SavingsGoalService;
 import com.financeapp.core.service.StatisticsService;
@@ -55,6 +57,8 @@ public final class TestApp {
     public final CategorizationService categorization;
     public final InboxService inbox;
     public final ImportService imports;
+    public final LoanService loans;
+    public final SimulationService simulations;
 
     public TestApp(LocalDate today) {
         this.today = today;
@@ -71,12 +75,14 @@ public final class TestApp {
         available = new AvailableBalanceService(accounts, planning, recurring, settings, java.util.List.of(budgets, goals));
         subscriptions = new SubscriptionService(recurring, categories, store.transactions, planning, settings);
         statistics = new StatisticsService(store.transactions, categories, accounts, planning, settings);
-        forecast = new ForecastService(available, planning, store.transactions, settings);
+        forecast = new ForecastService(available, planning, store.transactions, settings, recurring);
         dashboard = new DashboardService(accounts, store.transactions, planning, available, settings);
         calendar = new CalendarService(store.transactions, planning, forecast);
         categorization = new CategorizationService(store.categorizationRules, store.transactions, categories, planning);
         inbox = new InboxService(store.transactions, categorization);
         imports = new ImportService(store.imports, store.transactions, accounts, planning, categorization);
+        loans = new LoanService(store.loans, recurring, accounts, clock);
+        simulations = new SimulationService(store.simulations, forecast, goals, planning);
     }
 
     public Account account(String name, AccountType type, String initialBalance) {

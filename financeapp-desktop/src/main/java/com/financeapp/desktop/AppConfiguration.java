@@ -17,6 +17,12 @@ import com.financeapp.core.service.CalendarService;
 import com.financeapp.core.service.CategorizationService;
 import com.financeapp.core.service.ImportService;
 import com.financeapp.core.service.InboxService;
+import com.financeapp.core.service.LoanService;
+import com.financeapp.core.service.SimulationService;
+import com.financeapp.core.port.LoanRepository;
+import com.financeapp.core.port.SimulationRepository;
+import com.financeapp.infra.db.JdbcLoanRepository;
+import com.financeapp.infra.db.JdbcSimulationRepository;
 import com.financeapp.core.service.SavingsGoalService;
 import com.financeapp.core.service.StatisticsService;
 import com.financeapp.core.service.SubscriptionService;
@@ -224,8 +230,30 @@ public class AppConfiguration {
 
     @Bean
     ForecastService forecastService(AvailableBalanceService available, PlanningService planning,
-                                    TransactionRepository transactions, SettingsService settings) {
-        return new ForecastService(available, planning, transactions, settings);
+                                    TransactionRepository transactions, SettingsService settings,
+                                    RecurringService recurring) {
+        return new ForecastService(available, planning, transactions, settings, recurring);
+    }
+
+    @Bean
+    LoanRepository loanRepository(JdbcClient jdbc) {
+        return new JdbcLoanRepository(jdbc);
+    }
+
+    @Bean
+    LoanService loanService(LoanRepository loans, RecurringService recurring, AccountService accounts, Clock clock) {
+        return new LoanService(loans, recurring, accounts, clock);
+    }
+
+    @Bean
+    SimulationRepository simulationRepository(JdbcClient jdbc, TransactionTemplate tx) {
+        return new JdbcSimulationRepository(jdbc, tx);
+    }
+
+    @Bean
+    SimulationService simulationService(SimulationRepository simulations, ForecastService forecast,
+                                        SavingsGoalService goals, PlanningService planning) {
+        return new SimulationService(simulations, forecast, goals, planning);
     }
 
     @Bean

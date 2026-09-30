@@ -13,7 +13,7 @@ toutes mes dépenses futures prises en compte ? »*
 - Conception détaillée (architecture, risques, schéma, étapes) :
   [`docs/CONCEPTION.md`](docs/CONCEPTION.md).
 
-## Fonctionnalités (V1 → V3)
+## Fonctionnalités (V1 → V4)
 
 | Écran | Contenu |
 |---|---|
@@ -31,7 +31,9 @@ toutes mes dépenses futures prises en compte ? »*
 | À venir | Opérations prévues + occurrences récurrentes ; valider (date et montant réels) ou ignorer |
 | Récurrences | Hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel |
 | Disponible réel | Échéance : fin de semaine, prochaine paie, fin du mois, date personnalisée ; **détail ligne à ligne** du calcul, budgets et objectifs réservés, « si aucune autre dépense variable » |
-| Prévisions | Courbe réel (plein) / prévu (pointillés), 7 j à 12 mois, point bas, alerte de solde négatif |
+| Prévisions | Courbe réel (plein) / prévu (pointillés), 7 jours à **48 mois**, point bas, alerte de solde négatif, dépenses courantes estimées (option) |
+| Simulations | **What If?** : achat financé à crédit, nouvelle charge ou rentrée, crédit, arrêt d'une récurrence ; disponible, reste à vivre et capacité d'épargne **avant / après**, mois par mois, courbe de solde, objectifs ; ne modifie jamais les données réelles |
+| Crédits | Capital restant, mensualité, prochaine échéance, progression, **tableau d'amortissement**, taux estimé si inconnu ; mensualités reliées à une récurrence (comptées une seule fois) |
 | Catégories | Catégories par défaut + personnelles, sous-catégories, archivage |
 | Paramètres | Devise de référence, échéance par défaut, **sécurité** (verrouillage auto, changement de mot de passe, nouvelle clé de récupération), **mode confidentialité**, sauvegardes chiffrées (auto à la fermeture avec rotation, export, restauration) |
 
@@ -97,20 +99,24 @@ mvn test
   1 420 − 934 − 300 − 100 = 86), prévisions, virements internes, services,
   lecture CSV/OFX/QIF, doublons et rapprochements, règles de catégorisation,
   scénario complet d'import (le loyer importé réalise l'échéance au lieu
-  d'être compté deux fois).
+  d'être compté deux fois), tableaux d'amortissement (valeurs de référence),
+  taux estimé, prévisions longues avec dépenses courantes, simulation « achat
+  voiture » chiffrée au centime, et vérification qu'une simulation ne modifie
+  aucune donnée réelle.
 - `financeapp-infra` : dépôts sur une vraie base SQLite **chiffrée**
   temporaire, atomicité des virements, contraintes d'intégrité, sauvegardes,
   rotation, restauration (y compris depuis une autre installation), mot de
   passe maître, récupération, trousseau altéré ou perdu, migration des données
   V1 en clair, import atomique et annulation (restauration des opérations
-  prévues, réimport après annulation).
+  prévues, réimport après annulation), crédits (taux exact, récurrence liée
+  unique), scénarios et hypothèses (remplacement atomique, cascade).
 - `financeapp-desktop` : démarrage complet du contexte Spring (sans
   interface), verrouillage/déverrouillage.
 
 ## Architecture
 
 ```
-financeapp-core      domaine, moteurs (Recurrence, AvailableBalance, Forecast), services, ports — aucune dépendance
+financeapp-core      domaine, moteurs (Recurrence, AvailableBalance, Forecast, Import, Categorization, Loan, Simulation), services, ports — aucune dépendance
 financeapp-infra     SQLite chiffré + Spring JDBC, migrations Flyway, sauvegardes, mot de passe maître
 financeapp-desktop   JavaFX (vues en code, thème sombre CSS) + Spring Boot (injection, configuration)
 ```
@@ -118,12 +124,11 @@ financeapp-desktop   JavaFX (vues en code, thème sombre CSS) + Spring Boot (inj
 Montants : `BigDecimal` en mémoire (arrondi `HALF_EVEN`, échelle de la
 devise), centimes (`INTEGER`) en base. Dates : `java.time`.
 
-## Limites connues du MVP
+## Limites connues
 
 - Une seule devise de référence pour les totaux ; pas de conversion.
 - Ne pas ouvrir deux instances sur le même dossier de données.
-- Crédits, simulations et prévisions longues : V4. Étiquettes (tags) non
-  encore disponibles. Aucune synchronisation bancaire (import de fichiers
-  uniquement).
+- Étiquettes (tags) non encore disponibles. Crédits à taux fixe uniquement.
+  Aucune synchronisation bancaire (import de fichiers uniquement).
 - Installateur Windows (`jpackage`) non encore fourni : le jar + `lib/`
   produits par `mvn package` en sont l'entrée prévue.
