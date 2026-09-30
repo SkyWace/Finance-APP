@@ -156,7 +156,9 @@ public final class DashboardPage extends Page {
         Button create = new Button("Créer mon premier compte");
         create.getStyleClass().add("primary");
         create.setOnAction(e -> new AccountDialog(ctx, null).showAndWait().ifPresent(a -> ctx.events().fireChanged()));
-        Label privacy = Widgets.label("Vos données restent sur cet ordinateur. Aucun compte en ligne, aucune connexion bancaire.", "muted");
+        Label privacy = Widgets.label("Vos données restent sur cet ordinateur. Aucun compte en ligne ; aucune connexion "
+                + "bancaire, sauf si vous activez vous-même la synchronisation (facultative).", "muted");
+        privacy.setWrapText(true);
         VBox box = new VBox(16, title, text, create, privacy);
         box.getStyleClass().addAll("card", "welcome");
         box.setMaxWidth(640);

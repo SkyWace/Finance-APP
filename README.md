@@ -58,7 +58,34 @@ Raccourcis : `Ctrl+N` nouvelle opération · `Ctrl+M` masquer les montants ·
 `Ctrl+L` verrouiller ·
 `Ctrl+1`…`Ctrl+9` navigation (neuf premiers écrans).
 
-## Lancer
+## Installer (Windows)
+
+L'installateur `.msi` embarque son propre runtime Java : **rien d'autre à
+installer**. Installation par utilisateur (aucun droit administrateur), menu
+Démarrer et raccourci sur le bureau (proposé). Une nouvelle version remplace la
+précédente ; les données (`%APPDATA%\financeapp`) ne sont jamais touchées par
+une mise à jour ou une désinstallation.
+
+**Obtenir l'installateur**
+
+- Sur GitHub : onglet *Actions* → *Installateur Windows* → *Run workflow*, puis
+  télécharger l'artefact `FinanceApp-Windows-msi` de l'exécution. Une étiquette
+  `v*` (ex. `git tag v0.1.0 && git push --tags`) publie aussi une *release*.
+- Sur un PC Windows (JDK 21, Maven, [WiX Toolset 3.14](https://github.com/wixtoolset/wix3/releases)) :
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File packaging\windows\build-installer.ps1
+  # -> financeapp-desktop\target\installer\FinanceApp-0.1.0.msi   (-Type exe pour un .exe)
+  ```
+
+L'installateur n'est pas signé : Windows SmartScreen peut afficher « Windows a
+protégé votre ordinateur » → *Informations complémentaires* → *Exécuter quand
+même*. La signature de code nécessite un certificat (voir `docs/CONCEPTION.md`).
+
+Même configuration sous Linux, pour vérifier le paquet sans Windows :
+`packaging/linux/build-app-image.sh` (image applicative) ou `… deb`.
+
+## Lancer depuis les sources
 
 Prérequis : Java 21+ et Maven 3.9+.
 
@@ -138,5 +165,5 @@ devise), centimes (`INTEGER`) en base. Dates : `java.time`.
   Synchronisation bancaire : **prototype** (Enable Banking), à valider avec un
   vrai compte ; étude, choix et limites dans
   [`docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md).
-- Installateur Windows (`jpackage`) non encore fourni : le jar + `lib/`
-  produits par `mvn package` en sont l'entrée prévue.
+- Installateur Windows non signé (avertissement SmartScreen) ; pas encore de
+  paquet macOS (même script jpackage à adapter : `.dmg`, notarisation Apple).

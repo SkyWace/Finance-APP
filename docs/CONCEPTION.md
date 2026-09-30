@@ -608,3 +608,34 @@ lots, tables `bank_sync_config`, `bank_connections`, `bank_account_links`,
 opérations récupérées passent par l'aperçu d'import, la détection des doublons,
 les rapprochements et « À valider ». Détails, choix et points restant à valider :
 § 11 de l'étude.
+
+## 16. Distribution : installateur Windows (jpackage)
+
+- **Entrée** : le jar « classique » (`Main-Class` = `Launcher`, `Class-Path`
+  vers `lib/`) produit par `mvn package`. JavaFX reste sur le classpath (le
+  lanceur séparé évite la vérification de module), avec les jars natifs de la
+  plateforme de construction : l'installateur Windows est donc construit **sur
+  Windows** (jpackage ne produit que des paquets pour son propre système).
+- **Runtime embarqué** : `jlink` avec les modules listés dans
+  `packaging/jlink-modules.txt` (calculés par `jdeps --print-module-deps` sur
+  toutes les dépendances, plus `jdk.localedata` pour les formats français,
+  `jdk.charsets`, `jdk.crypto.ec` pour TLS, `jdk.accessibility`, `java.naming`) ;
+  image d'environ 110 Mo.
+- **Installateur** (`packaging/windows/build-installer.ps1`) : `.msi` (ou
+  `.exe`), installation par utilisateur, menu Démarrer, raccourci proposé,
+  choix du dossier, **UUID de mise à niveau fixe** (une version remplace la
+  précédente), icône `packaging/windows/financeapp.ico` (générée par
+  `packaging/icon/IconGenerator.java`, sans dépendance). Nom (`app.name`) et
+  version (pom parent, sans `-SNAPSHOT`) lus depuis le projet.
+- **Données** : `%APPDATA%\financeapp`, hors du dossier d'installation ;
+  jamais supprimées par une mise à jour ou une désinstallation.
+- **Intégration continue** : `.github/workflows/windows-installer.yml`
+  (runner `windows-2022`, JDK 21 Temurin, WiX 3.14 installé si absent) :
+  tests, installateur en artefact, release sur étiquette `v*`.
+- **Vérification sans Windows** : `packaging/linux/build-app-image.sh` applique
+  la même configuration. Premier lancement contrôlé sur un dossier de données
+  vide (mot de passe maître, clé de récupération, tableau de bord, formats
+  français) : ce test a révélé un plantage du disponible réel sans aucun compte
+  (tri d'une liste immuable), corrigé et couvert par `FirstRunTest`.
+- **Non couvert** : signature de code (certificat Authenticode requis pour
+  éviter l'avertissement SmartScreen), paquet macOS.
