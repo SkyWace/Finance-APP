@@ -52,6 +52,7 @@ public final class SqliteTestDb {
     public final com.financeapp.core.service.InboxService inbox;
     public final com.financeapp.core.service.ImportService imports;
     public final JdbcLoanRepository loanRepo;
+    public final JdbcValuationRepository valuationRepo;
     public final JdbcBankSyncRepository bankSyncRepo;
     public final JdbcSimulationRepository simulationRepo;
     public final com.financeapp.core.service.LoanService loans;
@@ -79,7 +80,8 @@ public final class SqliteTestDb {
         settingsRepo = new JdbcSettingsRepository(jdbc);
         clock = Clock.fixed(today.atTime(10, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
         settings = new SettingsService(settingsRepo);
-        accounts = new AccountService(accountRepo, transactionRepo, ruleRepo);
+        valuationRepo = new JdbcValuationRepository(jdbc);
+        accounts = new AccountService(accountRepo, transactionRepo, ruleRepo, valuationRepo, clock);
         categories = new CategoryService(categoryRepo);
         transactions = new TransactionService(accountRepo, transactionRepo);
         recurring = new RecurringService(ruleRepo, transactionRepo, accountRepo, transactions, new RecurrenceEngine(), clock);

@@ -4,6 +4,7 @@ import com.financeapp.core.recurring.RecurringRule;
 import com.financeapp.core.service.SubscriptionService;
 import com.financeapp.core.subscription.RecurringPaymentCandidate;
 import com.financeapp.core.transaction.TransactionType;
+import com.financeapp.desktop.ui.common.AccountFilter;
 import com.financeapp.desktop.ui.common.Formats;
 import com.financeapp.desktop.ui.common.UiAsync;
 import com.financeapp.desktop.ui.common.UiContext;
@@ -27,8 +28,11 @@ public final class SubscriptionsPage extends Page {
     private record Data(SubscriptionService.Overview overview, List<RecurringPaymentCandidate> candidates) {
     }
 
+    private final AccountFilter filter;
+
     public SubscriptionsPage(UiContext ctx) {
         super(ctx);
+        filter = new AccountFilter(ctx, this::refresh);
     }
 
     @Override
@@ -39,7 +43,19 @@ public final class SubscriptionsPage extends Page {
     @Override
     public void refresh() {
         var service = ctx.services().subscriptions();
-        UiAsync.load(() -> new Data(service.overview(), service.detectCandidates()), this::render);
+        Long account = filter.sync();
+        UiAsync.load(() -> new Data(filtered(service.overview(), account), service.detectCandidates()), this::render);
+    }
+
+    /** Abonnements preleves sur le compte choisi, totaux recalcules. */
+    private static SubscriptionService.Overview filtered(SubscriptionService.Overview all, Long account) {
+        if (account == null) {
+            return all;
+        }
+        List<RecurringRule> rules = all.subscriptions().stream().filter(r -> r.accountId() == account).toList();
+        var zero = all.monthlyTotal().minus(all.monthlyTotal());
+        var monthly = rules.stream().map(r -> r.monthlyEquivalent().negate()).reduce(zero, (a, b) -> a.plus(b));
+        return new SubscriptionService.Overview(rules, monthly, monthly.multiply(BigDecimal.valueOf(12)));
     }
 
     private void render(Data data) {
@@ -104,7 +120,7 @@ public final class SubscriptionsPage extends Page {
                 + "(hebdomadaire à annuel). Rien n'est enregistré sans votre accord.", "muted");
         how.setWrapText(true);
 
-        content.getChildren().setAll(kpis, Widgets.section("Abonnements enregistrés", list),
+        content.getChildren().setAll(filter.node(), kpis, Widgets.section("Abonnements enregistrés", list),
                 Widgets.section("Paiements réguliers détectés", detected, how));
     }
 

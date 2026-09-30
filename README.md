@@ -23,15 +23,16 @@ toutes mes dépenses futures prises en compte ? »*
 | Transactions | Dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
 | Calendrier | Mois en grille : opérations réelles et prévues, solde en fin de journée (réel puis prévu), détail du jour |
 | Budgets | Plafond mensuel par catégorie, progression, alertes (proche / atteint / dépassé, en texte et symbole), reste réservé dans le disponible |
-| Épargne | Objectifs (montant, échéance), suivi via un compte ou manuel, épargne mensuelle nécessaire |
-| Abonnements | Coût mensuel et annuel, détection des paiements réguliers dans l'historique |
-| Analyses | Revenus/dépenses/épargne du mois et taux d'épargne vs mois précédent, 12 mois, catégories, comparaison (montants + %), **principaux commerçants**, **comparaison de deux périodes quelconques** |
+| Épargne | Épargne détenue : **Livret A, LDDS, LEP, Livret Jeune, CEL, PEL, assurance-vie, PEA, PER, épargne salariale (PEE, PERCOL…), compte-titres, crypto-actifs**… ; valeur actuelle mise à jour à la main (relevé, valorisation) avec historique ; épargne disponible / à moyen et long terme ; part du patrimoine ; **marge sous le plafond** des livrets réglementés |
+| Objectifs | Objectifs d'épargne (montant, échéance), suivi via un compte ou manuel, épargne mensuelle nécessaire |
+| Abonnements | **Filtre par compte** ; coût mensuel et annuel, détection des paiements réguliers dans l'historique |
+| Analyses | **Filtre par compte** ; revenus/dépenses/épargne du mois et taux d'épargne vs mois précédent, 12 mois, catégories, comparaison (montants + %), **principaux commerçants**, **comparaison de deux périodes quelconques** |
 | Import | Relevés **CSV** (assistant de correspondance des colonnes avec aperçu), **OFX / QFX**, **QIF** ; vérification ligne à ligne (nouvelle, doublon, opération prévue réalisée…) ; historique et **annulation d'un import** |
 | À valider | Opérations importées avec leur catégorie proposée : valider, corriger, tout valider |
 | Synchronisation *(prototype, désactivée par défaut)* | Lecture seule via **Enable Banking** avec votre propre compte (mode restreint gratuit) : authentification chez votre banque, aucun identifiant saisi, aucun serveur FinanceApp ; opérations vérifiées comme un import (doublons, rapprochements, « À valider ») ; révocation et effacement en un clic |
 | Règles | Catégorisation automatique locale (« libellé contenant TOTAL → Carburant »), proposée quand vous corrigez une catégorie |
-| À venir | Opérations prévues + occurrences récurrentes ; valider (date et montant réels) ou ignorer |
-| Récurrences | Hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel |
+| À venir | **Filtre par compte** (virements compris) ; opérations prévues + occurrences récurrentes ; valider (date et montant réels) ou ignorer |
+| Récurrences | **Filtre par compte** ; hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel |
 | Disponible réel | Échéance : fin de semaine, prochaine paie, fin du mois, date personnalisée ; **détail ligne à ligne** du calcul, budgets et objectifs réservés, « si aucune autre dépense variable » |
 | Prévisions | Courbe réel (plein) / prévu (pointillés), 7 jours à **48 mois**, point bas, alerte de solde négatif, dépenses courantes estimées (option) |
 | Simulations | **What If?** : achat financé à crédit, nouvelle charge ou rentrée, crédit, arrêt d'une récurrence ; disponible, reste à vivre et capacité d'épargne **avant / après**, mois par mois, courbe de solde, objectifs ; ne modifie jamais les données réelles |

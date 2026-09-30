@@ -5,6 +5,7 @@ import com.financeapp.core.money.Money;
 import com.financeapp.core.planning.PlannedItem;
 import com.financeapp.core.transaction.TransactionStatus;
 import com.financeapp.core.transaction.TransactionType;
+import com.financeapp.desktop.ui.common.AccountFilter;
 import com.financeapp.desktop.ui.common.Choice;
 import com.financeapp.desktop.ui.common.Dialogs;
 import com.financeapp.desktop.ui.common.Formats;
@@ -34,9 +35,11 @@ import java.util.stream.Collectors;
 public final class UpcomingPage extends Page {
 
     private final ComboBox<Choice<Integer>> range = new ComboBox<>();
+    private final AccountFilter filter;
 
     public UpcomingPage(UiContext ctx) {
         super(ctx);
+        filter = new AccountFilter(ctx, this::refresh);
         range.getItems().setAll(new Choice<>(7, "7 prochains jours"), new Choice<>(30, "30 prochains jours"),
                 new Choice<>(60, "60 prochains jours"), new Choice<>(90, "90 prochains jours"));
         Widgets.select(range, 30);
@@ -53,7 +56,13 @@ public final class UpcomingPage extends Page {
         Formats f = ctx.formats();
         LocalDate today = ctx.services().planning().today();
         int days = Widgets.selected(range) == null ? 30 : Widgets.selected(range);
-        List<PlannedItem> items = ctx.services().planning().upcomingForDisplay(today.plusDays(days));
+        Long account = filter.sync();
+        // Vue d'un compte : les deux jambes des virements, chacune avec le signe du compte
+        // (un virement recu sur le livret apparait en positif).
+        List<PlannedItem> items = account == null
+                ? ctx.services().planning().upcomingForDisplay(today.plusDays(days))
+                : ctx.services().planning().upcoming(today.plusDays(days)).stream()
+                  .filter(i -> i.accountId() == account).toList();
         Map<Long, Account> accounts = ctx.services().accounts().findAll().stream()
                 .collect(Collectors.toMap(Account::id, a -> a));
         Map<Long, String> categories = ctx.services().categories().fullNames();
@@ -63,7 +72,7 @@ public final class UpcomingPage extends Page {
         Money out = zero;
         Money in = zero;
         for (PlannedItem i : items) {
-            if (i.type() == TransactionType.TRANSFER || !i.amount().currency().equals(base)) {
+            if ((i.type() == TransactionType.TRANSFER && account == null) || !i.amount().currency().equals(base)) {
                 continue;
             }
             if (i.amount().isNegative()) {
@@ -73,8 +82,10 @@ public final class UpcomingPage extends Page {
             }
         }
         HBox kpis = new HBox(14,
-                Widgets.kpiCard("Sorties prévues", f.signed(out), Formats.signClass(out), null),
-                Widgets.kpiCard("Entrées prévues", f.signed(in), Formats.signClass(in), null),
+                Widgets.kpiCard("Sorties prévues", f.signed(out), Formats.signClass(out),
+                        account == null ? "hors virements internes" : "virements compris"),
+                Widgets.kpiCard("Entrées prévues", f.signed(in), Formats.signClass(in),
+                        account == null ? "hors virements internes" : "virements compris"),
                 Widgets.kpiCard("Opérations", Integer.toString(items.size()), null, "sur la période"));
 
         VBox list = new VBox(4);
@@ -94,7 +105,7 @@ public final class UpcomingPage extends Page {
             list.getChildren().add(Widgets.emptyState("Rien de prévu sur cette période. Ajoutez des opérations récurrentes "
                     + "(loyer, salaire, abonnements…) ou des opérations futures avec le statut « Prévu »."));
         }
-        content.getChildren().setAll(Widgets.row(Widgets.label("Période", "muted"), range), kpis,
+        content.getChildren().setAll(Widgets.row(Widgets.label("Période", "muted"), range, filter.node()), kpis,
                 Widgets.section(null, list));
     }
 
@@ -103,8 +114,10 @@ public final class UpcomingPage extends Page {
         String account = accounts.containsKey(i.accountId()) ? accounts.get(i.accountId()).name() : "";
         String detail;
         if (i.type() == TransactionType.TRANSFER) {
-            Account to = i.transferAccountId() == null ? null : accounts.get(i.transferAccountId());
-            detail = account + " → " + (to == null ? "?" : to.name());
+            Account other = i.transferAccountId() == null ? null : accounts.get(i.transferAccountId());
+            String otherName = other == null ? "?" : other.name();
+            // Jambe creditrice (vue du compte qui recoit) : l'origine est l'autre compte.
+            detail = i.amount().isPositive() ? otherName + " → " + account : account + " → " + otherName;
         } else {
             String cat = i.categoryId() == null ? "" : categories.getOrDefault(i.categoryId(), "");
             detail = cat.isEmpty() ? account : cat + " · " + account;

@@ -5,6 +5,7 @@ import com.financeapp.core.money.Money;
 import com.financeapp.core.recurring.RecurringRule;
 import com.financeapp.core.transaction.TransactionType;
 import com.financeapp.desktop.ui.common.Dialogs;
+import com.financeapp.desktop.ui.common.AccountFilter;
 import com.financeapp.desktop.ui.common.Formats;
 import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
@@ -25,8 +26,11 @@ import java.util.stream.Collectors;
 /** Operations recurrentes, avec leur equivalent mensuel et annuel. */
 public final class RecurringPage extends Page {
 
+    private final AccountFilter filter;
+
     public RecurringPage(UiContext ctx) {
         super(ctx);
+        filter = new AccountFilter(ctx, this::refresh);
     }
 
     @Override
@@ -38,7 +42,10 @@ public final class RecurringPage extends Page {
     public void refresh() {
         Formats f = ctx.formats();
         LocalDate today = ctx.services().planning().today();
-        List<RecurringRule> rules = ctx.services().recurring().findAll();
+        Long account = filter.sync();
+        List<RecurringRule> rules = ctx.services().recurring().findAll().stream()
+                .filter(r -> account == null || r.accountId() == account || account.equals(r.toAccountId()))
+                .toList();
         Map<Long, Account> accounts = ctx.services().accounts().findAll().stream()
                 .collect(Collectors.toMap(Account::id, a -> a));
         Map<Long, String> categories = ctx.services().categories().fullNames();
@@ -55,9 +62,13 @@ public final class RecurringPage extends Page {
         VBox ended = new VBox(4);
         for (RecurringRule r : rules) {
             boolean isEnded = !r.active() || (r.endDate() != null && r.endDate().isBefore(today));
-            (isEnded ? ended : active).getChildren().add(ruleRow(r, accounts, categories, f, isEnded));
-            if (!isEnded && r.type() != TransactionType.TRANSFER && r.amount().currency().equals(base)) {
+            (isEnded ? ended : active).getChildren().add(ruleRow(r, accounts, categories, f, isEnded, account));
+            boolean counted = r.type() != TransactionType.TRANSFER || account != null;
+            if (!isEnded && counted && r.amount().currency().equals(base)) {
                 Money monthly = r.monthlyEquivalent();
+                if (r.type() == TransactionType.TRANSFER && account.equals(r.toAccountId())) {
+                    monthly = monthly.negate(); // virement recu par le compte filtre
+                }
                 if (monthly.isNegative()) {
                     charges = charges.plus(monthly);
                 } else {
@@ -75,16 +86,17 @@ public final class RecurringPage extends Page {
                 Widgets.kpiCard("Revenus récurrents", f.signed(incomes) + " /mois", Formats.signClass(incomes),
                         "soit " + f.signed(incomes.multiply(BigDecimal.valueOf(12))) + " par an"),
                 Widgets.kpiCard("Solde récurrent", f.signed(incomes.plus(charges)) + " /mois",
-                        Formats.signClass(incomes.plus(charges)), "hors virements internes"));
+                        Formats.signClass(incomes.plus(charges)),
+                        account == null ? "hors virements internes" : "virements compris, pour ce compte"));
 
-        content.getChildren().setAll(Widgets.row(add), kpis, Widgets.section("Actives", active));
+        content.getChildren().setAll(Widgets.row(add, Widgets.spacer(), filter.node()), kpis, Widgets.section("Actives", active));
         if (!ended.getChildren().isEmpty()) {
             content.getChildren().add(Widgets.section("Terminées ou suspendues", ended));
         }
     }
 
     private HBox ruleRow(RecurringRule r, Map<Long, Account> accounts, Map<Long, String> categories,
-                         Formats f, boolean ended) {
+                         Formats f, boolean ended, Long filtered) {
         String account = accounts.containsKey(r.accountId()) ? accounts.get(r.accountId()).name() : "?";
         String detail = r.type() == TransactionType.TRANSFER
                 ? account + " → " + (accounts.containsKey(r.toAccountId()) ? accounts.get(r.toAccountId()).name() : "?")
@@ -105,7 +117,11 @@ public final class RecurringPage extends Page {
         if (r.type() == TransactionType.TRANSFER) {
             badges.getChildren().add(Widgets.badge("virement", "neutral"));
         }
-        Label amount = Widgets.amount(f, r.signedAmount());
+        Money signed = r.signedAmount();
+        if (r.type() == TransactionType.TRANSFER && filtered != null && filtered.equals(r.toAccountId())) {
+            signed = signed.negate(); // vu du compte filtre, le virement est une entree
+        }
+        Label amount = Widgets.amount(f, signed);
         amount.setMinWidth(120);
         amount.setAlignment(Pos.CENTER_RIGHT);
 

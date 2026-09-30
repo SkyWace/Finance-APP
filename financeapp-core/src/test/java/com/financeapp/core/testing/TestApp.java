@@ -62,12 +62,13 @@ public final class TestApp {
     public final SimulationService simulations;
     public final FakeBankSync bank = new FakeBankSync();
     public final BankSyncService bankSync;
+    public final com.financeapp.core.service.SavingsService savings;
 
     public TestApp(LocalDate today) {
         this.today = today;
         Clock clock = Clock.fixed(today.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
         settings = new SettingsService(store.settings);
-        accounts = new AccountService(store.accounts, store.transactions, store.rules);
+        accounts = new AccountService(store.accounts, store.transactions, store.rules, store.valuations, clock);
         categories = new CategoryService(store.categories);
         transactions = new TransactionService(store.accounts, store.transactions);
         recurring = new RecurringService(store.rules, store.transactions, store.accounts, transactions,
@@ -86,6 +87,7 @@ public final class TestApp {
         imports = new ImportService(store.imports, store.transactions, accounts, planning, categorization);
         loans = new LoanService(store.loans, recurring, accounts, clock);
         simulations = new SimulationService(store.simulations, forecast, goals, planning);
+        savings = new com.financeapp.core.service.SavingsService(accounts, settings);
         bankSync = new BankSyncService(store.bankSync, bank, imports, accounts, clock);
     }
 

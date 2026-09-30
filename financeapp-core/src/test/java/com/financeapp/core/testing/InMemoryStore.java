@@ -65,6 +65,28 @@ public final class InMemoryStore {
     private final Map<Long, List<Reconciliation>> reconciliationsByBatch = new HashMap<>();
     private final Map<Long, SavingsGoal> goalMap = new LinkedHashMap<>();
     private final Map<Long, Loan> loanMap = new LinkedHashMap<>();
+    private final Map<Long, com.financeapp.core.account.AccountValuation> valuationMap = new LinkedHashMap<>();
+
+    public final com.financeapp.core.port.ValuationRepository valuations = new com.financeapp.core.port.ValuationRepository() {
+        public List<com.financeapp.core.account.AccountValuation> findByAccount(long accountId) {
+            return valuationMap.values().stream().filter(v -> v.accountId() == accountId)
+                    .sorted(Comparator.comparing(com.financeapp.core.account.AccountValuation::date).reversed()).toList();
+        }
+        public Map<Long, com.financeapp.core.account.AccountValuation> latestByAccount() {
+            Map<Long, com.financeapp.core.account.AccountValuation> latest = new HashMap<>();
+            for (var v : valuationMap.values()) {
+                latest.merge(v.accountId(), v, (a, b) -> a.date().isAfter(b.date()) ? a : b);
+            }
+            return latest;
+        }
+        public com.financeapp.core.account.AccountValuation save(com.financeapp.core.account.AccountValuation v) {
+            valuationMap.values().removeIf(o -> o.accountId() == v.accountId() && o.date().equals(v.date()));
+            var saved = v.id() == null ? v.withId(ids.getAndIncrement()) : v;
+            valuationMap.put(saved.id(), saved);
+            return saved;
+        }
+        public void delete(long id) { valuationMap.remove(id); }
+    };
     private final Map<Long, Simulation> simulationMap = new LinkedHashMap<>();
 
     private BankSyncCredentials bankCredentials;
@@ -199,6 +221,11 @@ public final class InMemoryStore {
             return transactionMap.values().stream().filter(t -> t.status().countsInBalance())
                     .collect(Collectors.groupingBy(Transaction::accountId,
                             Collectors.summingLong(t -> t.amount().toMinorUnits())));
+        }
+        public long sumCountedMinorAfter(long accountId, LocalDate after) {
+            return transactionMap.values().stream().filter(t -> t.status().countsInBalance())
+                    .filter(t -> t.accountId() == accountId && t.date().isAfter(after))
+                    .mapToLong(t -> t.amount().toMinorUnits()).sum();
         }
         public List<Transaction> findCounted(LocalDate from, LocalDate to) {
             return transactionMap.values().stream().filter(t -> t.status().countsInBalance())
