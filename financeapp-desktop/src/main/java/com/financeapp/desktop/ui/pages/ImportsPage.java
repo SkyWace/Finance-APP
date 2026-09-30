@@ -56,7 +56,8 @@ public final class ImportsPage extends Page {
         for (ImportBatch b : batches) {
             String when = STAMP.format(b.importedAt().atZone(ZoneId.systemDefault()));
             VBox texts = new VBox(1, Widgets.label(b.fileName(), "op-label"),
-                    Widgets.label(when + " · " + accounts.getOrDefault(b.accountId(), "?") + " · " + b.format(), "op-detail"));
+                    Widgets.label(when + " · " + accounts.getOrDefault(b.accountId(), "?") + " · "
+                            + ("BANK_SYNC".equals(b.format()) ? "synchronisation bancaire" : b.format()), "op-detail"));
             Label counts = Widgets.label(b.created() + " nouvelle(s) · " + b.reconciled() + " rapprochée(s) · "
                     + b.skipped() + " ignorée(s)", "op-detail");
             HBox row = new HBox(12, texts, Widgets.spacer(), counts);

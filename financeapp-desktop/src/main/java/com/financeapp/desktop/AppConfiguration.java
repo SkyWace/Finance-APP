@@ -18,6 +18,11 @@ import com.financeapp.core.service.CategorizationService;
 import com.financeapp.core.service.ImportService;
 import com.financeapp.core.service.InboxService;
 import com.financeapp.core.service.LoanService;
+import com.financeapp.core.service.BankSyncService;
+import com.financeapp.core.port.BankSyncClientFactory;
+import com.financeapp.core.port.BankSyncRepository;
+import com.financeapp.banksync.EnableBankingClientFactory;
+import com.financeapp.infra.db.JdbcBankSyncRepository;
 import com.financeapp.core.service.SimulationService;
 import com.financeapp.core.port.LoanRepository;
 import com.financeapp.core.port.SimulationRepository;
@@ -254,6 +259,30 @@ public class AppConfiguration {
     SimulationService simulationService(SimulationRepository simulations, ForecastService forecast,
                                         SavingsGoalService goals, PlanningService planning) {
         return new SimulationService(simulations, forecast, goals, planning);
+    }
+
+    @Bean
+    BankSyncRepository bankSyncRepository(JdbcClient jdbc, TransactionTemplate tx) {
+        return new JdbcBankSyncRepository(jdbc, tx);
+    }
+
+    /**
+     * Agregateur Enable Banking (production). La propriete systeme
+     * {@code financeapp.banksync.api} permet de viser un serveur simule, sur la
+     * boucle locale uniquement (le client refuse toute autre adresse non HTTPS).
+     */
+    @Bean
+    BankSyncClientFactory bankSyncClientFactory(Clock clock) {
+        String override = System.getProperty("financeapp.banksync.api");
+        return override == null || override.isBlank()
+                ? new EnableBankingClientFactory(clock)
+                : new EnableBankingClientFactory(java.net.URI.create(override), clock);
+    }
+
+    @Bean
+    BankSyncService bankSyncService(BankSyncRepository repository, BankSyncClientFactory factory, ImportService imports,
+                                    AccountService accounts, Clock clock) {
+        return new BankSyncService(repository, factory, imports, accounts, clock);
     }
 
     @Bean

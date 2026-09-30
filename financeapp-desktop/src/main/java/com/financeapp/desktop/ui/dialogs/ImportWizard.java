@@ -87,6 +87,8 @@ public final class ImportWizard extends Dialog<ImportBatch> {
     private List<ImportedRow> rows = List.of();
     private final ObservableList<PreviewRow> preview = FXCollections.observableArrayList();
     private ImportBatch result;
+    /** Operations issues d'une synchronisation bancaire (l'assistant s'ouvre alors directement sur l'apercu). */
+    private com.financeapp.core.service.BankSyncService.SyncBatch bankBatch;
 
     // Controles de correspondance (etape 2)
     private final Spinner<Integer> headerRows = new Spinner<>(0, 50, 0);
@@ -155,6 +157,23 @@ public final class ImportWizard extends Dialog<ImportBatch> {
         render();
     }
 
+    /**
+     * Apercu des operations recuperees par synchronisation bancaire : meme
+     * verification ligne a ligne qu'un import de fichier, compte impose.
+     */
+    public static ImportWizard forBankSync(UiContext ctx, com.financeapp.core.service.BankSyncService.SyncBatch batch) {
+        ImportWizard wizard = new ImportWizard(ctx);
+        wizard.setTitle("Vérifier les opérations synchronisées");
+        wizard.bankBatch = batch;
+        Widgets.select(wizard.account, batch.accountId());
+        wizard.account.setDisable(true);
+        wizard.rows = batch.rows();
+        wizard.fillPreview(batch.candidates());
+        wizard.step = 3;
+        wizard.render();
+        return wizard;
+    }
+
     private void guarded(Runnable action) {
         try {
             error.setText("");
@@ -194,6 +213,8 @@ public final class ImportWizard extends Dialog<ImportBatch> {
 
     private void render() {
         getDialogPane().lookupButton(back).setDisable(step == 1);
+        getDialogPane().lookupButton(back).setVisible(bankBatch == null);
+        getDialogPane().lookupButton(back).setManaged(bankBatch == null);
         getDialogPane().lookupButton(next).setVisible(step < 3);
         getDialogPane().lookupButton(next).setManaged(step < 3);
         getDialogPane().lookupButton(importButton).setVisible(step == 3);
@@ -201,7 +222,8 @@ public final class ImportWizard extends Dialog<ImportBatch> {
         Label title = Widgets.label(switch (step) {
             case 1 -> "Étape 1 sur 3 — Fichier et compte";
             case 2 -> "Étape 2 sur 3 — Correspondance des colonnes";
-            default -> "Étape 3 sur 3 — Vérification avant import";
+            default -> bankBatch != null ? bankBatch.sourceName() + " — vérification avant import"
+                    : "Étape 3 sur 3 — Vérification avant import";
         }, "section-title");
         Node content = switch (step) {
             case 1 -> stepSource();
@@ -384,7 +406,10 @@ public final class ImportWizard extends Dialog<ImportBatch> {
 
     private void buildPreview() {
         long accountId = Widgets.selected(account);
-        List<ImportCandidate> candidates = ctx.services().imports().plan(accountId, rows);
+        fillPreview(ctx.services().imports().plan(accountId, rows));
+    }
+
+    private void fillPreview(List<ImportCandidate> candidates) {
         Map<Long, String> names = ctx.services().categories().fullNames();
         preview.clear();
         for (ImportCandidate c : candidates) {
@@ -513,6 +538,9 @@ public final class ImportWizard extends Dialog<ImportBatch> {
                 .toList();
         if (decisions.stream().noneMatch(ImportService.Decision::include)) {
             throw new com.financeapp.core.service.BusinessException("Aucune ligne cochée : rien à importer.");
+        }
+        if (bankBatch != null) {
+            return ctx.services().bankSync().commit(bankBatch, decisions);
         }
         return ctx.services().imports().commit(Widgets.selected(account), file.getName(), format, decisions);
     }

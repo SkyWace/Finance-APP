@@ -7,7 +7,8 @@ toutes mes dépenses futures prises en compte ? »*
 > Nom provisoire. Il est défini à un seul endroit : `app.name` dans
 > `financeapp-desktop/src/main/resources/application.properties`.
 
-- Hors ligne, sans compte en ligne, sans connexion bancaire.
+- Hors ligne, sans compte en ligne. Synchronisation bancaire facultative
+  (prototype, désactivée par défaut) ; sinon, import de relevés.
 - Données dans une base SQLite locale **chiffrée** (SQLCipher, AES-256),
   protégée par un mot de passe maître (Argon2id) ; aucune télémétrie.
 - Conception détaillée (architecture, risques, schéma, étapes) :
@@ -27,6 +28,7 @@ toutes mes dépenses futures prises en compte ? »*
 | Analyses | Revenus/dépenses/épargne du mois et taux d'épargne vs mois précédent, 12 mois, catégories, comparaison (montants + %), **principaux commerçants**, **comparaison de deux périodes quelconques** |
 | Import | Relevés **CSV** (assistant de correspondance des colonnes avec aperçu), **OFX / QFX**, **QIF** ; vérification ligne à ligne (nouvelle, doublon, opération prévue réalisée…) ; historique et **annulation d'un import** |
 | À valider | Opérations importées avec leur catégorie proposée : valider, corriger, tout valider |
+| Synchronisation *(prototype, désactivée par défaut)* | Lecture seule via **Enable Banking** avec votre propre compte (mode restreint gratuit) : authentification chez votre banque, aucun identifiant saisi, aucun serveur FinanceApp ; opérations vérifiées comme un import (doublons, rapprochements, « À valider ») ; révocation et effacement en un clic |
 | Règles | Catégorisation automatique locale (« libellé contenant TOTAL → Carburant »), proposée quand vous corrigez une catégorie |
 | À venir | Opérations prévues + occurrences récurrentes ; valider (date et montant réels) ou ignorer |
 | Récurrences | Hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel |
@@ -110,6 +112,9 @@ mvn test
   V1 en clair, import atomique et annulation (restauration des opérations
   prévues, réimport après annulation), crédits (taux exact, récurrence liée
   unique), scénarios et hypothèses (remplacement atomique, cascade).
+- `financeapp-banksync` : client Enable Banking contre un serveur HTTP local
+  simulé qui vérifie la signature de chaque jeton ; correspondance des
+  opérations, pagination, erreurs, clés refusées.
 - `financeapp-desktop` : démarrage complet du contexte Spring (sans
   interface), verrouillage/déverrouillage.
 
@@ -118,6 +123,7 @@ mvn test
 ```
 financeapp-core      domaine, moteurs (Recurrence, AvailableBalance, Forecast, Import, Categorization, Loan, Simulation), services, ports — aucune dépendance
 financeapp-infra     SQLite chiffré + Spring JDBC, migrations Flyway, sauvegardes, mot de passe maître
+financeapp-banksync  adaptateur Enable Banking (optionnel, lecture seule) — seul module qui accède au réseau
 financeapp-desktop   JavaFX (vues en code, thème sombre CSS) + Spring Boot (injection, configuration)
 ```
 
@@ -129,7 +135,8 @@ devise), centimes (`INTEGER`) en base. Dates : `java.time`.
 - Une seule devise de référence pour les totaux ; pas de conversion.
 - Ne pas ouvrir deux instances sur le même dossier de données.
 - Étiquettes (tags) non encore disponibles. Crédits à taux fixe uniquement.
-  Aucune synchronisation bancaire (import de fichiers uniquement) : voir
-  l'étude V5, [`docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md).
+  Synchronisation bancaire : **prototype** (Enable Banking), à valider avec un
+  vrai compte ; étude, choix et limites dans
+  [`docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md).
 - Installateur Windows (`jpackage`) non encore fourni : le jar + `lib/`
   produits par `mvn package` en sont l'entrée prévue.

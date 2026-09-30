@@ -52,6 +52,7 @@ public final class SqliteTestDb {
     public final com.financeapp.core.service.InboxService inbox;
     public final com.financeapp.core.service.ImportService imports;
     public final JdbcLoanRepository loanRepo;
+    public final JdbcBankSyncRepository bankSyncRepo;
     public final JdbcSimulationRepository simulationRepo;
     public final com.financeapp.core.service.LoanService loans;
     public final com.financeapp.core.service.ForecastService forecast;
@@ -94,6 +95,7 @@ public final class SqliteTestDb {
         inbox = new com.financeapp.core.service.InboxService(transactionRepo, categorization);
         imports = new com.financeapp.core.service.ImportService(importRepo, transactionRepo, accounts, planning, categorization);
         loanRepo = new JdbcLoanRepository(jdbc);
+        bankSyncRepo = new JdbcBankSyncRepository(jdbc, tx);
         simulationRepo = new JdbcSimulationRepository(jdbc, tx);
         loans = new com.financeapp.core.service.LoanService(loanRepo, recurring, accounts, clock);
         forecast = new com.financeapp.core.service.ForecastService(available, planning, transactionRepo, settings, recurring);

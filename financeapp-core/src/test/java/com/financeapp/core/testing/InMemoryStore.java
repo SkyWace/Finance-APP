@@ -5,6 +5,10 @@ import com.financeapp.core.category.Category;
 import com.financeapp.core.budget.Budget;
 import com.financeapp.core.goal.SavingsGoal;
 import com.financeapp.core.loan.Loan;
+import com.financeapp.core.banksync.BankAccountLink;
+import com.financeapp.core.banksync.BankConnection;
+import com.financeapp.core.banksync.BankSyncCredentials;
+import com.financeapp.core.port.BankSyncRepository;
 import com.financeapp.core.port.LoanRepository;
 import com.financeapp.core.port.SimulationRepository;
 import com.financeapp.core.simulation.Simulation;
@@ -62,6 +66,36 @@ public final class InMemoryStore {
     private final Map<Long, SavingsGoal> goalMap = new LinkedHashMap<>();
     private final Map<Long, Loan> loanMap = new LinkedHashMap<>();
     private final Map<Long, Simulation> simulationMap = new LinkedHashMap<>();
+
+    private BankSyncCredentials bankCredentials;
+    private final Map<Long, BankConnection> connectionMap = new LinkedHashMap<>();
+    private final Map<Long, BankAccountLink> linkMap = new LinkedHashMap<>();
+    private final List<Map.Entry<Long, java.time.Instant>> fetches = new ArrayList<>();
+
+    public final BankSyncRepository bankSync = new BankSyncRepository() {
+        public Optional<BankSyncCredentials> credentials() { return Optional.ofNullable(bankCredentials); }
+        public void saveCredentials(BankSyncCredentials c) { bankCredentials = c; }
+        public void clearAll() { bankCredentials = null; connectionMap.clear(); linkMap.clear(); fetches.clear(); }
+        public List<BankConnection> connections() { return List.copyOf(connectionMap.values()); }
+        public BankConnection saveConnection(BankConnection c, List<BankAccountLink> accounts) {
+            BankConnection saved = c.withId(ids.getAndIncrement());
+            connectionMap.put(saved.id(), saved);
+            for (BankAccountLink l : accounts) {
+                BankAccountLink withConnection = new BankAccountLink(ids.getAndIncrement(), saved.id(), l.accountUid(),
+                        l.name(), l.maskedIban(), l.currency(), l.localAccountId(), l.syncedUntil(), l.lastSyncAt());
+                linkMap.put(withConnection.id(), withConnection);
+            }
+            return saved;
+        }
+        public void deleteConnection(long id) { connectionMap.remove(id); linkMap.values().removeIf(l -> l.connectionId() == id); }
+        public List<BankAccountLink> links() { return List.copyOf(linkMap.values()); }
+        public Optional<BankAccountLink> link(long id) { return Optional.ofNullable(linkMap.get(id)); }
+        public BankAccountLink saveLink(BankAccountLink l) { linkMap.put(l.id(), l); return l; }
+        public void recordFetch(long linkId, java.time.Instant at) { fetches.add(Map.entry(linkId, at)); }
+        public int fetchesSince(long linkId, java.time.Instant since) {
+            return (int) fetches.stream().filter(e -> e.getKey() == linkId && !e.getValue().isBefore(since)).count();
+        }
+    };
 
     public final LoanRepository loans = new LoanRepository() {
         public List<Loan> findAll() { return List.copyOf(loanMap.values()); }

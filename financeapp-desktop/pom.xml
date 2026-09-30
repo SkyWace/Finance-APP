@@ -27,6 +27,10 @@
       <artifactId>financeapp-infra</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.financeapp</groupId>
+      <artifactId>financeapp-banksync</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter</artifactId>
     </dependency>
