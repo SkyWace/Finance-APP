@@ -370,7 +370,17 @@ public final class TransactionsPage extends Page {
             return;
         }
         try {
-            dialogThenRefresh(t.isTransfer() ? new TransferDialog(ctx, t) : new TransactionDialog(ctx, t, t.type(), null));
+            if (t.isTransfer()) {
+                dialogThenRefresh(new TransferDialog(ctx, t));
+                return;
+            }
+            new TransactionDialog(ctx, t, t.type(), null).showAndWait().ifPresent(saved -> {
+                // Correction de categorie : proposer une regle pour les prochaines fois.
+                if (saved.categoryId() != null && !java.util.Objects.equals(saved.categoryId(), t.categoryId())) {
+                    com.financeapp.desktop.ui.dialogs.RuleProposal.offer(ctx, saved.label(), saved.type(), saved.categoryId());
+                }
+                ctx.events().fireChanged();
+            });
         } catch (RuntimeException e) {
             Dialogs.error(window(), e);
         }

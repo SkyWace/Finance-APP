@@ -12,6 +12,9 @@ import com.financeapp.desktop.ui.pages.AccountsPage;
 import com.financeapp.desktop.ui.pages.AnalysisPage;
 import com.financeapp.desktop.ui.pages.BudgetsPage;
 import com.financeapp.desktop.ui.pages.CalendarPage;
+import com.financeapp.desktop.ui.pages.ImportsPage;
+import com.financeapp.desktop.ui.pages.InboxPage;
+import com.financeapp.desktop.ui.pages.RulesPage;
 import com.financeapp.desktop.ui.pages.SavingsGoalsPage;
 import com.financeapp.desktop.ui.pages.SubscriptionsPage;
 import com.financeapp.desktop.ui.pages.AvailablePage;
@@ -55,6 +58,7 @@ public final class MainWindow {
             new NavEntry("accounts", "▣", "Comptes", AccountsPage::new),
             new NavEntry("transactions", "≡", "Transactions", TransactionsPage::new),
             new NavEntry("upcoming", "◷", "À venir", UpcomingPage::new),
+            new NavEntry("inbox", "✉", "À valider", InboxPage::new),
             new NavEntry("calendar", "▤", "Calendrier", CalendarPage::new),
             new NavEntry("budgets", "◔", "Budgets", BudgetsPage::new),
             new NavEntry("goals", "◆", "Épargne", SavingsGoalsPage::new),
@@ -63,6 +67,8 @@ public final class MainWindow {
             new NavEntry("recurring", "↻", "Récurrences", RecurringPage::new),
             new NavEntry("subscriptions", "♺", "Abonnements", SubscriptionsPage::new),
             new NavEntry("analysis", "▥", "Analyses", AnalysisPage::new),
+            new NavEntry("imports", "⇩", "Import", ImportsPage::new),
+            new NavEntry("rules", "⚑", "Règles", RulesPage::new),
             new NavEntry("categories", "▦", "Catégories", CategoriesPage::new),
             new NavEntry("settings", "⚙", "Paramètres", SettingsPage::new),
     };
@@ -72,6 +78,7 @@ public final class MainWindow {
     private final Label pageTitle = Widgets.label("", "page-title");
     private final ToggleGroup navGroup = new ToggleGroup();
     private final Map<String, ToggleButton> navButtons = new LinkedHashMap<>();
+    private final Label inboxBadge = Widgets.label("", "nav-badge");
     private final Map<String, Page> pages = new LinkedHashMap<>();
     private final UiContext ctx;
     private final ToggleButton privacyButton = new ToggleButton();
@@ -91,6 +98,7 @@ public final class MainWindow {
         root.setCenter(main);
 
         events.onChange(() -> {
+            updateInboxBadge();
             if (current != null) {
                 current.refresh();
             }
@@ -103,6 +111,7 @@ public final class MainWindow {
             }
         });
         updatePrivacyButton();
+        updateInboxBadge();
         show("dashboard");
     }
 
@@ -119,7 +128,13 @@ public final class MainWindow {
             ToggleButton b = new ToggleButton();
             Label icon = Widgets.label(entry.icon(), "nav-icon");
             Label text = Widgets.label(entry.label(), "nav-label");
-            b.setGraphic(new HBox(12, icon, text));
+            HBox graphic = new HBox(12, icon, text);
+            if (entry.id().equals("inbox")) {
+                inboxBadge.visibleProperty().bind(inboxBadge.textProperty().isNotEmpty());
+                graphic.getChildren().addAll(Widgets.spacer(), inboxBadge);
+                graphic.setMaxWidth(Double.MAX_VALUE);
+            }
+            b.setGraphic(graphic);
             b.getStyleClass().add("nav-button");
             b.setToggleGroup(navGroup);
             b.setMaxWidth(Double.MAX_VALUE);
@@ -130,7 +145,11 @@ public final class MainWindow {
             index++;
         }
         Label local = Widgets.label("● Données locales · hors ligne", "sidebar-footer");
-        VBox sidebar = new VBox(4, new VBox(2, brand, tagline), nav, Widgets.spacer(), local);
+        javafx.scene.control.ScrollPane navScroll = new javafx.scene.control.ScrollPane(nav);
+        navScroll.setFitToWidth(true);
+        navScroll.getStyleClass().add("nav-scroll");
+        VBox.setVgrow(navScroll, javafx.scene.layout.Priority.ALWAYS);
+        VBox sidebar = new VBox(4, new VBox(2, brand, tagline), navScroll, local);
         sidebar.getStyleClass().add("sidebar");
         return sidebar;
     }
@@ -163,8 +182,19 @@ public final class MainWindow {
                 .ifPresent(t -> ctx.events().fireChanged());
     }
 
+    /** Nombre d'operations importees a valider, affiche a cote de "A valider". */
+    private void updateInboxBadge() {
+        try {
+            long n = ctx.services().inbox().count();
+            inboxBadge.setText(n == 0 ? "" : Long.toString(n));
+        } catch (RuntimeException e) {
+            inboxBadge.setText("");
+        }
+    }
+
     /** Recharge la page affichee (apres un deverrouillage, par exemple). */
     public void refreshCurrent() {
+        updateInboxBadge();
         if (current != null) {
             current.refresh();
         }

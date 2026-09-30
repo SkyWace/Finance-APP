@@ -5,7 +5,13 @@ import com.financeapp.core.category.Category;
 import com.financeapp.core.budget.Budget;
 import com.financeapp.core.goal.SavingsGoal;
 import com.financeapp.core.money.Money;
+import com.financeapp.core.categorization.CategorizationRule;
+import com.financeapp.core.imports.ImportBatch;
+import com.financeapp.core.imports.ImportedTransaction;
+import com.financeapp.core.imports.Reconciliation;
 import com.financeapp.core.port.AccountRepository;
+import com.financeapp.core.port.CategorizationRuleRepository;
+import com.financeapp.core.port.ImportRepository;
 import com.financeapp.core.port.BudgetRepository;
 import com.financeapp.core.port.SavingsGoalRepository;
 import com.financeapp.core.port.SearchTotals;
@@ -43,6 +49,12 @@ public final class InMemoryStore {
     private final Map<Long, RecurringRule> ruleMap = new LinkedHashMap<>();
     private final Map<String, String> settingsMap = new HashMap<>();
     private final Map<Long, Budget> budgetMap = new LinkedHashMap<>();
+    private final Map<Long, CategorizationRule> ruleMapCat = new LinkedHashMap<>();
+    private final Set<Long> needsReview = new java.util.HashSet<>();
+    private final Map<Long, String> externalIdByTx = new HashMap<>();
+    private final Map<Long, Long> batchByTx = new HashMap<>();
+    private final Map<Long, ImportBatch> batchMap = new LinkedHashMap<>();
+    private final Map<Long, List<Reconciliation>> reconciliationsByBatch = new HashMap<>();
     private final Map<Long, SavingsGoal> goalMap = new LinkedHashMap<>();
 
     public final AccountRepository accounts = new AccountRepository() {
@@ -144,6 +156,12 @@ public final class InMemoryStore {
         public boolean existsForAccount(long accountId) {
             return transactionMap.values().stream().anyMatch(t -> t.accountId() == accountId);
         }
+        public List<Transaction> findNeedingReview() {
+            return transactionMap.values().stream().filter(t -> needsReview.contains(t.id()))
+                    .sorted(Comparator.comparing(Transaction::date)).toList();
+        }
+        public long countNeedingReview() { return needsReview.stream().filter(transactionMap::containsKey).count(); }
+        public void markReviewed(long id) { needsReview.remove(id); }
     };
 
     public final RecurringRuleRepository rules = new RecurringRuleRepository() {
@@ -182,6 +200,66 @@ public final class InMemoryStore {
             return saved;
         }
         public void delete(long id) { goalMap.remove(id); }
+    };
+
+    public final CategorizationRuleRepository categorizationRules = new CategorizationRuleRepository() {
+        public List<CategorizationRule> findAll() { return List.copyOf(ruleMapCat.values()); }
+        public Optional<CategorizationRule> findById(long id) { return Optional.ofNullable(ruleMapCat.get(id)); }
+        public CategorizationRule save(CategorizationRule r) {
+            CategorizationRule saved = r.id() == null ? r.withId(ids.getAndIncrement()) : r;
+            ruleMapCat.put(saved.id(), saved);
+            return saved;
+        }
+        public void delete(long id) { ruleMapCat.remove(id); }
+    };
+
+    public final ImportRepository imports = new ImportRepository() {
+        public ImportBatch commit(ImportBatch batch, List<ImportedTransaction> created, List<Reconciliation> reconciliations) {
+            ImportBatch saved = batch.withId(ids.getAndIncrement());
+            batchMap.put(saved.id(), saved);
+            for (ImportedTransaction it : created) {
+                Transaction t = transactions.insert(it.transaction());
+                needsReview.add(t.id());
+                batchByTx.put(t.id(), saved.id());
+                if (it.externalId() != null) {
+                    externalIdByTx.put(t.id(), it.externalId());
+                }
+            }
+            for (Reconciliation r : reconciliations) {
+                Transaction t = transactionMap.get(r.transactionId());
+                transactionMap.put(t.id(), new Transaction(t.id(), t.accountId(), r.newDate(), r.newLabel(), t.amount(),
+                        t.type(), TransactionStatus.COMPLETED, t.categoryId(), t.note(), t.transferGroup(),
+                        t.transferAccountId(), t.recurringId(), t.occurrenceDate()));
+            }
+            reconciliationsByBatch.put(saved.id(), List.copyOf(reconciliations));
+            return saved;
+        }
+        public List<ImportBatch> findAll() { return List.copyOf(batchMap.values()).reversed(); }
+        public void undo(long batchId) {
+            batchByTx.entrySet().removeIf(e -> {
+                if (e.getValue() == batchId) {
+                    transactionMap.remove(e.getKey());
+                    needsReview.remove(e.getKey());
+                    externalIdByTx.remove(e.getKey());
+                    return true;
+                }
+                return false;
+            });
+            for (Reconciliation r : reconciliationsByBatch.getOrDefault(batchId, List.of())) {
+                Transaction t = transactionMap.get(r.transactionId());
+                transactionMap.put(t.id(), new Transaction(t.id(), t.accountId(), r.previousDate(), r.previousLabel(),
+                        t.amount(), t.type(), r.previousStatus(), t.categoryId(), t.note(), t.transferGroup(),
+                        t.transferAccountId(), t.recurringId(), t.occurrenceDate()));
+            }
+            ImportBatch b = batchMap.get(batchId);
+            batchMap.put(batchId, new ImportBatch(b.id(), b.accountId(), b.fileName(), b.format(), b.importedAt(),
+                    b.created(), b.reconciled(), b.skipped(), true));
+        }
+        public Set<String> externalIds(long accountId) {
+            return externalIdByTx.entrySet().stream()
+                    .filter(e -> transactionMap.containsKey(e.getKey()) && transactionMap.get(e.getKey()).accountId() == accountId)
+                    .map(Map.Entry::getValue).collect(Collectors.toSet());
+        }
     };
 
     public List<Transaction> allTransactions() {

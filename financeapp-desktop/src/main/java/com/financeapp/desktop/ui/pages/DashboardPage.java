@@ -124,6 +124,14 @@ public final class DashboardPage extends Page {
             bottom.getChildren().add(budgetCard);
         }
 
+        long toReview = ctx.services().inbox().count();
+        if (toReview > 0) {
+            Button review = link("Valider maintenant ›", "inbox");
+            HBox banner = Widgets.row(Widgets.label("✉  " + toReview + " opération(s) importée(s) à valider", "op-label"),
+                    Widgets.spacer(), review);
+            banner.getStyleClass().addAll("card", "banner");
+            content.getChildren().add(banner);
+        }
         content.getChildren().addAll(row1, row2, new HBox(14, chartCard, upcomingCard), bottom);
         if (s.excludedAccounts() > 0) {
             content.getChildren().add(Widgets.label(s.excludedAccounts()

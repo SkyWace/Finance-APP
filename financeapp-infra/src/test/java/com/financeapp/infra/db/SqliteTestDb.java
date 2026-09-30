@@ -46,6 +46,11 @@ public final class SqliteTestDb {
     public final JdbcSavingsGoalRepository goalRepo;
     public final com.financeapp.core.service.BudgetService budgets;
     public final com.financeapp.core.service.SavingsGoalService goals;
+    public final JdbcImportRepository importRepo;
+    public final JdbcCategorizationRuleRepository categorizationRuleRepo;
+    public final com.financeapp.core.service.CategorizationService categorization;
+    public final com.financeapp.core.service.InboxService inbox;
+    public final com.financeapp.core.service.ImportService imports;
 
     public SqliteTestDb(Path root, LocalDate today) {
         this(root, today, randomKey());
@@ -78,6 +83,11 @@ public final class SqliteTestDb {
         budgets = new com.financeapp.core.service.BudgetService(budgetRepo, transactionRepo, planning, categories, settings);
         goals = new com.financeapp.core.service.SavingsGoalService(goalRepo, accounts, planning);
         available = new AvailableBalanceService(accounts, planning, recurring, settings, java.util.List.of(budgets, goals));
+        importRepo = new JdbcImportRepository(jdbc, transactionRepo, tx);
+        categorizationRuleRepo = new JdbcCategorizationRuleRepository(jdbc);
+        categorization = new com.financeapp.core.service.CategorizationService(categorizationRuleRepo, transactionRepo, categories, planning);
+        inbox = new com.financeapp.core.service.InboxService(transactionRepo, categorization);
+        imports = new com.financeapp.core.service.ImportService(importRepo, transactionRepo, accounts, planning, categorization);
     }
 
     public static byte[] randomKey() {

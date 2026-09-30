@@ -104,6 +104,28 @@ public final class StatisticsEngine {
         return comparison(null, "Dépenses totales", ref, cur);
     }
 
+    /** Principaux commercants / libelles par montant depense (libelles normalises regroupes). */
+    public List<LabelStat> byLabel(List<Transaction> transactions, Currency currency, int limit) {
+        Map<String, List<Transaction>> groups = new HashMap<>();
+        for (Transaction t : transactions) {
+            if (t.type() == TransactionType.EXPENSE && t.amount().currency().equals(currency)) {
+                String key = com.financeapp.core.text.LabelNormalizer.normalize(t.label());
+                groups.computeIfAbsent(key.isBlank() ? t.label() : key, k -> new ArrayList<>()).add(t);
+            }
+        }
+        List<LabelStat> stats = new ArrayList<>();
+        groups.forEach((key, list) -> {
+            Money total = list.stream().map(t -> t.amount().negate()).reduce(Money.zero(currency), Money::plus);
+            String label = list.stream().collect(java.util.stream.Collectors.groupingBy(Transaction::label,
+                            java.util.stream.Collectors.counting()))
+                    .entrySet().stream().max(Map.Entry.<String, Long>comparingByValue()
+                            .thenComparing(Map.Entry.comparingByKey())).orElseThrow().getKey();
+            stats.add(new LabelStat(key, label, list.size(), total, total.divide(BigDecimal.valueOf(list.size()))));
+        });
+        stats.sort(Comparator.comparing((LabelStat l) -> l.total().amount()).reversed().thenComparing(LabelStat::key));
+        return stats.size() > limit ? stats.subList(0, limit) : stats;
+    }
+
     private static CategoryComparison comparison(Long id, String name, Money ref, Money cur) {
         Money delta = cur.minus(ref);
         BigDecimal pct = ref.isZero() ? null

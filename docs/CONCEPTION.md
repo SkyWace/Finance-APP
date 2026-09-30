@@ -415,3 +415,90 @@ les résultats : nombre, total dépensé, moyenne, revenus).
 
 Étiquettes (tags) et leur filtre ; budgets non mensuels ; comparaison de
 périodes arbitraires (V3, « analyses avancées »).
+
+## 13. V3 — Import de relevés et catégorisation automatique
+
+L'utilisateur télécharge lui-même son relevé depuis l'espace en ligne de sa
+banque ; l'application ne se connecte à rien et ne demande aucun identifiant
+bancaire. Le fichier est lu localement.
+
+### Formats et lecture (Java pur, testé)
+
+| Composant | Rôle |
+|---|---|
+| `CsvReader` | Détection de l'encodage (UTF-8 avec ou sans BOM, sinon Windows-1252) et du séparateur (`;` `,` tabulation `|`, le plus régulier sur les premières lignes) ; guillemets RFC 4180. |
+| `CsvMappingGuesser` | Proposition de correspondance : lignes de préambule (« Téléchargement du… », « Compte courant… ») détectées par les mots-clés d'en-tête (Date, Libellé, Montant, Débit, Crédit…), sinon par la première ligne contenant une date lisible ; format de date détecté parmi `dd/MM/yyyy`, `yyyy-MM-dd`, `dd-MM-yyyy`, `dd.MM.yyyy`, `dd/MM/yy`, `yyyy/MM/dd`, `d/M/yyyy`, `MM/dd/yyyy` ; montant en une colonne signée ou en deux colonnes Débit / Crédit. |
+| `CsvRowConverter`, `AmountText` | Conversion en `ImportedRow` ; montants « 1 234,56 », « -1.234,56 », « 1,234.56 », « (12,00) », « 12,5- », « 12,00 € ». Une ligne illisible devient une ligne **invalide** affichée avec son motif, jamais ignorée en silence. |
+| `OfxParser` | OFX 1.x (SGML, balises non fermées) et 2.x (XML) ; `FITID` conservé comme identifiant bancaire. QFX = OFX. |
+| `QifParser` | Blocs `D`/`T`/`P`/`M` terminés par `^` ; dates européennes puis américaines, apostrophe des années acceptée (`28/09'26`). |
+
+### Rapprochement avant import (`ImportPlanner`)
+
+Chaque ligne reçoit un statut, affiché en texte (jamais par la seule couleur) :
+
+| Statut | Règle | Coché par défaut |
+|---|---|---|
+| Nouvelle | aucune correspondance | oui |
+| Réalise une opération prévue | même montant exact, date à ± 5 jours (± 10 jours si le libellé confirme) | oui |
+| Réalise une échéance récurrente | montant à ± 10 %, date à ± 5 jours (± 10 si libellé), même sens | oui |
+| Déjà présente | même `FITID`, ou même montant à ± 3 jours avec libellé équivalent | **non** |
+| Doublon possible | même montant à ± 3 jours, libellé différent | **non** |
+| Deux fois dans le fichier | même date, montant et libellé normalisé | **non** |
+| Illisible | date ou montant non reconnu | impossible |
+
+Seules les opérations **effectuées ou en attente** peuvent être des doublons ;
+les opérations prévues sont *réalisées* (statut effectué, date réelle), pas
+dupliquées. Une occurrence récurrente réalisée crée une opération liée à
+`(recurring_id, occurrence_date)` : l'échéance disparaît de « À venir » et du
+disponible réel, qui ne compte donc jamais deux fois le loyer.
+
+### Enregistrement et annulation
+
+`ImportService.commit` enregistre en **une seule transaction SQL** le lot
+(`import_batches`), les opérations créées (`import_batch_id`, `external_id`,
+`needs_review = 1`) et les rapprochements avec l'**état précédent** de chaque
+opération prévue (`import_reconciliations`). « Défaire cet import » supprime les
+opérations du lot et restaure les opérations prévues ; le fichier peut ensuite
+être réimporté. Un index unique `(account_id, external_id)` empêche d'importer
+deux fois la même opération OFX.
+
+Migration : `V4__imports_and_categorization_rules.sql`.
+
+### Catégorisation automatique (`CategorizationEngine`, local)
+
+1. **Règles** de l'utilisateur (`categorization_rules`) : « si le libellé
+   contient *TOTAL* → Transport › Carburant », restreignable aux dépenses ou
+   aux revenus. Comparaison sur le libellé normalisé (`LabelNormalizer` :
+   casse, accents, chiffres, préfixes bancaires `CB`, `PRLV SEPA`…, noms de
+   mois) et **sur des mots entiers** (« TOTAL » ne correspond pas à
+   « TOTALEMENT »). Le motif le plus long l'emporte.
+2. **Historique** : à défaut de règle, la catégorie utilisée pour le même
+   libellé normalisé, si elle représente au moins 75 % d'au moins 2 opérations.
+3. Opération prévue ou récurrente rapprochée : sa catégorie prime.
+
+Quand l'utilisateur corrige une catégorie (Inbox ou Transactions), l'application
+propose « Toujours classer les opérations contenant « X » dans « Y » ? » avec le
+mot-clé significatif pré-rempli et modifiable. Aucune règle n'est créée sans
+confirmation. « Appliquer aux opérations sans catégorie » ne modifie jamais une
+catégorie déjà choisie.
+
+### Inbox « À valider »
+
+Les opérations importées comptent immédiatement dans les soldes ; seule leur
+catégorie reste à confirmer. L'écran liste la catégorie proposée et son
+origine (règle, historique, opération prévue), permet de corriger, de valider
+une à une ou de valider en bloc celles qui ont une catégorie. Le nombre en
+attente est affiché dans la navigation et sur le tableau de bord.
+
+### Analyses avancées
+
+- **Principaux commerçants** du mois : libellés regroupés par forme normalisée
+  (nombre d'opérations, total, moyenne).
+- **Comparer deux périodes quelconques** (ex. septembre 2025 vs septembre
+  2026) par catégorie, avec montants absolus et pourcentages.
+
+### Limites
+
+- Pas de connexion bancaire (V5 : étude uniquement).
+- Relevés multi-comptes dans un même fichier : importer compte par compte.
+- Les règles portent sur le libellé uniquement (pas sur le montant).
