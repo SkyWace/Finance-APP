@@ -2,7 +2,8 @@
 # jpackage ne produit que des paquets pour le systeme sur lequel il s'execute.
 #
 # - Lancement manuel : onglet Actions > "Installateur Windows" > Run workflow ;
-#   l'installateur est telechargeable dans les artefacts de l'execution.
+#   l'installateur (.msi) est telechargeable dans les artefacts de l'execution.
+# Actions en Node 24 : checkout@v7, setup-java@v6, upload-artifact@v7.
 # - Etiquette v* (ex. v0.1.0) : l'installateur est aussi joint a une release GitHub.
 name: Installateur Windows
 
@@ -18,9 +19,9 @@ jobs:
   msi:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
@@ -45,10 +46,12 @@ jobs:
         shell: pwsh
         run: packaging/windows/build-installer.ps1 -Type msi -SkipBuild
 
-      - uses: actions/upload-artifact@v4
+      # archive: false -> le .msi se telecharge directement (sans zip) ; l'artefact porte
+      # le nom du fichier (ex. FinanceApp-0.1.0.msi).
+      - uses: actions/upload-artifact@v7
         with:
-          name: FinanceApp-Windows-msi
           path: financeapp-desktop/target/installer/*.msi
+          archive: false
           if-no-files-found: error
 
       - name: Release GitHub (etiquettes v*)

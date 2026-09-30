@@ -69,7 +69,8 @@ une mise à jour ou une désinstallation.
 **Obtenir l'installateur**
 
 - Sur GitHub : onglet *Actions* → *Installateur Windows* → *Run workflow*, puis
-  télécharger l'artefact `FinanceApp-Windows-msi` de l'exécution. Une étiquette
+  télécharger l'artefact `FinanceApp-<version>.msi` de l'exécution (le fichier
+  `.msi` lui-même, sans zip). Une étiquette
   `v*` (ex. `git tag v0.1.0 && git push --tags`) publie aussi une *release*.
 - Sur un PC Windows (JDK 21, Maven, [WiX Toolset 3.14](https://github.com/wixtoolset/wix3/releases)) :
 
