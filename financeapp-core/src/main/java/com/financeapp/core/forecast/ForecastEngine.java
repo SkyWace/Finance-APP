@@ -22,6 +22,9 @@ import java.util.TreeMap;
  *       aujourd'hui.</li>
  * </ul>
  * Les virements entre deux comptes du perimetre sont neutres et ignores.
+ * Une estimation mensuelle des depenses courantes peut etre repartie jour par
+ * jour (a partir de demain) : chaque mois complet recoit exactement le montant
+ * mensuel, l'ecart d'arrondi tombant sur son dernier jour.
  */
 public final class ForecastEngine {
 
@@ -68,6 +71,9 @@ public final class ForecastEngine {
         ForecastPoint firstNegative = null;
         for (LocalDate d = in.today(); !d.isAfter(in.until()); d = d.plusDays(1)) {
             balance = balance.plus(plannedByDay.getOrDefault(d, zero));
+            if (d.isAfter(in.today())) {
+                balance = balance.minus(variableShare(in.variableMonthly(), d));
+            }
             ForecastPoint point = new ForecastPoint(d, balance, true);
             projection.add(point);
             if (lowest == null || balance.compareTo(lowest.balance()) < 0) {
@@ -78,6 +84,18 @@ public final class ForecastEngine {
             }
         }
         return new Forecast(List.copyOf(history), List.copyOf(projection), lowest, Optional.ofNullable(firstNegative));
+    }
+
+    /** Part d'une depense mensuelle attribuee a un jour. */
+    static Money variableShare(Money monthly, LocalDate day) {
+        if (monthly.isZero()) {
+            return monthly;
+        }
+        int length = day.lengthOfMonth();
+        Money perDay = monthly.divide(java.math.BigDecimal.valueOf(length));
+        return day.getDayOfMonth() == length
+                ? monthly.minus(perDay.multiply(java.math.BigDecimal.valueOf(length - 1L)))
+                : perDay;
     }
 
     private static boolean isInternal(TransactionType type, Long transferAccountId, ForecastInput in) {

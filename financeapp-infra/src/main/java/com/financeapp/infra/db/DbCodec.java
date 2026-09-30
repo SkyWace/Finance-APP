@@ -40,6 +40,29 @@ final class DbCodec {
         return Money.ofMinor(rs.getLong(column), currency);
     }
 
+    static Money nullableMoney(ResultSet rs, String column, Currency currency) throws SQLException {
+        long value = rs.getLong(column);
+        return rs.wasNull() ? null : Money.ofMinor(value, currency);
+    }
+
+    static Long minor(Money m) {
+        return m == null ? null : m.toMinorUnits();
+    }
+
+    static String decimal(java.math.BigDecimal value) {
+        return value == null ? null : value.toPlainString();
+    }
+
+    static java.math.BigDecimal decimal(ResultSet rs, String column) throws SQLException {
+        String value = rs.getString(column);
+        return value == null ? null : new java.math.BigDecimal(value);
+    }
+
+    static Integer nullableInt(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
+        return rs.wasNull() ? null : value;
+    }
+
     static String now() {
         return Instant.now().toString();
     }

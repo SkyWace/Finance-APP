@@ -244,6 +244,20 @@
 .balance-chart .default-color1.chart-line-symbol { -fx-background-color: #4c8dff, transparent; -fx-background-radius: 3; -fx-padding: 2; }
 .balance-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: #3ecf8e; }
 .balance-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: #4c8dff; }
+.comparison-chart .default-color0.chart-series-line { -fx-stroke: #8b95a7; -fx-stroke-width: 2px; -fx-stroke-dash-array: 8 6; }
+.comparison-chart .default-color1.chart-series-line { -fx-stroke: #f5a524; -fx-stroke-width: 2.5px; }
+.comparison-chart .default-color0.chart-line-symbol { -fx-background-color: #8b95a7, transparent; -fx-background-radius: 3; -fx-padding: 1.5; }
+.comparison-chart .default-color1.chart-line-symbol { -fx-background-color: #f5a524, transparent; -fx-background-radius: 3; -fx-padding: 1.5; }
+.comparison-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: #8b95a7; }
+.comparison-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: #f5a524; }
+
+/* ---------- Credits et simulations ---------- */
+.loan-value { -fx-text-fill: -fa-text; -fx-font-size: 16px; -fx-font-weight: bold; }
+.table-row-cell.row-past .table-cell { -fx-opacity: 0.6; }
+.sim-banner { -fx-background-color: #2a2140; -fx-border-color: #7c5cff; -fx-border-radius: 8; -fx-background-radius: 8;
+              -fx-padding: 10 14 10 14; -fx-text-fill: -fa-text; }
+.sim-list .toggle-button { -fx-alignment: center-left; -fx-pref-width: 220; }
+.impact-value { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -fa-text; }
 
 /* ---------- Dialogues ---------- */
 .dialog-pane { -fx-background-color: -fa-surface; }

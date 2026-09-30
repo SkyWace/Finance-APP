@@ -51,6 +51,11 @@ public final class SqliteTestDb {
     public final com.financeapp.core.service.CategorizationService categorization;
     public final com.financeapp.core.service.InboxService inbox;
     public final com.financeapp.core.service.ImportService imports;
+    public final JdbcLoanRepository loanRepo;
+    public final JdbcSimulationRepository simulationRepo;
+    public final com.financeapp.core.service.LoanService loans;
+    public final com.financeapp.core.service.ForecastService forecast;
+    public final com.financeapp.core.service.SimulationService simulations;
 
     public SqliteTestDb(Path root, LocalDate today) {
         this(root, today, randomKey());
@@ -88,6 +93,11 @@ public final class SqliteTestDb {
         categorization = new com.financeapp.core.service.CategorizationService(categorizationRuleRepo, transactionRepo, categories, planning);
         inbox = new com.financeapp.core.service.InboxService(transactionRepo, categorization);
         imports = new com.financeapp.core.service.ImportService(importRepo, transactionRepo, accounts, planning, categorization);
+        loanRepo = new JdbcLoanRepository(jdbc);
+        simulationRepo = new JdbcSimulationRepository(jdbc, tx);
+        loans = new com.financeapp.core.service.LoanService(loanRepo, recurring, accounts, clock);
+        forecast = new com.financeapp.core.service.ForecastService(available, planning, transactionRepo, settings, recurring);
+        simulations = new com.financeapp.core.service.SimulationService(simulationRepo, forecast, goals, planning);
     }
 
     public static byte[] randomKey() {

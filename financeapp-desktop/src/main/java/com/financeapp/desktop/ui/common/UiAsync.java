@@ -24,10 +24,23 @@ public final class UiAsync {
     }
 
     public static <T> void load(Supplier<T> work, Consumer<T> onSuccess) {
+        load(work, onSuccess, null);
+    }
+
+    /** Variante ou les erreurs metier sont affichees par l'appelant ({@code onBusinessError}) plutot qu'en fenetre. */
+    public static <T> void load(Supplier<T> work, Consumer<T> onSuccess, Consumer<Throwable> onBusinessError) {
         WORKER.submit(() -> {
             try {
                 T result = work.get();
                 Platform.runLater(() -> onSuccess.accept(result));
+            } catch (com.financeapp.core.service.BusinessException e) {
+                Platform.runLater(() -> {
+                    if (onBusinessError != null) {
+                        onBusinessError.accept(e);
+                    } else {
+                        Dialogs.error(null, e);
+                    }
+                });
             } catch (Throwable e) {
                 Platform.runLater(() -> Dialogs.error(null, e));
             }

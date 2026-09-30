@@ -502,3 +502,89 @@ attente est affiché dans la navigation et sur le tableau de bord.
 - Pas de connexion bancaire (V5 : étude uniquement).
 - Relevés multi-comptes dans un même fichier : importer compte par compte.
 - Les règles portent sur le libellé uniquement (pas sur le montant).
+
+## 14. V4 — Crédits, simulations « What If? », prévisions longues
+
+Migration : `V5__loans_and_simulations.sql` (tables `loans`, `simulations`,
+`simulation_items`).
+
+### Crédits (`Loan`, `LoanCalculator`, `LoanService`)
+
+- Données : nom, capital emprunté, taux nominal annuel (facultatif), durée en
+  mois, date de la 1re mensualité, mensualité (facultative), assurance
+  mensuelle, compte débité, catégorie. Le taux est stocké en texte décimal
+  exact (`"4.35"`), les montants en centimes.
+- **Tableau d'amortissement calculé, jamais stocké** : mensualités constantes,
+  taux mensuel = taux annuel / 12, mensualité
+  `C·t / (1 − (1 + t)^−n)` arrondie au centime, intérêts du mois = capital
+  restant × t arrondis au centime (HALF_EVEN), la dernière mensualité solde
+  l'écart d'arrondi. Valeurs de référence vérifiées par les tests :
+  10 000 € à 5 % sur 12 mois → 856,07 € ; 200 000 € à 3 % sur 240 mois →
+  1 109,20 € et 66 206,43 € d'intérêts.
+- **Taux inconnu** : estimé par dichotomie à partir de la mensualité (affiché
+  « taux estimé »). Une mensualité saisie incompatible avec le taux est refusée
+  avec la mensualité calculée.
+- Capital restant, part remboursée, prochaine échéance : d'après le calendrier
+  du crédit à la date du jour (mensualités échues = remboursées).
+- **Pas de double comptage** : les mensualités passent par une récurrence liée
+  (créée par le crédit, ou une récurrence existante choisie par l'utilisateur,
+  alignée alors sur le crédit : montant assurance comprise, dates). C'est elle
+  qui alimente « À venir », le disponible réel et les prévisions ; elle s'arrête
+  à la dernière mensualité. Une récurrence ne peut appuyer qu'un seul crédit
+  (index unique). Supprimer un crédit conserve la récurrence et l'historique.
+
+### Prévisions 12 / 24 / 48 mois
+
+- Horizons ajoutés : 24 et 48 mois (graphique échantillonné au-delà de 400
+  points, point bas conservé ; axe en mois).
+- **Dépenses courantes estimées** (option, cochée par défaut sur l'écran
+  Prévisions) : moyenne des dépenses effectuées des 3 derniers mois complets,
+  hors récurrences, répartie jour par jour (chaque mois complet reçoit
+  exactement le montant mensuel). Sont exclues les dépenses liées à une
+  occurrence **et** celles qui ressemblent à une récurrence active du même
+  compte (montant à ± 10 %, libellé équivalent) : un loyer passé saisi à la main
+  ou importé n'est pas compté deux fois. Le tableau de bord garde la prévision
+  « opérations connues uniquement ».
+
+### Simulations « What If? » (`SimulationEngine`, `SimulationService`)
+
+Hypothèses : dépense/rentrée ponctuelle, montant mensuel (durée facultative),
+crédit (capital, taux et/ou mensualité, durée ; le capital est supposé versé au
+vendeur), arrêt d'une récurrence existante à une date. Modèle « Achat financé à
+crédit » : prix − apport = capital emprunté, apport ponctuel, frais mensuels
+(assurance, carburant, entretien).
+
+Le moteur est une **fonction pure** : il reçoit une copie des opérations à
+venir, des soldes, de l'estimation des dépenses courantes et des objectifs, et
+ne lit ni n'écrit rien d'autre. Les scénarios sont enregistrés dans leurs
+propres tables, sans clé vers les transactions. Des tests vérifient que
+transactions, récurrences, soldes et disponible réel sont identiques après
+calcul.
+
+Résultats, sur les N mois complets qui suivent le mois en cours (12, 24 ou 48) :
+
+| Indicateur | Définition (moyenne mensuelle, comptes du disponible) |
+|---|---|
+| Revenus | revenus récurrents et prévus |
+| Charges fixes | dépenses récurrentes, mensualités |
+| Reste à vivre | revenus − charges fixes |
+| Dépenses ponctuelles | opérations prévues ponctuelles (apport lissé sur la période) |
+| Dépenses courantes | estimation ci-dessus |
+| Épargne programmée | virements nets vers des comptes hors disponible |
+| Disponible mensuel | reste à vivre − ponctuelles − courantes − épargne programmée |
+| Capacité d'épargne | disponible + épargne programmée |
+
+S'y ajoutent : l'impact moyen et le **mois type** (écart le plus fréquent,
+hors lissage des dépenses ponctuelles), le détail mois par mois, la courbe du
+solde prévu sans / avec (pointillés gris / trait plein), point bas et solde
+final, le résumé des crédits simulés, et la comparaison de la capacité
+d'épargne avec l'effort mensuel demandé par les objectifs en cours (« couvert »
+ou « il manquerait X €/mois », en texte et symbole).
+
+### Limites
+
+- Le capital restant suit le calendrier du crédit, pas les paiements réels
+  (remboursement anticipé : modifier le crédit).
+- Taux fixe uniquement ; pas de différé ni de taux variable.
+- Les simulations raisonnent sur les comptes inclus dans le disponible et dans
+  la devise de référence.

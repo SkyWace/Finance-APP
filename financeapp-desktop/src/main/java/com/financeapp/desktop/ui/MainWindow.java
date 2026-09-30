@@ -14,6 +14,8 @@ import com.financeapp.desktop.ui.pages.BudgetsPage;
 import com.financeapp.desktop.ui.pages.CalendarPage;
 import com.financeapp.desktop.ui.pages.ImportsPage;
 import com.financeapp.desktop.ui.pages.InboxPage;
+import com.financeapp.desktop.ui.pages.LoansPage;
+import com.financeapp.desktop.ui.pages.SimulationsPage;
 import com.financeapp.desktop.ui.pages.RulesPage;
 import com.financeapp.desktop.ui.pages.SavingsGoalsPage;
 import com.financeapp.desktop.ui.pages.SubscriptionsPage;
@@ -64,8 +66,10 @@ public final class MainWindow {
             new NavEntry("goals", "◆", "Épargne", SavingsGoalsPage::new),
             new NavEntry("available", "◎", "Disponible réel", AvailablePage::new),
             new NavEntry("forecast", "↗", "Prévisions", ForecastPage::new),
+            new NavEntry("simulations", "⚖", "Simulations", SimulationsPage::new),
             new NavEntry("recurring", "↻", "Récurrences", RecurringPage::new),
             new NavEntry("subscriptions", "♺", "Abonnements", SubscriptionsPage::new),
+            new NavEntry("loans", "▭", "Crédits", LoansPage::new),
             new NavEntry("analysis", "▥", "Analyses", AnalysisPage::new),
             new NavEntry("imports", "⇩", "Import", ImportsPage::new),
             new NavEntry("rules", "⚑", "Règles", RulesPage::new),

@@ -2,6 +2,8 @@ package com.financeapp.desktop.ui.pages;
 
 import com.financeapp.core.forecast.Forecast;
 import com.financeapp.core.forecast.ForecastPoint;
+import com.financeapp.core.money.Money;
+import com.financeapp.core.service.ForecastService;
 import com.financeapp.desktop.ui.common.Charts;
 import com.financeapp.desktop.ui.common.Formats;
 import com.financeapp.desktop.ui.common.UiAsync;
@@ -16,15 +18,19 @@ import javafx.scene.layout.VBox;
 /** Evolution previsionnelle du solde des comptes du perimetre "disponible". */
 public final class ForecastPage extends Page {
 
+    private record Loaded(Forecast forecast, Money estimate) {
+    }
+
     private final ToggleGroup rangeGroup = new ToggleGroup();
     private final VBox body = new VBox(18);
+    private final javafx.scene.control.CheckBox variable = new javafx.scene.control.CheckBox();
     private int days = 30;
 
     public ForecastPage(UiContext ctx) {
         super(ctx);
         HBox ranges = new HBox(0);
-        int[] projections = {7, 30, 90, 180, 365};
-        String[] labels = {"7 jours", "30 jours", "3 mois", "6 mois", "12 mois"};
+        int[] projections = {7, 30, 90, 180, 365, 730, 1461};
+        String[] labels = {"7 jours", "30 jours", "3 mois", "6 mois", "12 mois", "24 mois", "48 mois"};
         for (int i = 0; i < projections.length; i++) {
             int projection = projections[i];
             ToggleButton b = new ToggleButton(labels[i]);
@@ -42,7 +48,9 @@ public final class ForecastPage extends Page {
             days = (int) t.getUserData();
             refresh();
         });
-        content.getChildren().setAll(Widgets.row(Widgets.label("Horizon", "muted"), ranges), body);
+        variable.setSelected(true);
+        variable.selectedProperty().addListener((o, a, b) -> refresh());
+        content.getChildren().setAll(Widgets.row(Widgets.label("Horizon", "muted"), ranges), variable, body);
     }
 
     @Override
@@ -54,10 +62,14 @@ public final class ForecastPage extends Page {
     public void refresh() {
         int projection = days;
         int history = Math.min(90, Math.max(7, projection / 2));
-        UiAsync.load(() -> ctx.services().forecast().forecast(history, projection), this::render);
+        boolean withVariable = variable.isSelected();
+        UiAsync.load(() -> new Loaded(ctx.services().forecast().forecast(history, projection, withVariable),
+                ctx.services().forecast().variableMonthlyEstimate()), r -> render(r.forecast(), r.estimate(), withVariable));
     }
 
-    private void render(Forecast forecast) {
+    private void render(Forecast forecast, Money estimate, boolean withVariable) {
+        variable.setText("Déduire les dépenses courantes estimées : " + ctx.formats().money(estimate) + " par mois "
+                + "(moyenne des " + ForecastService.VARIABLE_WINDOW_MONTHS + " derniers mois complets, hors récurrences)");
         Formats f = ctx.formats();
         ForecastPoint today = forecast.projection().getFirst();
         ForecastPoint low = forecast.lowestProjected();
@@ -75,9 +87,12 @@ public final class ForecastPage extends Page {
         forecast.firstNegative().ifPresent(p -> body.getChildren().add(1, Widgets.badge(
                 "⚠ Solde prévu négatif à partir du " + Formats.date(p.date()) + " (" + f.money(p.balance()) + ")", "danger")));
         body.getChildren().add(Widgets.label("La prévision part du solde actuel des comptes inclus dans le disponible et "
-                + "applique les opérations prévues et récurrentes. Les dépenses non planifiées (courses, loisirs…) "
-                + "ne sont pas estimées : ajoutez-les comme opérations prévues ou récurrentes pour les prendre en compte.",
-                "muted"));
+                + "applique les opérations prévues et récurrentes (salaire, loyer, mensualités de crédit jusqu'à leur "
+                + "dernière échéance…). " + (withVariable
+                ? "Les dépenses courantes non planifiées (courses, loisirs…) sont estimées d'après vos derniers mois et "
+                  + "réparties jour par jour ; plus l'horizon est lointain, plus la prévision est indicative."
+                : "Les dépenses courantes non planifiées ne sont pas déduites : la courbe montre uniquement l'effet "
+                  + "des opérations connues."), "muted"));
         ((javafx.scene.control.Label) body.getChildren().getLast()).setWrapText(true);
     }
 }

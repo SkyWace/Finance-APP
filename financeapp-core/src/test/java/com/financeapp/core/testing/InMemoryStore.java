@@ -4,6 +4,10 @@ import com.financeapp.core.account.Account;
 import com.financeapp.core.category.Category;
 import com.financeapp.core.budget.Budget;
 import com.financeapp.core.goal.SavingsGoal;
+import com.financeapp.core.loan.Loan;
+import com.financeapp.core.port.LoanRepository;
+import com.financeapp.core.port.SimulationRepository;
+import com.financeapp.core.simulation.Simulation;
 import com.financeapp.core.money.Money;
 import com.financeapp.core.categorization.CategorizationRule;
 import com.financeapp.core.imports.ImportBatch;
@@ -56,6 +60,30 @@ public final class InMemoryStore {
     private final Map<Long, ImportBatch> batchMap = new LinkedHashMap<>();
     private final Map<Long, List<Reconciliation>> reconciliationsByBatch = new HashMap<>();
     private final Map<Long, SavingsGoal> goalMap = new LinkedHashMap<>();
+    private final Map<Long, Loan> loanMap = new LinkedHashMap<>();
+    private final Map<Long, Simulation> simulationMap = new LinkedHashMap<>();
+
+    public final LoanRepository loans = new LoanRepository() {
+        public List<Loan> findAll() { return List.copyOf(loanMap.values()); }
+        public Optional<Loan> findById(long id) { return Optional.ofNullable(loanMap.get(id)); }
+        public Loan save(Loan l) {
+            Loan saved = l.id() == null ? l.withId(ids.getAndIncrement()) : l;
+            loanMap.put(saved.id(), saved);
+            return saved;
+        }
+        public void delete(long id) { loanMap.remove(id); }
+    };
+
+    public final SimulationRepository simulations = new SimulationRepository() {
+        public List<Simulation> findAll() { return List.copyOf(simulationMap.values()); }
+        public Optional<Simulation> findById(long id) { return Optional.ofNullable(simulationMap.get(id)); }
+        public Simulation save(Simulation s) {
+            Simulation saved = s.id() == null ? s.withId(ids.getAndIncrement()) : s;
+            simulationMap.put(saved.id(), saved);
+            return saved;
+        }
+        public void delete(long id) { simulationMap.remove(id); }
+    };
 
     public final AccountRepository accounts = new AccountRepository() {
         public List<Account> findAll() { return List.copyOf(accountMap.values()); }
