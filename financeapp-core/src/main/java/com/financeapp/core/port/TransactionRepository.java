@@ -42,6 +42,9 @@ public interface TransactionRepository {
     /** Somme, en unites mineures, des operations comptees dans le solde, par compte. */
     Map<Long, Long> sumCountedMinorByAccount();
 
+    /** Somme des operations comptees d'un compte datees strictement apres {@code after}. */
+    long sumCountedMinorAfter(long accountId, LocalDate after);
+
     /** Operations comptees dans le solde (effectuees + en attente) dont la date est dans [from, to]. */
     List<Transaction> findCounted(LocalDate from, LocalDate to);
 

@@ -213,6 +213,15 @@ public final class JdbcTransactionRepository implements TransactionRepository {
     }
 
     @Override
+    public long sumCountedMinorAfter(long accountId, LocalDate after) {
+        Long total = jdbc.sql("SELECT COALESCE(SUM(t.amount_minor), 0) FROM transactions t WHERE " + COUNTED
+                        + " AND t.account_id = :account AND t.date > :after")
+                .param("account", accountId).param("after", DbCodec.date(after))
+                .query(Long.class).single();
+        return total == null ? 0 : total;
+    }
+
+    @Override
     public List<Transaction> findCounted(LocalDate from, LocalDate to) {
         return jdbc.sql(SELECT + " WHERE " + COUNTED + " AND t.date >= :from AND t.date <= :to ORDER BY t.date, t.id")
                 .param("from", DbCodec.date(from)).param("to", DbCodec.date(to))

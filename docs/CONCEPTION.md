@@ -639,3 +639,44 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   (tri d'une liste immuable), corrigé et couvert par `FirstRunTest`.
 - **Non couvert** : signature de code (certificat Authenticode requis pour
   éviter l'avertissement SmartScreen), paquet macOS.
+
+## 17. Épargne détenue et filtres par compte
+
+### Produits d'épargne (migration `V7__savings_products.sql`)
+
+- Chaque produit est un **compte** d'un type d'épargne : Livret A, LDDS, LEP,
+  Livret Jeune, CEL, livret bancaire, compte épargne (épargne **disponible**) ;
+  PEL, assurance-vie, PEA, PER, épargne salariale (PEE, PERCOL…), compte-titres,
+  crypto-actifs (épargne **à moyen et long terme**). Les versements et retraits
+  restent des virements internes ; l'épargne n'entre pas dans le disponible
+  réel par défaut.
+- La colonne `accounts.type` est recréée (nouvelle contrainte CHECK) sans
+  changer les identifiants ni les clés étrangères ; les comptes existants
+  gardent leur type.
+- **Valorisations** (`account_valuations`, une par compte et par date) : la
+  valeur saisie (relevé, valorisation d'un PEA…) remplace le solde calculé ;
+  les opérations comptées **datées après** s'y ajoutent. Sans valorisation, le
+  solde reste « solde initial + opérations ». Les intérêts et plus-values ne
+  sont donc jamais comptés comme des revenus : ils n'apparaissent que dans le
+  patrimoine. Date future et valeur négative refusées ; supprimer une
+  valorisation revient à la précédente.
+- **Plafonds de versements** (Livret A 22 950 €, LDDS 12 000 €, LEP 10 000 €,
+  Livret Jeune 1 600 €, CEL 15 300 €, PEL 61 200 €) : indicatifs, hors intérêts
+  capitalisés ; la marge affichée n'est jamais négative.
+- `SavingsService.overview()` : produits actifs par liquidité, totaux en devise
+  de référence (les autres devises ne sont pas additionnées), part du
+  patrimoine financier, évolution entre les deux dernières valeurs.
+- Écran **Épargne** (ajout d'un produit avec sa valeur, mise à jour de la
+  valeur, historique) ; les objectifs d'épargne passent dans **Objectifs**.
+
+### Filtre par compte
+
+- Un filtre « Compte » partagé (`UiContext.accountFilter`) sur **À venir**,
+  **Récurrences**, **Abonnements** et **Analyses** ; le choix suit
+  l'utilisateur d'un écran à l'autre.
+- Vue d'un compte : les virements internes comptent (entrée ou sortie pour ce
+  compte), alors que la vue « Tous les comptes » les neutralise.
+- Analyses : `StatisticsService` accepte un compte (revenus, dépenses,
+  catégories, commerçants, comparaison de périodes).
+- Non filtrés : Calendrier et Budgets (budgets par catégorie, tous comptes),
+  paiements réguliers **détectés** dans l'historique (non rattachés à un compte).

@@ -51,10 +51,15 @@ public final class StatisticsService {
      * @param history  nombre de mois de l'historique mensuel, se terminant a {@code month}
      */
     public Report report(YearMonth month, YearMonth reference, int history) {
+        return report(month, reference, history, null);
+    }
+
+    /** @param accountId compte analyse ({@code null} : tous les comptes de la devise de reference) */
+    public Report report(YearMonth month, YearMonth reference, int history, Long accountId) {
         Currency currency = settings.baseCurrency();
         YearMonth first = month.minusMonths(Math.max(1, history) - 1L);
         YearMonth start = first.isBefore(reference) ? first : reference;
-        List<Transaction> all = inBaseCurrency(transactions.findCounted(start.atDay(1), month.atEndOfMonth()), currency);
+        List<Transaction> all = inScope(transactions.findCounted(start.atDay(1), month.atEndOfMonth()), currency, accountId);
         List<MonthSummary> months = engine.monthly(all, first, month, currency);
         Map<Long, Long> roots = categories.rootIndex();
         Map<Long, String> names = categories.fullNames();
@@ -71,19 +76,29 @@ public final class StatisticsService {
 
     /** Principaux commercants / libelles sur une periode (bornes incluses). */
     public List<com.financeapp.core.stats.LabelStat> merchants(java.time.LocalDate from, java.time.LocalDate to, int limit) {
+        return merchants(from, to, limit, null);
+    }
+
+    public List<com.financeapp.core.stats.LabelStat> merchants(java.time.LocalDate from, java.time.LocalDate to, int limit,
+                                                              Long accountId) {
         Currency currency = settings.baseCurrency();
-        return engine.byLabel(inBaseCurrency(transactions.findCounted(from, to), currency), currency, limit);
+        return engine.byLabel(inScope(transactions.findCounted(from, to), currency, accountId), currency, limit);
     }
 
     /** Comparaison de deux periodes quelconques, par categorie, plus le total. */
     public PeriodComparison comparePeriods(java.time.LocalDate refFrom, java.time.LocalDate refTo,
                                            java.time.LocalDate from, java.time.LocalDate to) {
+        return comparePeriods(refFrom, refTo, from, to, null);
+    }
+
+    public PeriodComparison comparePeriods(java.time.LocalDate refFrom, java.time.LocalDate refTo,
+                                           java.time.LocalDate from, java.time.LocalDate to, Long accountId) {
         if (refTo.isBefore(refFrom) || to.isBefore(from)) {
             throw new BusinessException("Période invalide : la fin précède le début");
         }
         Currency currency = settings.baseCurrency();
-        List<Transaction> reference = inBaseCurrency(transactions.findCounted(refFrom, refTo), currency);
-        List<Transaction> current = inBaseCurrency(transactions.findCounted(from, to), currency);
+        List<Transaction> reference = inScope(transactions.findCounted(refFrom, refTo), currency, accountId);
+        List<Transaction> current = inScope(transactions.findCounted(from, to), currency, accountId);
         Map<Long, Long> roots = categories.rootIndex();
         Map<Long, String> names = categories.fullNames();
         return new PeriodComparison(engine.compare(reference, current, currency, roots::get, names),
@@ -93,8 +108,9 @@ public final class StatisticsService {
     public record PeriodComparison(List<CategoryComparison> categories, CategoryComparison total) {
     }
 
-    private List<Transaction> inBaseCurrency(List<Transaction> list, Currency currency) {
+    private List<Transaction> inScope(List<Transaction> list, Currency currency, Long accountId) {
         Set<Long> ids = accounts.findAll().stream().filter(a -> a.currency().equals(currency))
+                .filter(a -> accountId == null || a.id().equals(accountId))
                 .map(Account::id).collect(Collectors.toSet());
         return list.stream().filter(t -> ids.contains(t.accountId())).toList();
     }

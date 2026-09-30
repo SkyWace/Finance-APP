@@ -18,6 +18,9 @@ import com.financeapp.core.service.CategorizationService;
 import com.financeapp.core.service.ImportService;
 import com.financeapp.core.service.InboxService;
 import com.financeapp.core.service.LoanService;
+import com.financeapp.core.service.SavingsService;
+import com.financeapp.core.port.ValuationRepository;
+import com.financeapp.infra.db.JdbcValuationRepository;
 import com.financeapp.core.service.BankSyncService;
 import com.financeapp.core.port.BankSyncClientFactory;
 import com.financeapp.core.port.BankSyncRepository;
@@ -134,8 +137,18 @@ public class AppConfiguration {
 
     @Bean
     AccountService accountService(AccountRepository accounts, TransactionRepository transactions,
-                                  RecurringRuleRepository rules) {
-        return new AccountService(accounts, transactions, rules);
+                                  RecurringRuleRepository rules, ValuationRepository valuations, Clock clock) {
+        return new AccountService(accounts, transactions, rules, valuations, clock);
+    }
+
+    @Bean
+    ValuationRepository valuationRepository(JdbcClient jdbc) {
+        return new JdbcValuationRepository(jdbc);
+    }
+
+    @Bean
+    SavingsService savingsService(AccountService accounts, SettingsService settings) {
+        return new SavingsService(accounts, settings);
     }
 
     @Bean

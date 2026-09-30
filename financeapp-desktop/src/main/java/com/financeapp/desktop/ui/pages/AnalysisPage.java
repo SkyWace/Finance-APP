@@ -5,6 +5,7 @@ import com.financeapp.core.service.StatisticsService;
 import com.financeapp.core.stats.CategoryAmount;
 import com.financeapp.core.stats.CategoryComparison;
 import com.financeapp.core.stats.MonthSummary;
+import com.financeapp.desktop.ui.common.AccountFilter;
 import com.financeapp.desktop.ui.common.Formats;
 import com.financeapp.desktop.ui.common.MonthPicker;
 import com.financeapp.desktop.ui.common.Progress;
@@ -38,13 +39,16 @@ public final class AnalysisPage extends Page {
 
     private final MonthPicker picker;
     private final VBox body = new VBox(18);
+    private final AccountFilter filter;
+    private Long account;
 
     public AnalysisPage(UiContext ctx) {
         super(ctx);
         YearMonth current = YearMonth.from(ctx.services().planning().today());
         picker = new MonthPicker(current, current);
         picker.monthProperty().addListener((o, old, m) -> refresh());
-        content.getChildren().setAll(Widgets.row(Widgets.label("Mois analysé", "muted"), picker), body);
+        filter = new AccountFilter(ctx, this::refresh);
+        content.getChildren().setAll(Widgets.row(Widgets.label("Mois analysé", "muted"), picker, filter.node()), body);
     }
 
     @Override
@@ -55,7 +59,10 @@ public final class AnalysisPage extends Page {
     @Override
     public void refresh() {
         YearMonth month = picker.month();
-        UiAsync.load(() -> ctx.services().statistics().report(month, month.minusMonths(1), 12), r -> render(r, month));
+        Long selected = filter.sync();
+        account = selected;
+        UiAsync.load(() -> ctx.services().statistics().report(month, month.minusMonths(1), 12, selected),
+                r -> render(r, month));
     }
 
     private void render(StatisticsService.Report r, YearMonth month) {
@@ -170,7 +177,7 @@ public final class AnalysisPage extends Page {
 
     /** Principaux commercants / libelles du mois (libelles bancaires regroupes). */
     private VBox merchants(Formats f, YearMonth month) {
-        var stats = ctx.services().statistics().merchants(month.atDay(1), month.atEndOfMonth(), 10);
+        var stats = ctx.services().statistics().merchants(month.atDay(1), month.atEndOfMonth(), 10, account);
         GridPane table = new GridPane();
         table.setHgap(18);
         table.setVgap(6);
@@ -210,7 +217,7 @@ public final class AnalysisPage extends Page {
         compare.setOnAction(e -> {
             try {
                 var cmp = ctx.services().statistics().comparePeriods(Widgets.dateValue(refFrom), Widgets.dateValue(refTo),
-                        Widgets.dateValue(from), Widgets.dateValue(to));
+                        Widgets.dateValue(from), Widgets.dateValue(to), account);
                 result.getChildren().clear();
                 String[] headers = {"Catégorie", "Période de référence", "Période comparée", "Écart", "Évolution"};
                 for (int i = 0; i < headers.length; i++) {

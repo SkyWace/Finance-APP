@@ -5,6 +5,10 @@ import com.financeapp.core.available.AccountBalance;
 import com.financeapp.core.money.Money;
 import com.financeapp.core.port.AccountRepository;
 import com.financeapp.core.port.RecurringRuleRepository;
+import com.financeapp.core.port.ValuationRepository;
+import com.financeapp.core.account.AccountValuation;
+import java.time.Clock;
+import java.time.LocalDate;
 import com.financeapp.core.port.TransactionRepository;
 
 import java.util.Comparator;
@@ -19,12 +23,22 @@ public final class AccountService {
     private final AccountRepository accounts;
     private final TransactionRepository transactions;
     private final RecurringRuleRepository recurringRules;
+    private final ValuationRepository valuations;
+    private final Clock clock;
 
     public AccountService(AccountRepository accounts, TransactionRepository transactions,
                           RecurringRuleRepository recurringRules) {
+        this(accounts, transactions, recurringRules, null, Clock.systemDefaultZone());
+    }
+
+    /** @param valuations valorisations des comptes d'epargne ({@code null} : soldes calcules sur les seules operations) */
+    public AccountService(AccountRepository accounts, TransactionRepository transactions,
+                          RecurringRuleRepository recurringRules, ValuationRepository valuations, Clock clock) {
         this.accounts = accounts;
         this.transactions = transactions;
         this.recurringRules = recurringRules;
+        this.valuations = valuations;
+        this.clock = clock;
     }
 
     public List<Account> findAll() {
@@ -63,15 +77,61 @@ public final class AccountService {
         accounts.delete(id);
     }
 
-    /** Solde actuel de chaque compte : solde initial + operations effectuees et en attente. */
+    /**
+     * Solde actuel de chaque compte : solde initial + operations effectuees et en
+     * attente ; pour un compte valorise, derniere valeur constatee + operations
+     * posterieures a cette date.
+     */
     public Map<Long, Money> balances() {
         Map<Long, Long> sums = transactions.sumCountedMinorByAccount();
+        Map<Long, AccountValuation> latest = valuations == null ? Map.of() : valuations.latestByAccount();
         Map<Long, Money> result = new LinkedHashMap<>();
         for (Account a : accounts.findAll()) {
-            Money movements = Money.ofMinor(sums.getOrDefault(a.id(), 0L), a.currency());
-            result.put(a.id(), a.initialBalance().plus(movements));
+            AccountValuation v = latest.get(a.id());
+            if (v != null && v.value().currency().equals(a.currency())) {
+                Money after = Money.ofMinor(transactions.sumCountedMinorAfter(a.id(), v.date()), a.currency());
+                result.put(a.id(), v.value().plus(after));
+            } else {
+                Money movements = Money.ofMinor(sums.getOrDefault(a.id(), 0L), a.currency());
+                result.put(a.id(), a.initialBalance().plus(movements));
+            }
         }
         return result;
+    }
+
+    // ------------------------------------------------------------ valorisations
+
+    /**
+     * Enregistre la valeur d'un compte a une date (au plus aujourd'hui) : releve
+     * d'un livret apres les interets, valeur d'un PEA, d'une assurance-vie...
+     */
+    public AccountValuation recordValuation(long accountId, LocalDate date, java.math.BigDecimal value) {
+        Account account = get(accountId);
+        if (valuations == null) {
+            throw new BusinessException("Valorisations indisponibles");
+        }
+        if (date == null || date.isAfter(LocalDate.now(clock))) {
+            throw new BusinessException("La date de la valeur ne peut pas être dans le futur");
+        }
+        if (value == null || value.signum() < 0) {
+            throw new BusinessException("La valeur doit être positive ou nulle");
+        }
+        return valuations.save(new AccountValuation(null, accountId, date, Money.of(value, account.currency())));
+    }
+
+    public List<AccountValuation> valuations(long accountId) {
+        return valuations == null ? List.of() : valuations.findByAccount(accountId);
+    }
+
+    public java.util.Optional<AccountValuation> latestValuation(long accountId) {
+        return valuations == null ? java.util.Optional.empty()
+                : java.util.Optional.ofNullable(valuations.latestByAccount().get(accountId));
+    }
+
+    public void deleteValuation(long id) {
+        if (valuations != null) {
+            valuations.delete(id);
+        }
     }
 
     public Money balanceOf(long accountId) {

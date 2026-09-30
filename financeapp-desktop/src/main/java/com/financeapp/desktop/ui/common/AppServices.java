@@ -8,6 +8,7 @@ import com.financeapp.core.service.CategorizationService;
 import com.financeapp.core.service.ImportService;
 import com.financeapp.core.service.InboxService;
 import com.financeapp.core.service.LoanService;
+import com.financeapp.core.service.SavingsService;
 import com.financeapp.core.service.BankSyncService;
 import com.financeapp.core.service.SimulationService;
 import com.financeapp.core.service.SavingsGoalService;
@@ -49,7 +50,8 @@ public record AppServices(
         ImportService imports,
         LoanService loans,
         SimulationService simulations,
-        BankSyncService bankSync) {
+        BankSyncService bankSync,
+        SavingsService savings) {
 
     public static AppServices from(ApplicationContext ctx) {
         return new AppServices(
@@ -75,6 +77,7 @@ public record AppServices(
                 ctx.getBean(ImportService.class),
                 ctx.getBean(LoanService.class),
                 ctx.getBean(SimulationService.class),
-                ctx.getBean(BankSyncService.class));
+                ctx.getBean(BankSyncService.class),
+                ctx.getBean(SavingsService.class));
     }
 }
