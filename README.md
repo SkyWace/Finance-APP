@@ -129,6 +129,7 @@ devise), centimes (`INTEGER`) en base. Dates : `java.time`.
 - Une seule devise de référence pour les totaux ; pas de conversion.
 - Ne pas ouvrir deux instances sur le même dossier de données.
 - Étiquettes (tags) non encore disponibles. Crédits à taux fixe uniquement.
-  Aucune synchronisation bancaire (import de fichiers uniquement).
+  Aucune synchronisation bancaire (import de fichiers uniquement) : voir
+  l'étude V5, [`docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md).
 - Installateur Windows (`jpackage`) non encore fourni : le jar + `lib/`
   produits par `mvn package` en sont l'entrée prévue.

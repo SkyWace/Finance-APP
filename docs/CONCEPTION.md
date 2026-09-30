@@ -588,3 +588,12 @@ ou « il manquerait X €/mois », en texte et symbole).
 - Taux fixe uniquement ; pas de différé ni de taux variable.
 - Les simulations raisonnent sur les comptes inclus dans le disponible et dans
   la devise de référence.
+
+## 15. V5 — Synchronisation bancaire : étude uniquement
+
+Aucune implémentation, conformément au cahier des charges. L'étude
+(cadre DSP2, options, fournisseurs, architecture envisagée, menaces, points à
+trancher) est dans [`ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](ETUDE-V5-SYNCHRONISATION-BANCAIRE.md).
+Recommandation : prototype facultatif via un agrégateur agréé utilisé avec les
+clés de l'utilisateur (sans serveur FinanceApp), seulement après validation des
+points bloquants ; à défaut, l'import de fichiers reste la seule source.
