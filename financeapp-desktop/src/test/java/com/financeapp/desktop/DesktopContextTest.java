@@ -13,6 +13,7 @@ import com.financeapp.infra.security.VaultService;
 import com.financeapp.infra.storage.AppDirectories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.nio.file.Files;
@@ -57,8 +58,36 @@ class DesktopContextTest {
             key.unlock(vault.unlock("mot de passe de test".toCharArray()));
             assertEquals(1, ctx.getBean(AccountService.class).findAll().size());
         }
+        // Le journal Logback reste attache au fichier apres la fermeture du contexte (sans
+        // consequence en production : le processus se termine). Windows refusant de supprimer
+        // un fichier ouvert, on arrete la journalisation comme le fait l'arret de l'application.
+        LoggingSystem.get(getClass().getClassLoader()).getShutdownHandler().run();
+        assertNoOpenFileUnder(dir);
+
         assertTrue(Files.exists(dirs.databaseFile()));
         assertFalse(DatabaseEncryption.isPlaintextSqlite(dirs.databaseFile()), "base chiffree sur le disque");
         assertTrue(Files.exists(dirs.logsDir().resolve("financeapp.log")));
+    }
+
+    /**
+     * Aucun fichier du dossier de donnees ne doit rester ouvert (base, sauvegardes, journal) :
+     * verifiable sous Linux via /proc/self/fd ; ailleurs, la suppression du @TempDir le verifie.
+     */
+    private static void assertNoOpenFileUnder(Path root) throws Exception {
+        Path fds = Path.of("/proc/self/fd");
+        if (!Files.isDirectory(fds)) {
+            return;
+        }
+        Path real = root.toRealPath();
+        try (var list = Files.list(fds)) {
+            for (Path fd : list.toList()) {
+                try {
+                    Path target = Files.readSymbolicLink(fd);
+                    assertFalse(target.startsWith(real), "fichier encore ouvert : " + target);
+                } catch (java.io.IOException ignored) {
+                    // descripteur ferme entre-temps
+                }
+            }
+        }
     }
 }
