@@ -25,6 +25,7 @@ import javafx.scene.layout.VBox;
 
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * Analyses : indicateur de trajectoire du mois, revenus vs depenses sur
@@ -74,7 +75,8 @@ public final class AnalysisPage extends Page {
 
         VBox comparison = comparison(r, f, month);
         HBox.setHgrow(comparison, Priority.ALWAYS);
-        body.getChildren().setAll(trajectory, monthlyChart(r, f), new HBox(14, categories(r, f), comparison));
+        body.getChildren().setAll(trajectory, monthlyChart(r, f), new HBox(14, categories(r, f), comparison),
+                merchants(f, month), customComparison(f, month));
     }
 
     private static String delta(Formats f, Money d) {
@@ -164,6 +166,69 @@ public final class AnalysisPage extends Page {
                 + "une hausse de 50 % sur 4 € n'a pas le même poids qu'une hausse de 50 % sur 400 €.", "muted");
         note.setWrapText(true);
         return Widgets.section("Comparaison avec le mois précédent", table, note);
+    }
+
+    /** Principaux commercants / libelles du mois (libelles bancaires regroupes). */
+    private VBox merchants(Formats f, YearMonth month) {
+        var stats = ctx.services().statistics().merchants(month.atDay(1), month.atEndOfMonth(), 10);
+        GridPane table = new GridPane();
+        table.setHgap(18);
+        table.setVgap(6);
+        String[] headers = {"Commerçant / libellé", "Opérations", "Total", "Moyenne"};
+        for (int i = 0; i < headers.length; i++) {
+            table.add(Widgets.label(headers[i], "table-header"), i, 0);
+        }
+        int row = 1;
+        for (var s : stats) {
+            table.add(Widgets.label(s.label(), "op-label"), 0, row);
+            table.add(right(Widgets.label(Integer.toString(s.count()), "op-detail")), 1, row);
+            table.add(right(Widgets.label(f.money(s.total()), "op-label")), 2, row);
+            table.add(right(Widgets.label(f.money(s.average()), "op-detail")), 3, row);
+            row++;
+        }
+        if (stats.isEmpty()) {
+            return Widgets.section("Principaux commerçants", Widgets.emptyState("Aucune dépense ce mois-ci."));
+        }
+        return Widgets.section("Principaux commerçants — " + MonthPicker.format(month), table,
+                Widgets.label("Les libellés bancaires sont regroupés (« CB CARREFOUR 12/09 » et « CARREFOUR » ensemble).", "muted"));
+    }
+
+    /** Comparaison de deux periodes quelconques (ex. ete 2025 vs ete 2026). */
+    private VBox customComparison(Formats f, YearMonth month) {
+        var refFrom = Widgets.datePicker(month.minusYears(1).atDay(1));
+        var refTo = Widgets.datePicker(month.minusYears(1).atEndOfMonth());
+        var from = Widgets.datePicker(month.atDay(1));
+        var to = Widgets.datePicker(month.atEndOfMonth());
+        for (var p : List.of(refFrom, refTo, from, to)) {
+            p.setPrefWidth(135);
+        }
+        GridPane result = new GridPane();
+        result.setHgap(18);
+        result.setVgap(6);
+        javafx.scene.control.Button compare = new javafx.scene.control.Button("Comparer");
+        compare.getStyleClass().add("secondary");
+        compare.setOnAction(e -> {
+            try {
+                var cmp = ctx.services().statistics().comparePeriods(Widgets.dateValue(refFrom), Widgets.dateValue(refTo),
+                        Widgets.dateValue(from), Widgets.dateValue(to));
+                result.getChildren().clear();
+                String[] headers = {"Catégorie", "Période de référence", "Période comparée", "Écart", "Évolution"};
+                for (int i = 0; i < headers.length; i++) {
+                    result.add(Widgets.label(headers[i], "table-header"), i, 0);
+                }
+                int row = 1;
+                for (CategoryComparison c : cmp.categories()) {
+                    addComparison(result, row++, c, f, false);
+                }
+                addComparison(result, row, cmp.total(), f, true);
+            } catch (RuntimeException ex) {
+                com.financeapp.desktop.ui.common.Dialogs.error(window(), ex);
+            }
+        });
+        return Widgets.section("Comparer deux périodes",
+                Widgets.row(Widgets.label("Référence : du", "muted"), refFrom, Widgets.label("au", "muted"), refTo),
+                Widgets.row(Widgets.label("Comparée : du", "muted"), from, Widgets.label("au", "muted"), to, compare),
+                result);
     }
 
     private static void addComparison(GridPane table, int row, CategoryComparison c, Formats f, boolean total) {

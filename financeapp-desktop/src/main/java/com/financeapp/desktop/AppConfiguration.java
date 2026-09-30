@@ -2,6 +2,8 @@ package com.financeapp.desktop;
 
 import com.financeapp.core.port.AccountRepository;
 import com.financeapp.core.port.BudgetRepository;
+import com.financeapp.core.port.CategorizationRuleRepository;
+import com.financeapp.core.port.ImportRepository;
 import com.financeapp.core.port.SavingsGoalRepository;
 import com.financeapp.core.port.CategoryRepository;
 import com.financeapp.core.port.RecurringRuleRepository;
@@ -12,6 +14,9 @@ import com.financeapp.core.service.AccountService;
 import com.financeapp.core.service.AvailableBalanceService;
 import com.financeapp.core.service.BudgetService;
 import com.financeapp.core.service.CalendarService;
+import com.financeapp.core.service.CategorizationService;
+import com.financeapp.core.service.ImportService;
+import com.financeapp.core.service.InboxService;
 import com.financeapp.core.service.SavingsGoalService;
 import com.financeapp.core.service.StatisticsService;
 import com.financeapp.core.service.SubscriptionService;
@@ -26,6 +31,8 @@ import com.financeapp.infra.backup.BackupService;
 import com.financeapp.infra.db.DatabaseMigrator;
 import com.financeapp.infra.db.JdbcAccountRepository;
 import com.financeapp.infra.db.JdbcBudgetRepository;
+import com.financeapp.infra.db.JdbcCategorizationRuleRepository;
+import com.financeapp.infra.db.JdbcImportRepository;
 import com.financeapp.infra.db.JdbcSavingsGoalRepository;
 import com.financeapp.infra.db.JdbcCategoryRepository;
 import com.financeapp.infra.db.JdbcRecurringRuleRepository;
@@ -181,6 +188,33 @@ public class AppConfiguration {
     StatisticsService statisticsService(TransactionRepository transactions, CategoryService categories,
                                         AccountService accounts, PlanningService planning, SettingsService settings) {
         return new StatisticsService(transactions, categories, accounts, planning, settings);
+    }
+
+    @Bean
+    CategorizationRuleRepository categorizationRuleRepository(JdbcClient jdbc) {
+        return new JdbcCategorizationRuleRepository(jdbc);
+    }
+
+    @Bean
+    ImportRepository importRepository(JdbcClient jdbc, TransactionRepository transactions, TransactionTemplate tx) {
+        return new JdbcImportRepository(jdbc, transactions, tx);
+    }
+
+    @Bean
+    CategorizationService categorizationService(CategorizationRuleRepository rules, TransactionRepository transactions,
+                                                CategoryService categories, PlanningService planning) {
+        return new CategorizationService(rules, transactions, categories, planning);
+    }
+
+    @Bean
+    InboxService inboxService(TransactionRepository transactions, CategorizationService categorization) {
+        return new InboxService(transactions, categorization);
+    }
+
+    @Bean
+    ImportService importService(ImportRepository imports, TransactionRepository transactions, AccountService accounts,
+                                PlanningService planning, CategorizationService categorization) {
+        return new ImportService(imports, transactions, accounts, planning, categorization);
     }
 
     @Bean

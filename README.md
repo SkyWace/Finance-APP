@@ -13,7 +13,7 @@ toutes mes dépenses futures prises en compte ? »*
 - Conception détaillée (architecture, risques, schéma, étapes) :
   [`docs/CONCEPTION.md`](docs/CONCEPTION.md).
 
-## Fonctionnalités (V1 → V2)
+## Fonctionnalités (V1 → V3)
 
 | Écran | Contenu |
 |---|---|
@@ -24,7 +24,10 @@ toutes mes dépenses futures prises en compte ? »*
 | Budgets | Plafond mensuel par catégorie, progression, alertes (proche / atteint / dépassé, en texte et symbole), reste réservé dans le disponible |
 | Épargne | Objectifs (montant, échéance), suivi via un compte ou manuel, épargne mensuelle nécessaire |
 | Abonnements | Coût mensuel et annuel, détection des paiements réguliers dans l'historique |
-| Analyses | Revenus/dépenses/épargne du mois et taux d'épargne vs mois précédent, 12 mois, catégories, comparaison (montants + %) |
+| Analyses | Revenus/dépenses/épargne du mois et taux d'épargne vs mois précédent, 12 mois, catégories, comparaison (montants + %), **principaux commerçants**, **comparaison de deux périodes quelconques** |
+| Import | Relevés **CSV** (assistant de correspondance des colonnes avec aperçu), **OFX / QFX**, **QIF** ; vérification ligne à ligne (nouvelle, doublon, opération prévue réalisée…) ; historique et **annulation d'un import** |
+| À valider | Opérations importées avec leur catégorie proposée : valider, corriger, tout valider |
+| Règles | Catégorisation automatique locale (« libellé contenant TOTAL → Carburant »), proposée quand vous corrigez une catégorie |
 | À venir | Opérations prévues + occurrences récurrentes ; valider (date et montant réels) ou ignorer |
 | Récurrences | Hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel |
 | Disponible réel | Échéance : fin de semaine, prochaine paie, fin du mois, date personnalisée ; **détail ligne à ligne** du calcul, budgets et objectifs réservés, « si aucune autre dépense variable » |
@@ -91,12 +94,16 @@ mvn test
 - `financeapp-core` (Java pur, sans base ni UI) : `Money` et arrondis,
   récurrences (fins de mois, années bissextiles, intervalles), disponible réel
   (scénarios du cahier des charges : 1 000 + 1 800 − 700 − 200 − 300 = 1 600 ;
-  1 420 − 934 − 300 − 100 = 86), prévisions, virements internes, services.
+  1 420 − 934 − 300 − 100 = 86), prévisions, virements internes, services,
+  lecture CSV/OFX/QIF, doublons et rapprochements, règles de catégorisation,
+  scénario complet d'import (le loyer importé réalise l'échéance au lieu
+  d'être compté deux fois).
 - `financeapp-infra` : dépôts sur une vraie base SQLite **chiffrée**
   temporaire, atomicité des virements, contraintes d'intégrité, sauvegardes,
   rotation, restauration (y compris depuis une autre installation), mot de
   passe maître, récupération, trousseau altéré ou perdu, migration des données
-  V1 en clair.
+  V1 en clair, import atomique et annulation (restauration des opérations
+  prévues, réimport après annulation).
 - `financeapp-desktop` : démarrage complet du contexte Spring (sans
   interface), verrouillage/déverrouillage.
 
@@ -115,7 +122,8 @@ devise), centimes (`INTEGER`) en base. Dates : `java.time`.
 
 - Une seule devise de référence pour les totaux ; pas de conversion.
 - Ne pas ouvrir deux instances sur le même dossier de données.
-- Import CSV, catégorisation automatique, crédits et simulations : versions
-  suivantes (V3, V4). Étiquettes (tags) non encore disponibles.
+- Crédits, simulations et prévisions longues : V4. Étiquettes (tags) non
+  encore disponibles. Aucune synchronisation bancaire (import de fichiers
+  uniquement).
 - Installateur Windows (`jpackage`) non encore fourni : le jar + `lib/`
   produits par `mvn package` en sont l'entrée prévue.

@@ -244,6 +244,21 @@ public final class JdbcTransactionRepository implements TransactionRepository {
                 .param("a", accountId).query(Integer.class).single() == 1;
     }
 
+    @Override
+    public List<Transaction> findNeedingReview() {
+        return jdbc.sql(SELECT + " WHERE t.needs_review = 1 ORDER BY t.date, t.id").query(MAPPER).list();
+    }
+
+    @Override
+    public long countNeedingReview() {
+        return jdbc.sql("SELECT count(*) FROM transactions WHERE needs_review = 1").query(Long.class).single();
+    }
+
+    @Override
+    public void markReviewed(long id) {
+        jdbc.sql("UPDATE transactions SET needs_review = 0 WHERE id = :id").param("id", id).update();
+    }
+
     /** Pour les tests et diagnostics : nombre total de lignes. */
     public long count() {
         return jdbc.sql("SELECT count(*) FROM transactions").query(Long.class).single();

@@ -9,6 +9,9 @@ import com.financeapp.core.recurring.RecurringRule;
 import com.financeapp.core.service.AccountService;
 import com.financeapp.core.service.AvailableBalanceService;
 import com.financeapp.core.service.BudgetService;
+import com.financeapp.core.service.CategorizationService;
+import com.financeapp.core.service.ImportService;
+import com.financeapp.core.service.InboxService;
 import com.financeapp.core.service.CalendarService;
 import com.financeapp.core.service.SavingsGoalService;
 import com.financeapp.core.service.StatisticsService;
@@ -49,6 +52,9 @@ public final class TestApp {
     public final SubscriptionService subscriptions;
     public final StatisticsService statistics;
     public final CalendarService calendar;
+    public final CategorizationService categorization;
+    public final InboxService inbox;
+    public final ImportService imports;
 
     public TestApp(LocalDate today) {
         this.today = today;
@@ -68,6 +74,9 @@ public final class TestApp {
         forecast = new ForecastService(available, planning, store.transactions, settings);
         dashboard = new DashboardService(accounts, store.transactions, planning, available, settings);
         calendar = new CalendarService(store.transactions, planning, forecast);
+        categorization = new CategorizationService(store.categorizationRules, store.transactions, categories, planning);
+        inbox = new InboxService(store.transactions, categorization);
+        imports = new ImportService(store.imports, store.transactions, accounts, planning, categorization);
     }
 
     public Account account(String name, AccountType type, String initialBalance) {

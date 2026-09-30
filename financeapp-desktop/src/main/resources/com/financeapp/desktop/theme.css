@@ -221,7 +221,8 @@
 .table-row-cell { -fx-background-color: -fa-surface; -fx-cell-size: 38; -fx-border-color: transparent transparent #1f2632 transparent; }
 .table-row-cell:hover { -fx-background-color: #1a202a; }
 .table-row-cell:selected { -fx-background-color: #203352; }
-.table-row-cell.row-cancelled .table-cell { -fx-opacity: 0.55; -fx-strikethrough: true; }
+.table-row-cell.row-cancelled .table-cell { -fx-opacity: 0.55; }
+.table-row-cell.row-cancelled .table-cell .text { -fx-strikethrough: true; }
 .table-cell { -fx-text-fill: -fa-text; -fx-padding: 0 10 0 10; -fx-alignment: center-left; }
 .tree-cell { -fx-background-color: -fa-surface; -fx-text-fill: -fa-text; -fx-cell-size: 34; }
 .tree-cell:selected { -fx-background-color: #203352; }
@@ -328,3 +329,18 @@
 .income-expense-chart .default-color1.chart-bar { -fx-bar-fill: #ff7a7a; }
 .income-expense-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: #3ecf8e; }
 .income-expense-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: #ff7a7a; }
+
+/* ---------- V3 : import, Inbox ---------- */
+.nav-scroll, .nav-scroll > .viewport { -fx-background-color: transparent; -fx-background: transparent; }
+.nav-scroll { -fx-padding: 0; -fx-background-insets: 0; }
+.nav-scroll .scroll-bar:vertical { -fx-pref-width: 6; }
+.nav-button { -fx-padding: 7 12 7 12; }
+.nav-badge {
+    -fx-background-color: -fa-accent;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 7 1 7;
+    -fx-background-radius: 9;
+}
+.banner { -fx-border-color: -fa-accent; -fx-background-color: #16233a; -fx-padding: 10 16 10 16; }

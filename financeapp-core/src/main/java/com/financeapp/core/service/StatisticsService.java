@@ -69,6 +69,30 @@ public final class StatisticsService {
                 engine.total(previous, current, currency));
     }
 
+    /** Principaux commercants / libelles sur une periode (bornes incluses). */
+    public List<com.financeapp.core.stats.LabelStat> merchants(java.time.LocalDate from, java.time.LocalDate to, int limit) {
+        Currency currency = settings.baseCurrency();
+        return engine.byLabel(inBaseCurrency(transactions.findCounted(from, to), currency), currency, limit);
+    }
+
+    /** Comparaison de deux periodes quelconques, par categorie, plus le total. */
+    public PeriodComparison comparePeriods(java.time.LocalDate refFrom, java.time.LocalDate refTo,
+                                           java.time.LocalDate from, java.time.LocalDate to) {
+        if (refTo.isBefore(refFrom) || to.isBefore(from)) {
+            throw new BusinessException("Période invalide : la fin précède le début");
+        }
+        Currency currency = settings.baseCurrency();
+        List<Transaction> reference = inBaseCurrency(transactions.findCounted(refFrom, refTo), currency);
+        List<Transaction> current = inBaseCurrency(transactions.findCounted(from, to), currency);
+        Map<Long, Long> roots = categories.rootIndex();
+        Map<Long, String> names = categories.fullNames();
+        return new PeriodComparison(engine.compare(reference, current, currency, roots::get, names),
+                engine.total(reference, current, currency));
+    }
+
+    public record PeriodComparison(List<CategoryComparison> categories, CategoryComparison total) {
+    }
+
     private List<Transaction> inBaseCurrency(List<Transaction> list, Currency currency) {
         Set<Long> ids = accounts.findAll().stream().filter(a -> a.currency().equals(currency))
                 .map(Account::id).collect(Collectors.toSet());

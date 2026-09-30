@@ -7,13 +7,11 @@ import com.financeapp.core.transaction.Transaction;
 import com.financeapp.core.transaction.TransactionType;
 
 import java.math.BigDecimal;
-import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -76,13 +74,7 @@ public final class RecurringPaymentDetector {
 
     /** Libelle compare sans casse, accents, chiffres ni ponctuation ("NETFLIX.COM 12/09" = "netflix com"). */
     public static String normalize(String label) {
-        String s = Normalizer.normalize(label.toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .replaceAll("[^a-z ]", " ")
-                .replaceAll("\\b(prlv|sepa|prelevement|cb|carte|paiement|par|facture)\\b", " ")
-                .replaceAll("\\s+", " ")
-                .strip();
-        return s;
+        return com.financeapp.core.text.LabelNormalizer.normalize(label);
     }
 
     private static Pattern match(List<Transaction> sorted) {

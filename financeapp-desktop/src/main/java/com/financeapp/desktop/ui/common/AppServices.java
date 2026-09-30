@@ -4,6 +4,9 @@ import com.financeapp.core.service.AccountService;
 import com.financeapp.core.service.AvailableBalanceService;
 import com.financeapp.core.service.BudgetService;
 import com.financeapp.core.service.CalendarService;
+import com.financeapp.core.service.CategorizationService;
+import com.financeapp.core.service.ImportService;
+import com.financeapp.core.service.InboxService;
 import com.financeapp.core.service.SavingsGoalService;
 import com.financeapp.core.service.StatisticsService;
 import com.financeapp.core.service.SubscriptionService;
@@ -37,7 +40,10 @@ public record AppServices(
         SavingsGoalService goals,
         SubscriptionService subscriptions,
         StatisticsService statistics,
-        CalendarService calendar) {
+        CalendarService calendar,
+        CategorizationService categorization,
+        InboxService inbox,
+        ImportService imports) {
 
     public static AppServices from(ApplicationContext ctx) {
         return new AppServices(
@@ -57,6 +63,9 @@ public record AppServices(
                 ctx.getBean(SavingsGoalService.class),
                 ctx.getBean(SubscriptionService.class),
                 ctx.getBean(StatisticsService.class),
-                ctx.getBean(CalendarService.class));
+                ctx.getBean(CalendarService.class),
+                ctx.getBean(CategorizationService.class),
+                ctx.getBean(InboxService.class),
+                ctx.getBean(ImportService.class));
     }
 }

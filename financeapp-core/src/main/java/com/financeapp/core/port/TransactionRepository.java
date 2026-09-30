@@ -52,4 +52,12 @@ public interface TransactionRepository {
     Set<OccurrenceKey> findMaterializedOccurrences(LocalDate from);
 
     boolean existsForAccount(long accountId);
+
+    /** Operations importees en attente de validation (Inbox), les plus anciennes d'abord. */
+    List<Transaction> findNeedingReview();
+
+    long countNeedingReview();
+
+    /** Retire l'operation de l'Inbox (categorie eventuellement mise a jour au prealable). */
+    void markReviewed(long id);
 }
