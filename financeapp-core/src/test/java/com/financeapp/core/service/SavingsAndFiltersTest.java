@@ -124,4 +124,36 @@ class SavingsAndFiltersTest {
         assertEquals(Money.eur("30"), app.statistics.comparePeriods(month.minusMonths(1).atDay(1),
                 month.minusMonths(1).atEndOfMonth(), month.atDay(1), month.atEndOfMonth(), joint.id()).total().current());
     }
+
+    @Test
+    void calendarCanFollowOneAccount() {
+        transfer(checking, livretA, "2026-09-15", "200");
+        app.expense(checking, LocalDate.of(2026, 9, 20), "Courses", "50", TransactionStatus.COMPLETED);
+        app.expense(checking, LocalDate.of(2026, 10, 5), "Assurance", "100", TransactionStatus.PLANNED);
+        YearMonth september = YearMonth.of(2026, 9);
+
+        var livret = app.calendar.month(september, livretA.id());
+        assertEquals(Money.eur("8000"), livret.get(13).balance(), "14/09");
+        assertEquals(1, livret.get(14).realized().size(), "le virement recu le 15/09");
+        assertEquals(Money.eur("8200"), livret.get(14).balance());
+        assertEquals(Money.eur("8200"), livret.getLast().balance());
+        assertTrue(livret.getLast().projected(), "aujourd'hui");
+
+        var current = app.calendar.month(september, checking.id());
+        assertEquals(Money.eur("1300"), current.get(18).balance(), "19/09 : apres le virement");
+        assertEquals(Money.eur("1250"), current.get(19).balance());
+        assertTrue(current.get(14).realized().stream().allMatch(t -> t.accountId() == checking.id()));
+
+        var october = app.calendar.month(YearMonth.of(2026, 10), checking.id());
+        assertEquals(1, october.get(4).planned().size());
+        assertEquals(Money.eur("1250"), october.get(3).balance());
+        assertEquals(Money.eur("1150"), october.get(4).balance(), "prevision : operation prevue du 05/10");
+        assertTrue(app.calendar.month(YearMonth.of(2026, 10), livretA.id()).stream().allMatch(d -> d.planned().isEmpty()));
+
+        app.accounts.recordValuation(livretA.id(), LocalDate.of(2026, 9, 10), new BigDecimal("8050"));
+        livret = app.calendar.month(september, livretA.id());
+        assertNull(livret.get(8).balance(), "avant la valeur saisie, le solde n'est pas reconstituable");
+        assertEquals(Money.eur("8050"), livret.get(9).balance());
+        assertEquals(Money.eur("8250"), livret.get(14).balance());
+    }
 }

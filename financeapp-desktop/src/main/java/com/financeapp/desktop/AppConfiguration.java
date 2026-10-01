@@ -242,8 +242,9 @@ public class AppConfiguration {
     }
 
     @Bean
-    CalendarService calendarService(TransactionRepository transactions, PlanningService planning, ForecastService forecast) {
-        return new CalendarService(transactions, planning, forecast);
+    CalendarService calendarService(TransactionRepository transactions, PlanningService planning, ForecastService forecast,
+                                    AccountService accounts) {
+        return new CalendarService(transactions, planning, forecast, accounts);
     }
 
     @Bean

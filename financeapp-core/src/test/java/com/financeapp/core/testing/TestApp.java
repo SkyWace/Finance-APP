@@ -81,7 +81,7 @@ public final class TestApp {
         statistics = new StatisticsService(store.transactions, categories, accounts, planning, settings);
         forecast = new ForecastService(available, planning, store.transactions, settings, recurring);
         dashboard = new DashboardService(accounts, store.transactions, planning, available, settings);
-        calendar = new CalendarService(store.transactions, planning, forecast);
+        calendar = new CalendarService(store.transactions, planning, forecast, accounts);
         categorization = new CategorizationService(store.categorizationRules, store.transactions, categories, planning);
         inbox = new InboxService(store.transactions, categorization);
         imports = new ImportService(store.imports, store.transactions, accounts, planning, categorization);

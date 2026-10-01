@@ -672,11 +672,16 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
 ### Filtre par compte
 
 - Un filtre « Compte » partagé (`UiContext.accountFilter`) sur **À venir**,
-  **Récurrences**, **Abonnements** et **Analyses** ; le choix suit
-  l'utilisateur d'un écran à l'autre.
+  **Récurrences**, **Abonnements** (paiements détectés compris), **Analyses**
+  et **Calendrier** ; le choix suit l'utilisateur d'un écran à l'autre.
+- Calendrier d'un compte (`CalendarService.month(mois, compte)`) : solde de fin
+  de journée = solde actuel moins les opérations postérieures (passé), plus les
+  opérations prévues (futur) ; vide avant la dernière valeur saisie d'une
+  épargne, car il n'est pas reconstituable.
 - Vue d'un compte : les virements internes comptent (entrée ou sortie pour ce
   compte), alors que la vue « Tous les comptes » les neutralise.
 - Analyses : `StatisticsService` accepte un compte (revenus, dépenses,
   catégories, commerçants, comparaison de périodes).
-- Non filtrés : Calendrier et Budgets (budgets par catégorie, tous comptes),
-  paiements réguliers **détectés** dans l'historique (non rattachés à un compte).
+- Non filtrés : Budgets. Un budget est un plafond par catégorie, tous comptes
+  confondus ; le comparer aux dépenses d'un seul compte donnerait des alertes
+  trompeuses.

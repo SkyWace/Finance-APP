@@ -5,6 +5,7 @@ import com.financeapp.core.money.Money;
 import com.financeapp.core.planning.PlannedItem;
 import com.financeapp.core.transaction.Transaction;
 import com.financeapp.core.transaction.TransactionType;
+import com.financeapp.desktop.ui.common.AccountFilter;
 import com.financeapp.desktop.ui.common.Formats;
 import com.financeapp.desktop.ui.common.MonthPicker;
 import com.financeapp.desktop.ui.common.UiAsync;
@@ -37,7 +38,10 @@ public final class CalendarPage extends Page {
     private final MonthPicker picker;
     private final GridPane grid = new GridPane();
     private final VBox detail = new VBox(6);
+    private final AccountFilter filter;
+    private final Label legend = Widgets.label("", "muted");
     private LocalDate selected;
+    private Long account;
     private List<CalendarDay> days = List.of();
 
     public CalendarPage(UiContext ctx) {
@@ -60,9 +64,9 @@ public final class CalendarPage extends Page {
             grid.getColumnConstraints().add(col);
         }
         detail.getStyleClass().add("card");
-        Label legend = Widgets.label("Sous chaque jour : solde des comptes du disponible en fin de journée "
-                + "(« prévu » à partir d'aujourd'hui).", "muted");
-        content.getChildren().setAll(Widgets.row(picker), grid, legend, detail);
+        filter = new AccountFilter(ctx, this::refresh);
+        legend.setWrapText(true);
+        content.getChildren().setAll(Widgets.row(picker, Widgets.spacer(), filter.node()), grid, legend, detail);
     }
 
     @Override
@@ -73,7 +77,13 @@ public final class CalendarPage extends Page {
     @Override
     public void refresh() {
         YearMonth month = picker.month();
-        UiAsync.load(() -> ctx.services().calendar().month(month), list -> {
+        Long account = filter.sync();
+        this.account = account;
+        legend.setText(account == null
+                ? "Sous chaque jour : solde des comptes du disponible en fin de journée (« prévu » à partir d'aujourd'hui)."
+                : "Sous chaque jour : solde de « " + filter.selectedName() + " » en fin de journée (« prévu » à partir "
+                  + "d'aujourd'hui), virements compris. Avant la dernière valeur saisie d'une épargne, il n'est pas affiché.");
+        UiAsync.load(() -> ctx.services().calendar().month(month, account), list -> {
             days = list;
             render();
         });
@@ -105,7 +115,8 @@ public final class CalendarPage extends Page {
         VBox box = new VBox(2, number);
         List<Object[]> lines = new ArrayList<>();
         for (Transaction t : day.realized()) {
-            if (!t.isTransfer() || t.amount().isNegative()) {
+            // Vue globale : une ligne par virement ; vue d'un compte : sa propre jambe.
+            if (!t.isTransfer() || t.amount().isNegative() || account != null) {
                 lines.add(new Object[]{t.label(), t.amount(), false});
             }
         }
