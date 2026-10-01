@@ -245,15 +245,25 @@ public final class MainWindow {
         user.setOnAction(e -> ctx.security().switchUser());
         userButton = user;
         Button theme = new Button();
-        theme.getStyleClass().add("ghost");
-        theme.setTooltip(new Tooltip("Basculer entre le thème sombre et le thème clair"));
-        Runnable themeLabel = () -> theme.setText(Theme.isLight() ? "☾  Mode sombre" : "☀  Mode clair");
+        theme.getStyleClass().addAll("ghost", "theme-toggle");
+        // Icone seule : l'en-tete reste lisible meme en fenetre etroite ; l'infobulle dit ce qu'elle fait.
+        Runnable themeLabel = () -> {
+            theme.setText(Theme.isLight() ? "☾" : "☀");
+            theme.setTooltip(new Tooltip(Theme.isLight() ? "Passer au thème sombre" : "Passer au thème clair"));
+        };
         themeLabel.run();
         theme.setOnAction(e -> {
             Theme.setLight(!Theme.isLight());
             themeLabel.run();
         });
         HBox header = new HBox(12, pageTitle, Widgets.spacer(), user, lock, theme, privacyButton, add);
+        // Les boutons gardent leur largeur ; seul le titre se raccourcit si la fenetre est etroite.
+        for (var node : header.getChildren()) {
+            if (node instanceof javafx.scene.control.ButtonBase b) {
+                b.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+            }
+        }
+        pageTitle.setMinWidth(0);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("header");
         return header;
@@ -261,8 +271,8 @@ public final class MainWindow {
 
     private void updatePrivacyButton() {
         boolean on = ctx.formats().isPrivacy();
-        privacyButton.setText(on ? "◌  Afficher les montants" : "◍  Masquer les montants");
-        privacyButton.setTooltip(new Tooltip("Mode confidentialité (Ctrl+M)"));
+        privacyButton.setText(on ? "◌  Afficher" : "◍  Masquer");
+        privacyButton.setTooltip(new Tooltip((on ? "Afficher" : "Masquer") + " les montants — mode confidentialité (Ctrl+M)"));
     }
 
     private void newTransaction() {

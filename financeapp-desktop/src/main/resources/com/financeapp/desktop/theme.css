@@ -398,3 +398,6 @@
 /* ---------- V0.2.0 : ventilation et etiquettes ---------- */
 .split-editor { -fx-padding: 10 12; -fx-background-color: -fa-input; -fx-background-radius: 8; -fx-border-color: -fa-border; -fx-border-radius: 8; }
 .button.tag-suggestion { -fx-font-size: 12px; -fx-padding: 2 8; }
+
+/* Bouton clair / sombre de l'en-tete : icone seule, assez grande pour rester lisible. */
+.button.theme-toggle { -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 3 12 3 12; -fx-text-fill: -fa-text; }
