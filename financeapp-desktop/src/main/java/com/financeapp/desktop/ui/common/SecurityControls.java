@@ -22,4 +22,13 @@ public interface SecurityControls {
 
     /** Sauvegarde automatique, verrouillage, puis retour au choix de l'utilisateur. */
     void switchUser();
+
+    /** Verifie le mot de passe maitre de l'utilisateur courant, sans rien changer. */
+    boolean checkPassword(char[] password) throws Exception;
+
+    /**
+     * Supprime definitivement l'utilisateur courant (donnees, trousseau, sauvegardes),
+     * puis retour au choix de l'utilisateur. Le mot de passe doit avoir ete verifie.
+     */
+    void deleteCurrentProfile() throws java.io.IOException;
 }

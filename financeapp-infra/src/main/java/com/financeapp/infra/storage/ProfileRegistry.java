@@ -99,6 +99,56 @@ public final class ProfileRegistry {
         return profile(p, id);
     }
 
+    /**
+     * Supprime definitivement un profil : base chiffree, trousseau, restauration en
+     * attente et sauvegardes d'abord (si l'un d'eux ne peut pas etre efface, le profil
+     * reste en place), puis son entree dans la liste. Les journaux (aucune donnee
+     * financiere) sont effaces au mieux : un fichier encore ouvert peut subsister.
+     * La base doit avoir ete fermee par l'appelant.
+     *
+     * @throws IOException si les donnees ou les sauvegardes n'ont pas pu etre effacees
+     */
+    public synchronized void delete(String id) throws IOException {
+        Properties p = load();
+        if (!ids(p).contains(id)) {
+            throw new IllegalArgumentException("Profil introuvable");
+        }
+        AppDirectories dirs = profile(p, id).directories();
+        deleteTree(dirs.databaseFile().getParent());
+        deleteTree(dirs.backupsDir());
+
+        List<String> remaining = new ArrayList<>(ids(p));
+        remaining.remove(id);
+        p.setProperty("order", String.join(",", remaining));
+        p.remove("profile." + id + ".name");
+        p.remove("profile." + id + ".dir");
+        if (id.equals(p.getProperty("last"))) {
+            p.remove("last");
+        }
+        store(p);
+
+        try {
+            deleteTree(dirs.logsDir());
+            if (!dirs.root().equals(root)) {
+                Files.deleteIfExists(dirs.root()); // le profil principal partage la racine : jamais supprimee
+            }
+        } catch (IOException e) {
+            // journal encore ouvert (Windows) : il sera sans profil associe, sans donnee financiere
+        }
+    }
+
+    private static void deleteTree(Path dir) throws IOException {
+        if (!Files.exists(dir)) {
+            return;
+        }
+        try (var paths = Files.walk(dir)) {
+            List<Path> all = paths.sorted(java.util.Comparator.reverseOrder()).toList();
+            for (Path path : all) {
+                Files.delete(path);
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ interne
 
     private Properties load() {

@@ -93,8 +93,40 @@ public final class SettingsPage extends Page {
                 + "Pour en ajouter un : « Changer d'utilisateur », puis « Ajouter un utilisateur ». Seuls les noms "
                 + "des profils sont visibles avant le déverrouillage.", "muted");
         how.setWrapText(true);
+        Button delete = new Button("Supprimer ce profil…");
+        delete.getStyleClass().add("danger");
+        delete.setOnAction(e -> deleteProfile());
         return Widgets.section("Utilisateur", labeled("Nom affiché", Widgets.row(name, rename)),
-                Widgets.row(switchUser), how);
+                Widgets.row(switchUser, Widgets.spacer(), delete), how);
+    }
+
+    /** Suppression definitive du profil courant : confirmation, puis mot de passe maitre du profil. */
+    private void deleteProfile() {
+        String user = ctx.security().profileName();
+        if (!Dialogs.confirm(window(), "Supprimer le profil « " + user + " »",
+                "Toutes les données de « " + user + " » seront définitivement effacées de cet ordinateur : comptes, "
+                        + "opérations, réglages, mot de passe maître et sauvegardes automatiques. Cette action est "
+                        + "irréversible.\n\nLes sauvegardes exportées ailleurs ne sont pas concernées. Les autres "
+                        + "utilisateurs ne sont pas touchés.", "Continuer")) {
+            return;
+        }
+        PasswordPromptDialog.ask(window(), "Confirmer la suppression",
+                "Saisissez le mot de passe maître de « " + user + " » pour supprimer définitivement ce profil.")
+                .ifPresent(password -> {
+                    try {
+                        if (!ctx.security().checkPassword(password)) {
+                            Dialogs.error(window(), new IllegalArgumentException(
+                                    "Mot de passe incorrect : le profil n'a pas été supprimé."));
+                            return;
+                        }
+                        ctx.security().deleteCurrentProfile();
+                    } catch (Exception ex) {
+                        Dialogs.error(window(), new IllegalStateException(
+                                "La suppression n'a pas pu aller au bout : " + ex.getMessage(), ex));
+                    } finally {
+                        java.util.Arrays.fill(password, '\0');
+                    }
+                });
     }
 
     private VBox securitySection() {
