@@ -49,7 +49,7 @@ public final class AccountDialog extends FormDialog<Account> {
             type.setValue(AccountType.CHECKING);
             currency.setValue(ctx.services().settings().baseCurrency().getCurrencyCode());
             includeInAvailable.setSelected(true);
-            color.setValue(Color.web("#DB8D77"));
+            color.setValue(Color.web("#6E9BFF"));
             // Tant que l'utilisateur n'a pas touche la case, elle suit le type de compte.
             boolean[] touched = {false};
             includeInAvailable.setOnAction(e -> touched[0] = true);
@@ -64,7 +64,7 @@ public final class AccountDialog extends FormDialog<Account> {
             initialBalance.setText(AmountParser.toEditable(existing.initialBalance().amount()));
             currency.setValue(existing.currency().getCurrencyCode());
             includeInAvailable.setSelected(existing.includeInAvailable());
-            color.setValue(existing.color() != null ? Color.web(existing.color()) : Color.web("#DB8D77"));
+            color.setValue(existing.color() != null ? Color.web(existing.color()) : Color.web("#6E9BFF"));
         }
 
         addRow("Nom", name);

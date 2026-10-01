@@ -258,9 +258,13 @@ Définitions retenues :
 
 ## 9. Design de l'interface
 
-- **Thème sombre** par défaut, palette sobre (fond `#11151c`, cartes
-  `#1a2029`, accent bleu `#4c8dff`, positif vert `#3ecf8e`, négatif
-  corail `#ff6b6b`, attention ambre `#f5b942`). Les états ne sont jamais
+- **Thème sombre « Nuit & Saphir »** par défaut (fond `#12161f`, cartes
+  `#1a2030`, accent saphir `#6e9bff`, positif `#5dd39e`, négatif
+  `#ff8a80`, attention `#f4b860`) et **thème clair « Lin & Prune »**
+  (fond `#f6f3ee`, cartes blanches, accent prune `#6b3f7a`, corail
+  `#c46a4f` pour les prévisions), au choix depuis l'en-tête. Toutes les
+  couleurs sont des tokens `-fa-*` de `theme.css` ; `theme-light.css`
+  ne redéfinit que ces tokens. Les états ne sont jamais
   communiqués par la seule couleur : signe `+`/`−`, libellés, icônes.
 - **Navigation latérale** : Tableau de bord · Comptes · Transactions · À venir
   · Récurrences · Disponible · Prévisions · Catégories · Paramètres. Les

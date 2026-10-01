@@ -4,6 +4,7 @@ import com.financeapp.core.transaction.TransactionType;
 import com.financeapp.desktop.ui.common.AppServices;
 import com.financeapp.desktop.ui.common.DataEvents;
 import com.financeapp.desktop.ui.common.Formats;
+import com.financeapp.desktop.ui.common.Theme;
 import com.financeapp.desktop.ui.common.SecurityControls;
 import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
@@ -243,7 +244,16 @@ public final class MainWindow {
         user.setTooltip(new Tooltip("Changer d'utilisateur (vos données sont sauvegardées et verrouillées)"));
         user.setOnAction(e -> ctx.security().switchUser());
         userButton = user;
-        HBox header = new HBox(12, pageTitle, Widgets.spacer(), user, lock, privacyButton, add);
+        Button theme = new Button();
+        theme.getStyleClass().add("ghost");
+        theme.setTooltip(new Tooltip("Basculer entre le thème sombre et le thème clair"));
+        Runnable themeLabel = () -> theme.setText(Theme.isLight() ? "☾  Mode sombre" : "☀  Mode clair");
+        themeLabel.run();
+        theme.setOnAction(e -> {
+            Theme.setLight(!Theme.isLight());
+            themeLabel.run();
+        });
+        HBox header = new HBox(12, pageTitle, Widgets.spacer(), user, lock, theme, privacyButton, add);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("header");
         return header;

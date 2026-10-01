@@ -1,35 +1,64 @@
 /*
- * FinanceApp - theme sombre. Palette : #30243A (fond), #464155 (surfaces, bordures),
- * #C0BDBD (texte), #DB8D77 (accent), #FACCBC (accent clair) ; nuances derivees.
+ * FinanceApp - theme sombre "Nuit & Saphir" (par defaut).
+ * Toutes les couleurs sont des tokens -fa-* definis ci-dessous : le theme clair
+ * (theme-light.css, "Lin & Prune") ne redefinit que ce bloc .root.
  * Les etats (positif, negatif, retard...) ne reposent jamais sur la seule
  * couleur : signe explicite, libelles et badges textuels les accompagnent.
  */
 .root {
-    -fa-bg: #30243a;
-    -fa-sidebar: #271d30;
-    -fa-surface: #3a2d46;
-    -fa-surface-2: #464155;
-    -fa-border: #4f4860;
-    -fa-text: #ece8e8;
-    -fa-muted: #9e99a6;
-    -fa-accent: #db8d77;
-    -fa-accent-soft: #60414b;
-    -fa-positive: #7fd1a0;
-    -fa-negative: #ff8f8f;
-    -fa-warning: #f2c46d;
+    /* Fonds et surfaces */
+    -fa-bg: #12161f;
+    -fa-sidebar: #0e1219;
+    -fa-surface: #1a2030;
+    -fa-surface-2: #232a3b;
+    -fa-surface-past: #161b28;
+    -fa-hover: #20283a;
+    -fa-input: #151a25;
+    -fa-selection: #2a3d66;
+    -fa-lock-glow: #1c2740;
+    /* Bordures */
+    -fa-border: #2f374a;
+    -fa-border-strong: #3d4760;
+    -fa-divider: #262d3d;
+    /* Texte */
+    -fa-text: #e8ecf4;
+    -fa-text-2: #c3cad8;
+    -fa-muted: #8f99ad;
+    -fa-faint: #7a8399;
+    /* Accent */
+    -fa-accent: #6e9bff;
+    -fa-accent-hover: #9dbbff;
+    -fa-accent-text: #9dbbff;
+    -fa-accent-soft: #24345a;
+    -fa-on-accent: #0e1219;
+    -fa-info-bg: #1f2a47;
+    -fa-info-border: #3b5590;
+    /* Etats */
+    -fa-positive: #5dd39e;
+    -fa-positive-bg: #17302a;
+    -fa-positive-border: #2d6b52;
+    -fa-negative: #ff8a80;
+    -fa-negative-bg: #3a1f26;
+    -fa-negative-border: #7a3a40;
+    -fa-danger-text: #ffb0a8;
+    -fa-warning: #f4b860;
+    -fa-warning-bg: #352b1c;
+    -fa-warning-border: #7a5f30;
+    /* Graphiques */
+    -fa-series-forecast: #6e9bff;
 
     -fx-font-family: "Segoe UI", "Inter", "Helvetica Neue", "Cantarell", sans-serif;
     -fx-font-size: 13px;
-    -fx-base: #464155;
-    -fx-background: #30243a;
-    -fx-control-inner-background: #3a2d46;
-    -fx-control-inner-background-alt: #41334e;
-    -fx-accent: #db8d77;
-    -fx-focus-color: #db8d77;
-    -fx-faint-focus-color: #db8d7733;
-    -fx-text-fill: #ece8e8;
-    -fx-selection-bar: #5a3f55;
-    -fx-selection-bar-non-focused: #60414b;
+    -fx-base: #232a3b;
+    -fx-background: #12161f;
+    -fx-control-inner-background: #1a2030;
+    -fx-control-inner-background-alt: #20283a;
+    -fx-accent: #6e9bff;
+    -fx-focus-color: #6e9bff;
+    -fx-faint-focus-color: #6e9bff33;
+    -fx-text-fill: #e8ecf4;
+    -fx-selection-bar: #2a3d66;
+    -fx-selection-bar-non-focused: #24345a;
 }
 
 .app-root { -fx-background-color: -fa-bg; }
@@ -52,12 +81,12 @@
     -fx-alignment: center-left;
     -fx-cursor: hand;
 }
-.nav-button:hover { -fx-background-color: #41334e; }
+.nav-button:hover { -fx-background-color: -fa-hover; }
 .nav-button:selected { -fx-background-color: -fa-accent-soft; }
 .nav-icon { -fx-text-fill: -fa-muted; -fx-font-size: 14px; -fx-min-width: 18; }
-.nav-label { -fx-text-fill: #c0bdbd; -fx-font-size: 13.5px; }
-.nav-button:selected .nav-icon, .nav-button:selected .nav-label { -fx-text-fill: #faccbc; }
-.sidebar-footer { -fx-text-fill: #7d7788; -fx-font-size: 11px; -fx-padding: 0 10 0 10; }
+.nav-label { -fx-text-fill: -fa-text-2; -fx-font-size: 13.5px; }
+.nav-button:selected .nav-icon, .nav-button:selected .nav-label { -fx-text-fill: -fa-accent-text; }
+.sidebar-footer { -fx-text-fill: -fa-faint; -fx-font-size: 11px; -fx-padding: 0 10 0 10; }
 
 /* ---------- En-tete et contenu ---------- */
 .header {
@@ -79,7 +108,7 @@
     -fx-border-radius: 12;
     -fx-padding: 16 18 16 18;
 }
-.card.clickable:hover { -fx-border-color: -fa-accent; -fx-background-color: #41334e; }
+.card.clickable:hover { -fx-border-color: -fa-accent; -fx-background-color: -fa-hover; }
 .kpi-title { -fx-text-fill: -fa-muted; -fx-font-size: 11px; -fx-font-weight: bold; }
 .kpi-value { -fx-text-fill: -fa-text; -fx-font-size: 24px; -fx-font-weight: bold; }
 .kpi-subtitle { -fx-text-fill: -fa-muted; -fx-font-size: 11.5px; }
@@ -88,21 +117,21 @@
 .section-title { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: -fa-text; }
 .welcome { -fx-padding: 32; }
 .welcome-title { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -fa-text; }
-.welcome-text { -fx-font-size: 14px; -fx-text-fill: #c0bdbd; }
+.welcome-text { -fx-font-size: 14px; -fx-text-fill: -fa-text-2; }
 
 /* ---------- Montants ---------- */
 .amount { -fx-font-weight: bold; -fx-font-size: 13.5px; }
 .amount-positive, .kpi-value.amount-positive, .hero-value.amount-positive { -fx-text-fill: -fa-positive; }
 .amount-negative, .kpi-value.amount-negative, .hero-value.amount-negative { -fx-text-fill: -fa-negative; }
 .amount-zero { -fx-text-fill: -fa-muted; }
-.accent, .kpi-value.accent, .hero-value.accent { -fx-text-fill: #faccbc; }
+.accent, .kpi-value.accent, .hero-value.accent { -fx-text-fill: -fa-accent-text; }
 .table-column.amount-column, .table-view .column-header.amount-column .label { -fx-alignment: center-right; }
 .table-cell.amount-positive { -fx-text-fill: -fa-positive; -fx-font-weight: bold; }
 .table-cell.amount-negative { -fx-text-fill: -fa-negative; -fx-font-weight: bold; }
 
 /* ---------- Listes d'operations ---------- */
-.op-row { -fx-padding: 8 6 8 6; -fx-border-color: transparent transparent #433752 transparent; }
-.op-row:hover { -fx-background-color: #41334e; -fx-background-radius: 6; }
+.op-row { -fx-padding: 8 6 8 6; -fx-border-color: transparent transparent -fa-divider transparent; }
+.op-row:hover { -fx-background-color: -fa-hover; -fx-background-radius: 6; }
 .op-date { -fx-text-fill: -fa-muted; -fx-font-size: 12px; }
 .op-label { -fx-text-fill: -fa-text; -fx-font-size: 13.5px; }
 .op-detail { -fx-text-fill: -fa-muted; -fx-font-size: 11.5px; }
@@ -123,7 +152,7 @@
 .explain-title { -fx-text-fill: -fa-muted; -fx-font-weight: bold; -fx-font-size: 12px; }
 .explain-total { -fx-font-size: 14px; }
 .explain-row { -fx-padding: 3 6 3 6; }
-.explain-line { -fx-text-fill: #c0bdbd; }
+.explain-line { -fx-text-fill: -fa-text-2; }
 
 /* ---------- Badges ---------- */
 .badge {
@@ -133,17 +162,17 @@
     -fx-border-radius: 10;
     -fx-border-width: 1;
 }
-.badge-info { -fx-text-fill: #faccbc; -fx-background-color: #4a3443; -fx-border-color: #7a5160; }
-.badge-success { -fx-text-fill: #7fd1a0; -fx-background-color: #2f3a3c; -fx-border-color: #4e7a62; }
-.badge-warning { -fx-text-fill: #f2c46d; -fx-background-color: #463a37; -fx-border-color: #7d6a45; }
-.badge-danger { -fx-text-fill: #ffb3ad; -fx-background-color: #4a2a35; -fx-border-color: #8a4a50; -fx-font-size: 12.5px; -fx-padding: 6 12 6 12; }
-.badge-neutral { -fx-text-fill: #c0bdbd; -fx-background-color: #464155; -fx-border-color: #4f4860; }
+.badge-info { -fx-text-fill: -fa-accent-text; -fx-background-color: -fa-info-bg; -fx-border-color: -fa-info-border; }
+.badge-success { -fx-text-fill: -fa-positive; -fx-background-color: -fa-positive-bg; -fx-border-color: -fa-positive-border; }
+.badge-warning { -fx-text-fill: -fa-warning; -fx-background-color: -fa-warning-bg; -fx-border-color: -fa-warning-border; }
+.badge-danger { -fx-text-fill: -fa-danger-text; -fx-background-color: -fa-negative-bg; -fx-border-color: -fa-negative-border; -fx-font-size: 12.5px; -fx-padding: 6 12 6 12; }
+.badge-neutral { -fx-text-fill: -fa-text-2; -fx-background-color: -fa-surface-2; -fx-border-color: -fa-border; }
 
 /* ---------- Textes divers ---------- */
 .muted { -fx-text-fill: -fa-muted; }
 .hint { -fx-text-fill: -fa-muted; -fx-font-size: 12px; }
 .empty-state { -fx-text-fill: -fa-muted; -fx-padding: 12 6 12 6; }
-.form-label { -fx-text-fill: #c0bdbd; }
+.form-label { -fx-text-fill: -fa-text-2; }
 .form-subtitle { -fx-text-fill: -fa-text; -fx-font-weight: bold; -fx-padding: 0 0 6 0; }
 .form-error { -fx-text-fill: -fa-negative; -fx-font-weight: bold; }
 
@@ -156,38 +185,38 @@
 }
 .button.primary {
     -fx-background-color: -fa-accent;
-    -fx-text-fill: #30243a;
+    -fx-text-fill: -fa-on-accent;
     -fx-font-weight: bold;
 }
-.button.primary:hover { -fx-background-color: #faccbc; }
+.button.primary:hover { -fx-background-color: -fa-accent-hover; }
 .button.secondary, .toggle-button.secondary {
     -fx-background-color: -fa-surface-2;
-    -fx-border-color: #4f4860;
+    -fx-border-color: -fa-border;
     -fx-text-fill: -fa-text;
 }
-.button.secondary:hover { -fx-background-color: #4f4860; }
+.button.secondary:hover { -fx-background-color: -fa-border; }
 .button.ghost, .toggle-button.ghost {
     -fx-background-color: transparent;
-    -fx-border-color: #4f4860;
-    -fx-text-fill: #c0bdbd;
+    -fx-border-color: -fa-border;
+    -fx-text-fill: -fa-text-2;
 }
-.button.ghost:hover, .toggle-button.ghost:hover { -fx-background-color: #41334e; }
-.toggle-button.ghost:selected { -fx-background-color: -fa-accent-soft; -fx-border-color: -fa-accent; -fx-text-fill: #faccbc; }
+.button.ghost:hover, .toggle-button.ghost:hover { -fx-background-color: -fa-hover; }
+.toggle-button.ghost:selected { -fx-background-color: -fa-accent-soft; -fx-border-color: -fa-accent; -fx-text-fill: -fa-accent-text; }
 .button.compact { -fx-padding: 4 10 4 10; -fx-font-size: 12px; }
 .button.link {
     -fx-background-color: transparent;
-    -fx-text-fill: #faccbc;
+    -fx-text-fill: -fa-accent-text;
     -fx-padding: 4 0 0 0;
 }
 .button.link:hover { -fx-underline: true; }
 .toggle-button.segment {
     -fx-background-color: -fa-surface-2;
-    -fx-border-color: #4f4860;
-    -fx-text-fill: #c0bdbd;
+    -fx-border-color: -fa-border;
+    -fx-text-fill: -fa-text-2;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
 }
-.toggle-button.segment:selected { -fx-background-color: -fa-accent; -fx-text-fill: #30243a; -fx-border-color: -fa-accent; }
+.toggle-button.segment:selected { -fx-background-color: -fa-accent; -fx-text-fill: -fa-on-accent; -fx-border-color: -fa-accent; }
 
 /* ---------- Champs ---------- */
 .text-field, .text-area, .combo-box, .date-picker, .spinner, .color-picker {
@@ -195,12 +224,12 @@
     -fx-border-radius: 7;
 }
 .text-field, .text-area .content, .combo-box, .spinner, .date-picker > .text-field {
-    -fx-background-color: #2a2033;
-    -fx-border-color: #4f4860;
+    -fx-background-color: -fa-input;
+    -fx-border-color: -fa-border;
     -fx-text-fill: -fa-text;
 }
 .text-field:focused, .combo-box:focused { -fx-border-color: -fa-accent; }
-.text-field, .text-area { -fx-prompt-text-fill: #9690a0; }
+.text-field, .text-area { -fx-prompt-text-fill: -fa-muted; }
 .combo-box .list-cell { -fx-text-fill: -fa-text; }
 .check-box { -fx-text-fill: -fa-text; }
 
@@ -219,43 +248,43 @@
     -fx-size: 36;
 }
 .table-view .column-header .label { -fx-text-fill: -fa-muted; -fx-font-weight: bold; -fx-font-size: 12px; }
-.table-row-cell { -fx-background-color: -fa-surface; -fx-cell-size: 38; -fx-border-color: transparent transparent #433752 transparent; }
-.table-row-cell:hover { -fx-background-color: #41334e; }
-.table-row-cell:selected { -fx-background-color: #5a3f55; }
+.table-row-cell { -fx-background-color: -fa-surface; -fx-cell-size: 38; -fx-border-color: transparent transparent -fa-divider transparent; }
+.table-row-cell:hover { -fx-background-color: -fa-hover; }
+.table-row-cell:selected { -fx-background-color: -fa-selection; }
 .table-row-cell.row-cancelled .table-cell { -fx-opacity: 0.55; }
 .table-row-cell.row-cancelled .table-cell .text { -fx-strikethrough: true; }
 .table-cell { -fx-text-fill: -fa-text; -fx-padding: 0 10 0 10; -fx-alignment: center-left; }
 .tree-cell { -fx-background-color: -fa-surface; -fx-text-fill: -fa-text; -fx-cell-size: 34; }
-.tree-cell:selected { -fx-background-color: #5a3f55; }
+.tree-cell:selected { -fx-background-color: -fa-selection; }
 .tree-cell.archived { -fx-opacity: 0.55; }
 
 /* ---------- Graphiques ---------- */
 .chart { -fx-padding: 4; }
 .chart-plot-background { -fx-background-color: transparent; }
 .chart-vertical-grid-lines { -fx-stroke: transparent; }
-.chart-horizontal-grid-lines { -fx-stroke: #433752; }
+.chart-horizontal-grid-lines { -fx-stroke: -fa-divider; }
 .chart-alternative-row-fill { -fx-fill: transparent; }
 .axis { -fx-tick-label-fill: -fa-muted; }
 .axis-tick-mark, .axis-minor-tick-mark { -fx-stroke: transparent; }
 .chart-legend { -fx-background-color: transparent; }
 .chart-legend-item { -fx-text-fill: -fa-muted; }
-.balance-chart .default-color0.chart-series-line { -fx-stroke: #7fd1a0; -fx-stroke-width: 2.5px; }
-.balance-chart .default-color1.chart-series-line { -fx-stroke: #db8d77; -fx-stroke-width: 2.5px; -fx-stroke-dash-array: 8 6; }
-.balance-chart .default-color0.chart-line-symbol { -fx-background-color: #7fd1a0, transparent; -fx-background-radius: 3; -fx-padding: 2; }
-.balance-chart .default-color1.chart-line-symbol { -fx-background-color: #db8d77, transparent; -fx-background-radius: 3; -fx-padding: 2; }
-.balance-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: #7fd1a0; }
-.balance-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: #db8d77; }
-.comparison-chart .default-color0.chart-series-line { -fx-stroke: #c0bdbd; -fx-stroke-width: 2px; -fx-stroke-dash-array: 8 6; }
-.comparison-chart .default-color1.chart-series-line { -fx-stroke: #db8d77; -fx-stroke-width: 2.5px; }
-.comparison-chart .default-color0.chart-line-symbol { -fx-background-color: #c0bdbd, transparent; -fx-background-radius: 3; -fx-padding: 1.5; }
-.comparison-chart .default-color1.chart-line-symbol { -fx-background-color: #db8d77, transparent; -fx-background-radius: 3; -fx-padding: 1.5; }
-.comparison-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: #c0bdbd; }
-.comparison-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: #db8d77; }
+.balance-chart .default-color0.chart-series-line { -fx-stroke: -fa-positive; -fx-stroke-width: 2.5px; }
+.balance-chart .default-color1.chart-series-line { -fx-stroke: -fa-series-forecast; -fx-stroke-width: 2.5px; -fx-stroke-dash-array: 8 6; }
+.balance-chart .default-color0.chart-line-symbol { -fx-background-color: -fa-positive, transparent; -fx-background-radius: 3; -fx-padding: 2; }
+.balance-chart .default-color1.chart-line-symbol { -fx-background-color: -fa-series-forecast, transparent; -fx-background-radius: 3; -fx-padding: 2; }
+.balance-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: -fa-positive; }
+.balance-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: -fa-series-forecast; }
+.comparison-chart .default-color0.chart-series-line { -fx-stroke: -fa-text-2; -fx-stroke-width: 2px; -fx-stroke-dash-array: 8 6; }
+.comparison-chart .default-color1.chart-series-line { -fx-stroke: -fa-series-forecast; -fx-stroke-width: 2.5px; }
+.comparison-chart .default-color0.chart-line-symbol { -fx-background-color: -fa-text-2, transparent; -fx-background-radius: 3; -fx-padding: 1.5; }
+.comparison-chart .default-color1.chart-line-symbol { -fx-background-color: -fa-series-forecast, transparent; -fx-background-radius: 3; -fx-padding: 1.5; }
+.comparison-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: -fa-text-2; }
+.comparison-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: -fa-series-forecast; }
 
 /* ---------- Credits et simulations ---------- */
 .loan-value { -fx-text-fill: -fa-text; -fx-font-size: 16px; -fx-font-weight: bold; }
 .table-row-cell.row-past .table-cell { -fx-opacity: 0.6; }
-.sim-banner { -fx-background-color: #3f3048; -fx-border-color: #db8d77; -fx-border-radius: 8; -fx-background-radius: 8;
+.sim-banner { -fx-background-color: -fa-info-bg; -fx-border-color: -fa-accent; -fx-border-radius: 8; -fx-background-radius: 8;
               -fx-padding: 10 14 10 14; -fx-text-fill: -fa-text; }
 .sim-list .toggle-button { -fx-alignment: center-left; -fx-pref-width: 220; }
 .impact-value { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -fa-text; }
@@ -264,18 +293,18 @@
 .dialog-pane { -fx-background-color: -fa-surface; }
 .dialog-pane > .content { -fx-padding: 20 22 10 22; }
 .dialog-pane .dialog-pane > .button-bar > .container { -fx-padding: 10 22 18 22; }
-.dialog-pane .button:default { -fx-background-color: -fa-accent; -fx-text-fill: #30243a; -fx-font-weight: bold; }
-.dialog-pane .button:cancel { -fx-background-color: transparent; -fx-border-color: #4f4860; -fx-text-fill: #c0bdbd; }
+.dialog-pane .button:default { -fx-background-color: -fa-accent; -fx-text-fill: -fa-on-accent; -fx-font-weight: bold; }
+.dialog-pane .button:cancel { -fx-background-color: transparent; -fx-border-color: -fa-border; -fx-text-fill: -fa-text-2; }
 
 .scroll-bar { -fx-background-color: transparent; }
-.scroll-bar .thumb { -fx-background-color: #4f4860; -fx-background-radius: 6; }
+.scroll-bar .thumb { -fx-background-color: -fa-border; -fx-background-radius: 6; }
 .scroll-bar .increment-button, .scroll-bar .decrement-button { -fx-padding: 0; -fx-background-color: transparent; }
 .scroll-bar .increment-arrow, .scroll-bar .decrement-arrow { -fx-shape: " "; -fx-padding: 0; }
-.tooltip { -fx-background-color: #464155; -fx-text-fill: -fa-text; -fx-font-size: 12px; }
-.context-menu { -fx-background-color: #464155; }
+.tooltip { -fx-background-color: -fa-surface-2; -fx-text-fill: -fa-text; -fx-font-size: 12px; }
+.context-menu { -fx-background-color: -fa-surface-2; }
 
 /* ---------- Ecran de verrouillage / mot de passe maitre ---------- */
-.lock-root { -fx-background-color: radial-gradient(center 50% 30%, radius 80%, #3d2e4a, #271d30); }
+.lock-root { -fx-background-color: radial-gradient(center 50% 30%, radius 80%, -fa-lock-glow, -fa-sidebar); }
 .lock-card {
     -fx-background-color: -fa-surface;
     -fx-background-radius: 16;
@@ -285,17 +314,17 @@
     -fx-max-width: 520;
     -fx-pref-width: 520;
 }
-.lock-brand { -fx-text-fill: #faccbc; -fx-font-size: 14px; -fx-font-weight: bold; }
+.lock-brand { -fx-text-fill: -fa-accent-text; -fx-font-size: 14px; -fx-font-weight: bold; }
 .lock-title { -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: -fa-text; }
-.lock-text { -fx-text-fill: #c0bdbd; -fx-font-size: 13px; }
-.lock-warning { -fx-text-fill: #f2c46d; -fx-font-size: 12px; }
+.lock-text { -fx-text-fill: -fa-text-2; -fx-font-size: 13px; }
+.lock-warning { -fx-text-fill: -fa-warning; -fx-font-size: 12px; }
 .lock-card .password-field, .lock-card .text-field { -fx-pref-height: 38; -fx-font-size: 14px; }
 .recovery-key {
     -fx-font-family: "JetBrains Mono", "Consolas", "DejaVu Sans Mono", monospace;
     -fx-font-size: 15px;
     -fx-font-weight: bold;
-    -fx-text-fill: #faccbc;
-    -fx-background-color: #271d30;
+    -fx-text-fill: -fa-accent-text;
+    -fx-background-color: -fa-sidebar;
     -fx-border-color: -fa-accent;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
@@ -309,16 +338,16 @@
 
 /* ---------- V2 : progression, budgets, calendrier, analyses ---------- */
 .fa-progress { -fx-pref-height: 12; }
-.fa-progress > .track { -fx-background-color: #2a2033; -fx-background-radius: 6; -fx-background-insets: 0; }
+.fa-progress > .track { -fx-background-color: -fa-input; -fx-background-radius: 6; -fx-background-insets: 0; }
 .fa-progress > .bar { -fx-background-radius: 6; -fx-background-insets: 0; -fx-padding: 6; }
-.fa-progress.progress-ok > .bar { -fx-background-color: #db8d77; }
-.fa-progress.progress-done > .bar { -fx-background-color: #7fd1a0; }
-.fa-progress.progress-warning > .bar { -fx-background-color: #f2c46d; }
-.fa-progress.progress-danger > .bar { -fx-background-color: #ff8f8f; }
-.fa-progress.progress-neutral > .bar { -fx-background-color: #7d7788; }
+.fa-progress.progress-ok > .bar { -fx-background-color: -fa-accent; }
+.fa-progress.progress-done > .bar { -fx-background-color: -fa-positive; }
+.fa-progress.progress-warning > .bar { -fx-background-color: -fa-warning; }
+.fa-progress.progress-danger > .bar { -fx-background-color: -fa-negative; }
+.fa-progress.progress-neutral > .bar { -fx-background-color: -fa-faint; }
 .budget-percent { -fx-font-weight: bold; -fx-min-width: 64; -fx-alignment: center-right; }
 .budget-compact { -fx-padding: 2 0 6 0; }
-.badge-danger-small { -fx-text-fill: #ffb3ad; -fx-background-color: #4a2a35; -fx-border-color: #8a4a50; }
+.badge-danger-small { -fx-text-fill: -fa-danger-text; -fx-background-color: -fa-negative-bg; -fx-border-color: -fa-negative-border; }
 .month-label { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -fa-text; }
 .field-invalid { -fx-border-color: -fa-negative; }
 .table-header { -fx-text-fill: -fa-muted; -fx-font-weight: bold; -fx-font-size: 12px; }
@@ -331,19 +360,19 @@
     -fx-border-radius: 8;
     -fx-padding: 6 8 6 8;
 }
-.calendar-cell:hover { -fx-border-color: #6a5d74; }
-.calendar-past { -fx-background-color: #352a40; }
+.calendar-cell:hover { -fx-border-color: -fa-border-strong; }
+.calendar-past { -fx-background-color: -fa-surface-past; }
 .calendar-today { -fx-border-color: -fa-accent; -fx-border-width: 2; }
-.calendar-selected { -fx-background-color: #60414b; }
+.calendar-selected { -fx-background-color: -fa-accent-soft; }
 .calendar-day-number { -fx-font-weight: bold; -fx-text-fill: -fa-text; }
 .calendar-op { -fx-font-size: 11px; -fx-text-overrun: ellipsis; }
 .calendar-op-planned { -fx-font-style: italic; -fx-opacity: 0.85; }
 .calendar-balance { -fx-font-size: 11px; }
 
-.income-expense-chart .default-color0.chart-bar { -fx-bar-fill: #7fd1a0; }
-.income-expense-chart .default-color1.chart-bar { -fx-bar-fill: #ff8f8f; }
-.income-expense-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: #7fd1a0; }
-.income-expense-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: #ff8f8f; }
+.income-expense-chart .default-color0.chart-bar { -fx-bar-fill: -fa-positive; }
+.income-expense-chart .default-color1.chart-bar { -fx-bar-fill: -fa-negative; }
+.income-expense-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: -fa-positive; }
+.income-expense-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: -fa-negative; }
 
 /* ---------- V3 : import, Inbox ---------- */
 .nav-scroll, .nav-scroll > .viewport { -fx-background-color: transparent; -fx-background: transparent; }
@@ -352,20 +381,20 @@
 .nav-button { -fx-padding: 7 12 7 12; }
 .nav-badge {
     -fx-background-color: -fa-accent;
-    -fx-text-fill: #30243a;
+    -fx-text-fill: -fa-on-accent;
     -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-padding: 1 7 1 7;
     -fx-background-radius: 9;
 }
-.banner { -fx-border-color: -fa-accent; -fx-background-color: #4a3443; -fx-padding: 10 16 10 16; }
+.banner { -fx-border-color: -fa-accent; -fx-background-color: -fa-info-bg; -fx-padding: 10 16 10 16; }
 
 /* ---------- Utilisateurs (profils) ---------- */
-.lock-user { -fx-text-fill: #9e99a6; -fx-font-size: 13px; }
+.lock-user { -fx-text-fill: -fa-muted; -fx-font-size: 13px; }
 .profile-button { -fx-font-size: 15px; -fx-padding: 10 16; -fx-alignment: center-left; }
-.button.danger { -fx-background-color: transparent; -fx-text-fill: #ffb3ad; -fx-border-color: #8a4a50; -fx-border-radius: 6; -fx-background-radius: 6; }
-.button.danger:hover { -fx-background-color: #4a2a35; }
+.button.danger { -fx-background-color: transparent; -fx-text-fill: -fa-danger-text; -fx-border-color: -fa-negative-border; -fx-border-radius: 6; -fx-background-radius: 6; }
+.button.danger:hover { -fx-background-color: -fa-negative-bg; }
 
 /* ---------- V0.2.0 : ventilation et etiquettes ---------- */
-.split-editor { -fx-padding: 10 12; -fx-background-color: #2a2033; -fx-background-radius: 8; -fx-border-color: #4f4860; -fx-border-radius: 8; }
+.split-editor { -fx-padding: 10 12; -fx-background-color: -fa-input; -fx-background-radius: 8; -fx-border-color: -fa-border; -fx-border-radius: 8; }
 .button.tag-suggestion { -fx-font-size: 12px; -fx-padding: 2 8; }

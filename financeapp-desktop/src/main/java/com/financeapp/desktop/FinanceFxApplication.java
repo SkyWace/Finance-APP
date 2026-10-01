@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import java.util.Objects;
 
 /**
  * Cycle de vie JavaFX. Aucune donnee n'est accessible avant la saisie du mot
@@ -59,8 +58,7 @@ public class FinanceFxApplication extends Application {
         }
         String appName = Bootstrap.appName();
         Scene scene = new Scene(new StackPane(), 1320, 840);
-        scene.getStylesheets().add(Objects.requireNonNull(
-                FinanceFxApplication.class.getResource("theme.css"), "theme.css introuvable").toExternalForm());
+        com.financeapp.desktop.ui.common.Theme.install(scene);
         stage.setTitle(appName);
         stage.setMinWidth(1024);
         stage.setMinHeight(680);
