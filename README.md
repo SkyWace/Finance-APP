@@ -69,6 +69,9 @@ Chaque personne qui utilise l'application sur l'ordinateur a son **propre profil
 
 Détails et limites : [`docs/CONCEPTION.md`](docs/CONCEPTION.md), section 11.
 
+Thèmes : sombre « Nuit & Saphir » (par défaut) ou clair « Lin & Prune », au choix avec le bouton ☀ / ☾ de
+l'en-tête ; le choix est retenu sur l'ordinateur (écran de déverrouillage compris).
+
 Raccourcis : `Ctrl+N` nouvelle opération · `Ctrl+M` masquer les montants ·
 `Ctrl+L` verrouiller ·
 `Ctrl+1`…`Ctrl+9` navigation (neuf premiers écrans).
