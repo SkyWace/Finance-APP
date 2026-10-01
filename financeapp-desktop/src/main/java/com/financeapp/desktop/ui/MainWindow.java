@@ -102,6 +102,7 @@ public final class MainWindow {
     private final UiContext ctx;
     private final ToggleButton privacyButton = new ToggleButton();
     private Page current;
+    private Button userButton;
 
     public MainWindow(AppServices services, Stage stage, SecurityControls security) {
         Formats formats = new Formats();
@@ -237,7 +238,12 @@ public final class MainWindow {
         lock.getStyleClass().add("ghost");
         lock.setTooltip(new Tooltip("Verrouiller l'application : la clé des données est effacée de la mémoire (Ctrl+L)"));
         lock.setOnAction(e -> ctx.security().lockNow());
-        HBox header = new HBox(12, pageTitle, Widgets.spacer(), lock, privacyButton, add);
+        Button user = new Button("◯  " + ctx.security().profileName());
+        user.getStyleClass().add("ghost");
+        user.setTooltip(new Tooltip("Changer d'utilisateur (vos données sont sauvegardées et verrouillées)"));
+        user.setOnAction(e -> ctx.security().switchUser());
+        userButton = user;
+        HBox header = new HBox(12, pageTitle, Widgets.spacer(), user, lock, privacyButton, add);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("header");
         return header;
@@ -267,6 +273,7 @@ public final class MainWindow {
     /** Recharge la page affichee (apres un deverrouillage, par exemple). */
     public void refreshCurrent() {
         updateInboxBadge();
+        userButton.setText("◯  " + ctx.security().profileName());
         if (current != null) {
             current.refresh();
         }

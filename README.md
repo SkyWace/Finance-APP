@@ -42,6 +42,16 @@ Menus facultatifs : **À valider, Budgets, Objectifs, Prévisions, Simulations, 
 | Catégories | Catégories par défaut + personnelles, sous-catégories, archivage |
 | Paramètres | Devise de référence, échéance par défaut, **sécurité** (verrouillage auto, changement de mot de passe, nouvelle clé de récupération), **mode confidentialité**, sauvegardes chiffrées (auto à la fermeture avec rotation, export, restauration) |
 
+## Plusieurs utilisateurs
+
+Chaque personne qui utilise l'application sur l'ordinateur a son **propre profil** : ses comptes, ses réglages, ses sauvegardes, **son mot de passe maître et sa clé de récupération**. Un utilisateur ne peut pas ouvrir les données d'un autre (bases chiffrées avec des clés différentes).
+
+- Au démarrage : « Qui utilise FinanceApp ? » puis le mot de passe de l'utilisateur choisi (avec un seul profil, l'écran de mot de passe s'affiche directement).
+- Ajouter un utilisateur : bouton à son nom en haut de l'écran (ou *Paramètres → Utilisateur → Changer d'utilisateur*), puis « Ajouter un utilisateur ».
+- Changer d'utilisateur fait d'abord la sauvegarde automatique, puis verrouille.
+- Une installation existante devient le « Profil principal » (renommable dans *Paramètres → Utilisateur*), sans déplacer de fichier ; les profils suivants sont dans `profiles/<identifiant>` du dossier de données.
+- Seuls les noms des profils sont lisibles sans mot de passe (`profiles.properties`).
+
 ## Sécurité (V1.1)
 
 - **Mot de passe maître** demandé à chaque ouverture ; aucun mot de passe
