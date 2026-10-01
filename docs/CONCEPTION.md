@@ -699,3 +699,29 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   Les liens internes ouvrent toujours l'écran (« Valider maintenant », « Tous
   les budgets », « Objectifs d'épargne »).
 - Ctrl+1…9 suivent l'ordre des menus affichés.
+
+## 19. Plusieurs utilisateurs (profils)
+
+- **Profil** = un dossier `AppDirectories` complet : base SQLCipher, trousseau
+  (clé de la base enveloppée par le mot de passe maître et la clé de
+  récupération de cet utilisateur), sauvegardes, journaux. Aucune donnée ni clé
+  partagée : l'isolation repose sur le chiffrement existant, sans nouveau code
+  cryptographique.
+- `ProfileRegistry` (infra) : `profiles.properties` à la racine du dossier de
+  l'application, avec nom, dossier relatif, ordre et dernier profil utilisé.
+  Aucune donnée financière ni aucun secret. Écriture atomique ; un dossier
+  pointant hors de la racine est refusé.
+- **Migration** : si la racine contient déjà une base, un trousseau ou une
+  restauration en attente, elle devient le profil `main` (« Profil principal »,
+  dossier `.`), sans déplacer de fichier. Nouveaux profils : `profiles/<id>`
+  (identifiant aléatoire de 8 caractères hexadécimaux).
+- **Démarrage** : aucun profil → nom puis création du mot de passe ; un seul →
+  écran de mot de passe direct ; plusieurs → choix de l'utilisateur. La
+  restauration en attente est appliquée au choix du profil.
+- **Changement d'utilisateur** : sauvegarde automatique (si activée), clé
+  effacée de la mémoire, fermeture du contexte Spring de l'utilisateur
+  précédent ; le contexte du nouvel utilisateur est démarré à son
+  déverrouillage. Les réglages (menus facultatifs, verrouillage automatique…)
+  sont propres à chaque profil, car stockés dans sa base.
+- Non couvert : suppression d'un profil depuis l'application (supprimer son
+  dossier `profiles/<id>` et sa ligne dans `profiles.properties`).

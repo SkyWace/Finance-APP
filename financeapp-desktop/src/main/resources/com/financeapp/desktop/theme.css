@@ -358,3 +358,7 @@
     -fx-background-radius: 9;
 }
 .banner { -fx-border-color: -fa-accent; -fx-background-color: #16233a; -fx-padding: 10 16 10 16; }
+
+/* ---------- Utilisateurs (profils) ---------- */
+.lock-user { -fx-text-fill: #9aa7bd; -fx-font-size: 13px; }
+.profile-button { -fx-font-size: 15px; -fx-padding: 10 16; -fx-alignment: center-left; }

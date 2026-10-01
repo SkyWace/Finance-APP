@@ -18,11 +18,12 @@ final class Bootstrap {
     private Bootstrap() {
     }
 
-    static AppDirectories resolveDirectories() {
+    /** Dossier racine de l'application ; chaque utilisateur y a son propre sous-dossier (profil). */
+    static java.nio.file.Path resolveRoot() {
         Properties props = load();
         String id = System.getProperty("app.id", props.getProperty("app.id", "financeapp"));
         String dataDir = System.getProperty("app.data-dir", props.getProperty("app.data-dir", ""));
-        return AppDirectories.resolve(id, dataDir).createAll();
+        return AppDirectories.resolve(id, dataDir).root();
     }
 
     /** Nom affiche, necessaire a l'ecran de deverrouillage (avant le demarrage de Spring). */

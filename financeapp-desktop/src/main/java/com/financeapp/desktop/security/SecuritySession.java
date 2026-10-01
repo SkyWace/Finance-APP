@@ -6,14 +6,19 @@ import com.financeapp.desktop.ui.MainWindow;
 import com.financeapp.desktop.ui.common.AppServices;
 import com.financeapp.desktop.ui.common.SecurityControls;
 import com.financeapp.desktop.ui.security.LockScreen;
+import com.financeapp.desktop.ui.security.ProfilePicker;
+import com.financeapp.infra.backup.BackupService;
+import com.financeapp.infra.security.Argon2Params;
 import com.financeapp.infra.security.DatabaseKey;
 import com.financeapp.infra.security.VaultService;
-import com.financeapp.infra.storage.AppDirectories;
+import com.financeapp.infra.storage.Profile;
+import com.financeapp.infra.storage.ProfileRegistry;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
@@ -31,12 +36,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
  * Cycle de vie securise de l'application :
  * <ol>
+ *   <li>choix de l'utilisateur (profil : dossier, base et mot de passe propres) ;</li>
  *   <li>ecran de mot de passe (aucun acces aux donnees avant) ;</li>
  *   <li>au premier deverrouillage, demarrage du contexte Spring (ouverture et
  *       migration de la base chiffree), puis fenetre principale ;</li>
@@ -48,8 +55,7 @@ public final class SecuritySession implements SecurityControls {
 
     private static final Logger log = LoggerFactory.getLogger(SecuritySession.class);
 
-    private final AppDirectories directories;
-    private final VaultService vault;
+    private final ProfileRegistry registry;
     private final DatabaseKey key;
     private final Stage stage;
     private final Scene scene;
@@ -57,13 +63,15 @@ public final class SecuritySession implements SecurityControls {
     private final String[] args;
     private final IntegerProperty autoLockMinutes = new SimpleIntegerProperty(5);
     private volatile long lastActivity = System.nanoTime();
+    private Profile profile;
+    private VaultService vault;
     private ConfigurableApplicationContext context;
     private MainWindow mainWindow;
+    private ChangeListener<Number> autoLockSaver;
 
-    public SecuritySession(AppDirectories directories, VaultService vault, DatabaseKey key, Stage stage,
+    public SecuritySession(ProfileRegistry registry, DatabaseKey key, Stage stage,
                            Scene scene, String appName, String[] args) {
-        this.directories = directories;
-        this.vault = vault;
+        this.registry = registry;
         this.key = key;
         this.stage = stage;
         this.scene = scene;
@@ -76,6 +84,38 @@ public final class SecuritySession implements SecurityControls {
         Timeline idleCheck = new Timeline(new KeyFrame(Duration.seconds(10), e -> lockIfIdle()));
         idleCheck.setCycleCount(Timeline.INDEFINITE);
         idleCheck.play();
+        var profiles = registry.list();
+        if (profiles.size() == 1) {
+            open(profiles.getFirst());
+        } else {
+            showPicker();
+        }
+    }
+
+    /** Choix de l'utilisateur ; la base de l'utilisateur precedent est fermee si on en change. */
+    private void showPicker() {
+        scene.setRoot(new ProfilePicker(registry, appName, this::open).show().root());
+        stage.setTitle(appName);
+    }
+
+    private void open(Profile chosen) {
+        if (profile != null && !profile.id().equals(chosen.id())) {
+            closeContext();
+        }
+        profile = chosen;
+        try {
+            chosen.directories().createAll();
+            BackupService.applyPendingRestore(chosen.directories(), Clock.systemDefaultZone());
+        } catch (java.io.IOException | RuntimeException e) {
+            log.error("Preparation du profil impossible", e);
+            LockScreen failed = new LockScreen(null, appName, chosen.name(), this::showPicker, stage, d -> { });
+            failed.showMessage("Ouverture impossible", "Les fichiers de cet utilisateur n'ont pas pu être préparés : "
+                    + e.getMessage());
+            scene.setRoot(failed.root());
+            return;
+        }
+        vault = new VaultService(chosen.directories().keystoreFile(), chosen.directories().databaseFile(),
+                chosen.directories().backupsDir(), Argon2Params.DEFAULT);
         showLockScreen();
     }
 
@@ -104,8 +144,64 @@ public final class SecuritySession implements SecurityControls {
         return autoLockMinutes;
     }
 
+    @Override
+    public String profileName() {
+        return profile == null ? "" : profile.name();
+    }
+
+    @Override
+    public void renameProfile(String name) {
+        profile = registry.rename(profile.id(), name);
+        if (key.isUnlocked()) {
+            stage.setTitle(title());
+        }
+    }
+
+    @Override
+    public void switchUser() {
+        backupBeforeClosing();
+        if (key.isUnlocked()) {
+            key.lock();
+            closeSecondaryWindows();
+        }
+        showPicker();
+    }
+
+    /** Sauvegarde automatique (si activee) tant que la base est encore ouverte. */
+    public void backupBeforeClosing() {
+        try {
+            if (context != null && key.isUnlocked()) {
+                SettingsService settings = context.getBean(SettingsService.class);
+                BackupService backups = context.getBean(BackupService.class);
+                if (settings.autoBackupEnabled() && !backups.hasPendingRestore()) {
+                    backups.createAutomaticBackup(settings.autoBackupKeep());
+                }
+            }
+        } catch (Exception e) {
+            log.error("La sauvegarde automatique a echoue", e);
+        }
+    }
+
+    private void closeContext() {
+        key.lock();
+        if (autoLockSaver != null) {
+            autoLockMinutes.removeListener(autoLockSaver);
+            autoLockSaver = null;
+        }
+        if (context != null) {
+            context.close();
+        }
+        context = null;
+        mainWindow = null;
+    }
+
+    private String title() {
+        return registry.list().size() > 1 ? appName + " — " + profile.name() : appName;
+    }
+
     private void showLockScreen() {
-        LockScreen lock = new LockScreen(vault, appName, stage, this::onUnlocked).showForCurrentState();
+        LockScreen lock = new LockScreen(vault, appName, profile.name(), this::showPicker, stage, this::onUnlocked)
+                .showForCurrentState();
         scene.setRoot(lock.root());
         stage.setTitle(appName + " — verrouillé");
     }
@@ -116,12 +212,14 @@ public final class SecuritySession implements SecurityControls {
         } finally {
             Arrays.fill(dek, (byte) 0);
         }
+        registry.markUsed(profile.id());
         lastActivity = System.nanoTime();
         if (context != null) {
             showMain();
             return;
         }
-        LockScreen opening = new LockScreen(vault, appName, stage, d -> { });
+        LockScreen opening = new LockScreen(vault, appName, profile.name(), null, stage, d -> { });
+        var directories = profile.directories();
         opening.showMessage("Ouverture de vos données…", "Vérification et mise à jour de la base chiffrée.");
         scene.setRoot(opening.root());
         Thread t = new Thread(() -> {
@@ -131,7 +229,8 @@ public final class SecuritySession implements SecurityControls {
                     context = ctx;
                     SettingsService settings = ctx.getBean(SettingsService.class);
                     autoLockMinutes.set(settings.autoLockMinutes());
-                    autoLockMinutes.addListener((o, old, v) -> settings.setAutoLockMinutes(v.intValue()));
+                    autoLockSaver = (o, old, v) -> settings.setAutoLockMinutes(v.intValue());
+                    autoLockMinutes.addListener(autoLockSaver);
                     mainWindow = new MainWindow(AppServices.from(ctx), stage, this);
                     mainWindow.installShortcuts(scene);
                     showMain();
@@ -140,7 +239,7 @@ public final class SecuritySession implements SecurityControls {
                 log.error("Ouverture de la base impossible", e);
                 Platform.runLater(() -> {
                     key.lock();
-                    LockScreen failed = new LockScreen(vault, appName, stage, d -> { });
+                    LockScreen failed = new LockScreen(vault, appName, profile.name(), this::showPicker, stage, d -> { });
                     failed.showMessage("Ouverture impossible", "La base n'a pas pu être ouverte. Consultez le fichier "
                             + "de log (" + directories.logsDir() + ") puis relancez l'application.");
                     scene.setRoot(failed.root());
@@ -153,7 +252,7 @@ public final class SecuritySession implements SecurityControls {
 
     private void showMain() {
         scene.setRoot(mainWindow.root());
-        stage.setTitle(appName);
+        stage.setTitle(title());
         mainWindow.refreshCurrent();
     }
 

@@ -47,7 +47,7 @@ public final class SettingsPage extends Page {
 
     @Override
     public void refresh() {
-        content.getChildren().setAll(generalSection(), securitySection(), privacySection(), backupSection(), aboutSection());
+        content.getChildren().setAll(generalSection(), userSection(), securitySection(), privacySection(), backupSection(), aboutSection());
     }
 
     private VBox generalSection() {
@@ -70,6 +70,31 @@ public final class SettingsPage extends Page {
                 labeled("Devise de référence des totaux", currency),
                 labeled("Échéance par défaut du disponible réel", horizon),
                 income);
+    }
+
+    private VBox userSection() {
+        javafx.scene.control.TextField name = new javafx.scene.control.TextField(ctx.security().profileName());
+        name.setPrefColumnCount(20);
+        Button rename = new Button("Renommer");
+        rename.getStyleClass().add("secondary");
+        rename.setOnAction(e -> {
+            try {
+                ctx.security().renameProfile(name.getText());
+                ctx.events().fireChanged();
+            } catch (IllegalArgumentException ex) {
+                Dialogs.error(window(), ex);
+            }
+        });
+        Button switchUser = new Button("Changer d'utilisateur");
+        switchUser.getStyleClass().add("secondary");
+        switchUser.setOnAction(e -> ctx.security().switchUser());
+        Label how = Widgets.label("Chaque utilisateur de cet ordinateur a son propre profil : ses comptes, ses "
+                + "sauvegardes et son mot de passe maître. Un utilisateur ne peut pas ouvrir les données d'un autre. "
+                + "Pour en ajouter un : « Changer d'utilisateur », puis « Ajouter un utilisateur ». Seuls les noms "
+                + "des profils sont visibles avant le déverrouillage.", "muted");
+        how.setWrapText(true);
+        return Widgets.section("Utilisateur", labeled("Nom affiché", Widgets.row(name, rename)),
+                Widgets.row(switchUser), how);
     }
 
     private VBox securitySection() {

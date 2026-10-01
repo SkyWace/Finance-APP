@@ -13,4 +13,13 @@ public interface SecurityControls {
 
     /** Delai d'inactivite avant verrouillage automatique (minutes, 0 = jamais). */
     IntegerProperty autoLockMinutesProperty();
+
+    /** Nom de l'utilisateur dont les donnees sont ouvertes. */
+    String profileName();
+
+    /** Renomme l'utilisateur courant (nom affiche au demarrage). */
+    void renameProfile(String name);
+
+    /** Sauvegarde automatique, verrouillage, puis retour au choix de l'utilisateur. */
+    void switchUser();
 }

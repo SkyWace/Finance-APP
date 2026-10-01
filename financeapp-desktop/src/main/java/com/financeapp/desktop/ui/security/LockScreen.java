@@ -42,12 +42,25 @@ public final class LockScreen {
     private final Consumer<byte[]> onUnlocked;
     private final Window window;
     private final StackPane root = new StackPane();
+    private final String userName;
+    private final Runnable onSwitchUser;
     private int failures;
 
     /** @param onUnlocked recoit la cle de la base (a effacer apres usage), sur le thread JavaFX */
     public LockScreen(VaultService vault, String appName, Window window, Consumer<byte[]> onUnlocked) {
+        this(vault, appName, null, null, window, onUnlocked);
+    }
+
+    /**
+     * @param userName     utilisateur dont les donnees sont ouvertes ({@code null} : non affiche)
+     * @param onSwitchUser retour au choix de l'utilisateur ({@code null} : pas de lien)
+     */
+    public LockScreen(VaultService vault, String appName, String userName, Runnable onSwitchUser, Window window,
+                      Consumer<byte[]> onUnlocked) {
         this.vault = vault;
         this.appName = appName;
+        this.userName = userName;
+        this.onSwitchUser = onSwitchUser;
         this.window = window;
         this.onUnlocked = onUnlocked;
         root.getStyleClass().add("lock-root");
@@ -77,7 +90,7 @@ public final class LockScreen {
     public void showMessage(String title, String message) {
         ProgressIndicator spinner = new ProgressIndicator();
         spinner.setMaxSize(42, 42);
-        show(card(Widgets.label(title, "lock-title"), text(message), spinner));
+        show(withSwitch(card(Widgets.label(title, "lock-title"), text(message), spinner)));
     }
 
     // ---------------------------------------------------------------- creation
@@ -140,8 +153,8 @@ public final class LockScreen {
                 showError("La création a échoué : " + ex.getMessage());
             });
         });
-        show(card(brand(), Widgets.label("Créez votre mot de passe maître", "lock-title"), intro,
-                password, strength, confirm, warning, error, create));
+        show(withSwitch(card(brand(), Widgets.label("Créez votre mot de passe maître", "lock-title"), intro,
+                password, strength, confirm, warning, error, create)));
         Platform.runLater(password::requestFocus);
     }
 
@@ -187,9 +200,9 @@ public final class LockScreen {
                 password.requestFocus();
             });
         });
-        show(card(brand(), Widgets.label("Application verrouillée", "lock-title"),
+        show(withSwitch(card(brand(), Widgets.label("Application verrouillée", "lock-title"),
                 text("Saisissez votre mot de passe maître pour accéder à vos données."),
-                password, error, unlock, busy, forgot));
+                password, error, unlock, busy, forgot)));
         Platform.runLater(password::requestFocus);
     }
 
@@ -274,11 +287,11 @@ public final class LockScreen {
                 }
             }
         });
-        show(card(brand(), Widgets.label("Trousseau de clés introuvable", "lock-title"),
+        show(withSwitch(card(brand(), Widgets.label("Trousseau de clés introuvable", "lock-title"),
                 text("Vos données sont chiffrées, mais le fichier qui contient leur clé (keystore.properties) a disparu. "
                         + "Chaque sauvegarde est accompagnée d'une copie de ce trousseau (fichier « .key » à côté du « .db »). "
                         + "Importez-en une, puis déverrouillez avec le mot de passe en vigueur à la date de cette sauvegarde."),
-                importKey, error));
+                importKey, error)));
     }
 
     // ------------------------------------------------------------------ outils
@@ -325,8 +338,20 @@ public final class LockScreen {
         return box;
     }
 
-    private Label brand() {
-        return Widgets.label(appName, "lock-brand");
+    /** Nom de l'application, suivi de l'utilisateur concerne quand il y en a un. */
+    private Node brand() {
+        Label brand = Widgets.label(appName, "lock-brand");
+        if (userName == null) {
+            return brand;
+        }
+        return new VBox(2, brand, Widgets.label("Utilisateur : " + userName, "lock-user"));
+    }
+
+    private VBox withSwitch(VBox card) {
+        if (onSwitchUser != null) {
+            card.getChildren().add(link("Changer d'utilisateur", onSwitchUser));
+        }
+        return card;
     }
 
     private static Label text(String s) {
