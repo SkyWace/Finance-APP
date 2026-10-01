@@ -86,6 +86,9 @@ une mise à jour ou une désinstallation.
   télécharger l'artefact `FinanceApp-<version>.msi` de l'exécution (le fichier
   `.msi` lui-même, sans zip). Une étiquette
   `v*` (ex. `git tag v0.1.0 && git push --tags`) publie aussi une *release*.
+  Son texte vient de `docs/releases/<étiquette>.md` s'il existe au moment de
+  l'étiquette (sinon notes automatiques de GitHub) ; pour le modifier ensuite :
+  *Actions* → *Notes de release* → *Run workflow* avec l'étiquette.
 - Sur un PC Windows (JDK 21, Maven, [WiX Toolset 3.14](https://github.com/wixtoolset/wix3/releases)) :
 
   ```powershell
