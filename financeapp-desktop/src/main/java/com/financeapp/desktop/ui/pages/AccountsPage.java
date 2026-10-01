@@ -78,7 +78,7 @@ public final class AccountsPage extends Page {
     private HBox accountRow(Account a, Money balance, Formats f) {
         Region colorBar = new Region();
         colorBar.getStyleClass().add("account-color");
-        colorBar.setStyle("-fx-background-color: " + (a.color() != null ? a.color() : "#DB8D77") + ";");
+        colorBar.setStyle("-fx-background-color: " + (a.color() != null ? a.color() : "#6E9BFF") + ";");
         Label name = Widgets.label(a.name(), "account-name");
         HBox badges = new HBox(6, Widgets.label(a.type().label(), "muted"));
         if (a.includeInAvailable()) {

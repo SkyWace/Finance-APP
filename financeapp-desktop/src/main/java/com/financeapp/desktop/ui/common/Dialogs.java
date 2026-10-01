@@ -9,7 +9,6 @@ import javafx.stage.Window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
 
 /** Boites de dialogue standard, avec le theme de l'application. */
 public final class Dialogs {
@@ -73,7 +72,6 @@ public final class Dialogs {
         if (owner != null) {
             dialog.initOwner(owner);
         }
-        pane.getStylesheets().add(Objects.requireNonNull(
-                Dialogs.class.getResource("/com/financeapp/desktop/theme.css")).toExternalForm());
+        Theme.apply(pane.getStylesheets());
     }
 }

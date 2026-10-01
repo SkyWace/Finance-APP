@@ -1,0 +1,57 @@
+/*
+ * FinanceApp - theme clair "Lin & Prune", charge APRES theme.css.
+ * Ne redefinit que les tokens : toutes les regles restent dans theme.css.
+ */
+.root {
+    /* Fonds et surfaces */
+    -fa-bg: #f6f3ee;
+    -fa-sidebar: #ece7df;
+    -fa-surface: #ffffff;
+    -fa-surface-2: #f1ece5;
+    -fa-surface-past: #f6f3ee;
+    -fa-hover: #f4efe8;
+    -fa-input: #ffffff;
+    -fa-selection: #e7dcec;
+    -fa-lock-glow: #fbf9f5;
+    /* Bordures */
+    -fa-border: #ddd6cc;
+    -fa-border-strong: #c4bbb0;
+    -fa-divider: #ece7df;
+    /* Texte */
+    -fa-text: #1d1a20;
+    -fa-text-2: #3d3842;
+    -fa-muted: #615a66;
+    -fa-faint: #6e6774;
+    /* Accent */
+    -fa-accent: #6b3f7a;
+    -fa-accent-hover: #55306a;
+    -fa-accent-text: #6b3f7a;
+    -fa-accent-soft: #efe6f2;
+    -fa-on-accent: #ffffff;
+    -fa-info-bg: #f3ebf5;
+    -fa-info-border: #c9add3;
+    /* Etats */
+    -fa-positive: #1e7a4c;
+    -fa-positive-bg: #e6f3ec;
+    -fa-positive-border: #9fcdb4;
+    -fa-negative: #b3261e;
+    -fa-negative-bg: #fbe9e7;
+    -fa-negative-border: #e8a9a3;
+    -fa-danger-text: #b3261e;
+    -fa-warning: #8a5a00;
+    -fa-warning-bg: #fbf1dc;
+    -fa-warning-border: #e0c07a;
+    /* Graphiques : le corail porte la serie "prevu" */
+    -fa-series-forecast: #c46a4f;
+
+    -fx-base: #f1ece5;
+    -fx-background: #f6f3ee;
+    -fx-control-inner-background: #ffffff;
+    -fx-control-inner-background-alt: #f6f3ee;
+    -fx-accent: #6b3f7a;
+    -fx-focus-color: #6b3f7a;
+    -fx-faint-focus-color: #6b3f7a33;
+    -fx-text-fill: #1d1a20;
+    -fx-selection-bar: #e7dcec;
+    -fx-selection-bar-non-focused: #efe6f2;
+}
