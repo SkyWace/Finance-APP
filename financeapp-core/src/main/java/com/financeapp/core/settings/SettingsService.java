@@ -16,6 +16,7 @@ public final class SettingsService {
     static final String PRIVACY_MODE = "ui.privacy_mode";
     static final String AUTO_LOCK_MINUTES = "security.auto_lock_minutes";
     static final String DISMISSED_PAYMENTS = "subscriptions.dismissed";
+    static final String OPTIONAL_MENUS = "ui.optional_menus";
 
     public static final int MIN_BACKUPS_KEPT = 2;
 
@@ -110,6 +111,21 @@ public final class SettingsService {
 
     public void setDismissedRecurringPayments(java.util.Set<String> labels) {
         repository.put(DISMISSED_PAYMENTS, String.join("\n", new java.util.TreeSet<>(labels)));
+    }
+
+    /**
+     * Menus facultatifs que l'utilisateur a ajoutes a la navigation (identifiants
+     * d'ecran). Vide par defaut : ces menus sont masques tant qu'on ne les ajoute pas.
+     */
+    public java.util.Set<String> enabledOptionalMenus() {
+        return repository.get(OPTIONAL_MENUS)
+                .map(v -> java.util.Arrays.stream(v.split(",")).map(String::strip).filter(x -> !x.isEmpty())
+                        .collect(java.util.stream.Collectors.toCollection(java.util.TreeSet::new)))
+                .orElseGet(java.util.TreeSet::new);
+    }
+
+    public void setEnabledOptionalMenus(java.util.Set<String> ids) {
+        repository.put(OPTIONAL_MENUS, String.join(",", new java.util.TreeSet<>(ids)));
     }
 
     private boolean bool(String key, boolean defaultValue) {

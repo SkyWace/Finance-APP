@@ -34,6 +34,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
@@ -54,7 +57,12 @@ import java.util.function.Function;
 /** Fenetre principale : navigation laterale, en-tete, zone de contenu. */
 public final class MainWindow {
 
-    private record NavEntry(String id, String icon, String label, Function<UiContext, Page> factory) {
+    /** @param optional menu facultatif : masque tant que l'utilisateur ne l'ajoute pas (bouton "+"). */
+    private record NavEntry(String id, String icon, String label, Function<UiContext, Page> factory, boolean optional) {
+
+        NavEntry(String id, String icon, String label, Function<UiContext, Page> factory) {
+            this(id, icon, label, factory, false);
+        }
     }
 
     private static final NavEntry[] NAV = {
@@ -62,18 +70,18 @@ public final class MainWindow {
             new NavEntry("accounts", "▣", "Comptes", AccountsPage::new),
             new NavEntry("transactions", "≡", "Transactions", TransactionsPage::new),
             new NavEntry("upcoming", "◷", "À venir", UpcomingPage::new),
-            new NavEntry("inbox", "✉", "À valider", InboxPage::new),
+            new NavEntry("inbox", "✉", "À valider", InboxPage::new, true),
             new NavEntry("calendar", "▤", "Calendrier", CalendarPage::new),
-            new NavEntry("budgets", "◔", "Budgets", BudgetsPage::new),
+            new NavEntry("budgets", "◔", "Budgets", BudgetsPage::new, true),
             new NavEntry("savings", "◆", "Épargne", SavingsPage::new),
-            new NavEntry("goals", "★", "Objectifs", SavingsGoalsPage::new),
+            new NavEntry("goals", "★", "Objectifs", SavingsGoalsPage::new, true),
             new NavEntry("available", "◎", "Disponible réel", AvailablePage::new),
-            new NavEntry("forecast", "↗", "Prévisions", ForecastPage::new),
-            new NavEntry("simulations", "⚖", "Simulations", SimulationsPage::new),
+            new NavEntry("forecast", "↗", "Prévisions", ForecastPage::new, true),
+            new NavEntry("simulations", "⚖", "Simulations", SimulationsPage::new, true),
             new NavEntry("recurring", "↻", "Récurrences", RecurringPage::new),
             new NavEntry("subscriptions", "♺", "Abonnements", SubscriptionsPage::new),
-            new NavEntry("loans", "▭", "Crédits", LoansPage::new),
-            new NavEntry("analysis", "▥", "Analyses", AnalysisPage::new),
+            new NavEntry("loans", "▭", "Crédits", LoansPage::new, true),
+            new NavEntry("analysis", "▥", "Analyses", AnalysisPage::new, true),
             new NavEntry("imports", "⇩", "Import", ImportsPage::new),
             new NavEntry("banksync", "⇄", "Synchronisation", BankSyncPage::new),
             new NavEntry("rules", "⚑", "Règles", RulesPage::new),
@@ -86,6 +94,9 @@ public final class MainWindow {
     private final Label pageTitle = Widgets.label("", "page-title");
     private final ToggleGroup navGroup = new ToggleGroup();
     private final Map<String, ToggleButton> navButtons = new LinkedHashMap<>();
+    private final VBox nav = new VBox(2);
+    private final java.util.List<NavEntry> visible = new java.util.ArrayList<>();
+    private String currentId;
     private final Label inboxBadge = Widgets.label("", "nav-badge");
     private final Map<String, Page> pages = new LinkedHashMap<>();
     private final UiContext ctx;
@@ -130,14 +141,35 @@ public final class MainWindow {
     private VBox buildSidebar(String appName) {
         Label brand = Widgets.label(appName, "brand");
         Label tagline = Widgets.label("Finances personnelles", "brand-tagline");
-        VBox nav = new VBox(2);
-        int index = 1;
+        buildNav();
+        Label local = Widgets.label("● Données locales · hors ligne", "sidebar-footer");
+        javafx.scene.control.ScrollPane navScroll = new javafx.scene.control.ScrollPane(nav);
+        navScroll.setFitToWidth(true);
+        navScroll.getStyleClass().add("nav-scroll");
+        VBox.setVgrow(navScroll, javafx.scene.layout.Priority.ALWAYS);
+        VBox sidebar = new VBox(4, new VBox(2, brand, tagline), navScroll, local);
+        sidebar.getStyleClass().add("sidebar");
+        return sidebar;
+    }
+
+    /** (Re)construit la navigation : menus de base, menus facultatifs ajoutes, puis le bouton "+". */
+    private void buildNav() {
+        java.util.Set<String> enabled = ctx.services().settings().enabledOptionalMenus();
+        nav.getChildren().clear();
+        navButtons.clear();
+        visible.clear();
         for (NavEntry entry : NAV) {
+            if (entry.optional() && !enabled.contains(entry.id())) {
+                continue;
+            }
+            visible.add(entry);
+            int index = visible.size();
             ToggleButton b = new ToggleButton();
             Label icon = Widgets.label(entry.icon(), "nav-icon");
             Label text = Widgets.label(entry.label(), "nav-label");
             HBox graphic = new HBox(12, icon, text);
             if (entry.id().equals("inbox")) {
+                inboxBadge.visibleProperty().unbind();
                 inboxBadge.visibleProperty().bind(inboxBadge.textProperty().isNotEmpty());
                 graphic.getChildren().addAll(Widgets.spacer(), inboxBadge);
                 graphic.setMaxWidth(Double.MAX_VALUE);
@@ -148,18 +180,50 @@ public final class MainWindow {
             b.setMaxWidth(Double.MAX_VALUE);
             b.setTooltip(new Tooltip(entry.label() + (index <= 9 ? "  (Ctrl+" + index + ")" : "")));
             b.setOnAction(e -> show(entry.id()));
+            if (entry.optional()) {
+                MenuItem remove = new MenuItem("Retirer « " + entry.label() + " » du menu");
+                remove.setOnAction(e -> setMenuEnabled(entry.id(), false));
+                b.setContextMenu(new ContextMenu(remove));
+            }
+            if (entry.id().equals(currentId)) {
+                b.setSelected(true);
+            }
             navButtons.put(entry.id(), b);
             nav.getChildren().add(b);
-            index++;
         }
-        Label local = Widgets.label("● Données locales · hors ligne", "sidebar-footer");
-        javafx.scene.control.ScrollPane navScroll = new javafx.scene.control.ScrollPane(nav);
-        navScroll.setFitToWidth(true);
-        navScroll.getStyleClass().add("nav-scroll");
-        VBox.setVgrow(navScroll, javafx.scene.layout.Priority.ALWAYS);
-        VBox sidebar = new VBox(4, new VBox(2, brand, tagline), navScroll, local);
-        sidebar.getStyleClass().add("sidebar");
-        return sidebar;
+
+        Button more = new Button("+  Ajouter des menus");
+        more.getStyleClass().addAll("ghost", "nav-more");
+        more.setMaxWidth(Double.MAX_VALUE);
+        more.setTooltip(new Tooltip("Afficher ou masquer les menus facultatifs"));
+        ContextMenu choices = new ContextMenu();
+        for (NavEntry entry : NAV) {
+            if (entry.optional()) {
+                CheckMenuItem item = new CheckMenuItem(entry.icon() + "  " + entry.label());
+                item.setSelected(enabled.contains(entry.id()));
+                item.setOnAction(e -> setMenuEnabled(entry.id(), item.isSelected()));
+                choices.getItems().add(item);
+            }
+        }
+        more.setOnAction(e -> choices.show(more, javafx.geometry.Side.TOP, 0, 0));
+        VBox.setMargin(more, new javafx.geometry.Insets(8, 0, 0, 0));
+        nav.getChildren().add(more);
+    }
+
+    private void setMenuEnabled(String id, boolean on) {
+        java.util.Set<String> enabled = new java.util.TreeSet<>(ctx.services().settings().enabledOptionalMenus());
+        if (on) {
+            enabled.add(id);
+        } else {
+            enabled.remove(id);
+        }
+        ctx.services().settings().setEnabledOptionalMenus(enabled);
+        buildNav();
+        if (on) {
+            show(id);
+        } else if (id.equals(currentId)) {
+            show("dashboard");
+        }
     }
 
     private HBox buildHeader() {
@@ -221,20 +285,32 @@ public final class MainWindow {
         NavEntry e = entry;
         Page page = pages.computeIfAbsent(id, k -> e.factory().apply(ctx));
         current = page;
+        currentId = id;
         pageTitle.setText(page.title());
-        navButtons.get(id).setSelected(true);
+        // Un menu facultatif masque reste accessible par les liens (ex. "Valider maintenant").
+        ToggleButton button = navButtons.get(id);
+        if (button != null) {
+            button.setSelected(true);
+        } else if (navGroup.getSelectedToggle() != null) {
+            navGroup.getSelectedToggle().setSelected(false);
+        }
         center.getChildren().setAll(page.view());
         page.refresh();
     }
 
-    /** Raccourcis : Ctrl+1..9 navigation, Ctrl+N nouvelle operation, Ctrl+M masquer les montants (Ctrl+L : voir SecuritySession). */
+    /** Raccourcis : Ctrl+1..9 navigation (menus affiches), Ctrl+N nouvelle operation, Ctrl+M masquer les montants (Ctrl+L : voir SecuritySession). */
     public void installShortcuts(Scene scene) {
-        for (int i = 0; i < NAV.length && i < 9; i++) {
-            String id = NAV[i].id();
+        for (int i = 0; i < 9; i++) {
+            int position = i;
+            Runnable go = () -> {
+                if (position < visible.size()) {
+                    show(visible.get(position).id());
+                }
+            };
             KeyCode digit = KeyCode.valueOf("DIGIT" + (i + 1));
-            scene.getAccelerators().put(new KeyCodeCombination(digit, KeyCombination.SHORTCUT_DOWN), guard(scene, () -> show(id)));
+            scene.getAccelerators().put(new KeyCodeCombination(digit, KeyCombination.SHORTCUT_DOWN), guard(scene, go));
             KeyCode numpad = KeyCode.valueOf("NUMPAD" + (i + 1));
-            scene.getAccelerators().put(new KeyCodeCombination(numpad, KeyCombination.SHORTCUT_DOWN), guard(scene, () -> show(id)));
+            scene.getAccelerators().put(new KeyCodeCombination(numpad, KeyCombination.SHORTCUT_DOWN), guard(scene, go));
         }
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.N, KeyCombination.SHORTCUT_DOWN), guard(scene, this::newTransaction));
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.M, KeyCombination.SHORTCUT_DOWN),
