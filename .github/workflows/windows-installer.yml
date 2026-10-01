@@ -4,7 +4,8 @@
 # - Lancement manuel : onglet Actions > "Installateur Windows" > Run workflow ;
 #   l'installateur (.msi) est telechargeable dans les artefacts de l'execution.
 # Actions en Node 24 : checkout@v7, setup-java@v6, upload-artifact@v7.
-# - Etiquette v* (ex. v0.1.0) : l'installateur est aussi joint a une release GitHub.
+# - Etiquette v* (ex. v0.1.0) : l'installateur est aussi joint a une release GitHub, avec les
+#   notes de docs/releases/<etiquette>.md si ce fichier existe (sinon notes automatiques).
 name: Installateur Windows
 
 on:
@@ -61,4 +62,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $msi = Get-ChildItem financeapp-desktop/target/installer/*.msi | Select-Object -First 1
-          gh release create "${{ github.ref_name }}" $msi.FullName --title "FinanceApp ${{ github.ref_name }}" --generate-notes
+          # Notes redigees dans docs/releases/<etiquette>.md si le fichier existe, sinon notes automatiques.
+          $notes = "docs/releases/${{ github.ref_name }}.md"
+          if (Test-Path $notes) {
+            gh release create "${{ github.ref_name }}" $msi.FullName --title "FinanceApp ${{ github.ref_name }}" --notes-file $notes
+          } else {
+            gh release create "${{ github.ref_name }}" $msi.FullName --title "FinanceApp ${{ github.ref_name }}" --generate-notes
+          }
