@@ -51,6 +51,7 @@ Chaque personne qui utilise l'application sur l'ordinateur a son **propre profil
 - Changer d'utilisateur fait d'abord la sauvegarde automatique, puis verrouille.
 - Une installation existante devient le « Profil principal » (renommable dans *Paramètres → Utilisateur*), sans déplacer de fichier ; les profils suivants sont dans `profiles/<identifiant>` du dossier de données.
 - Seuls les noms des profils sont lisibles sans mot de passe (`profiles.properties`).
+- Supprimer un profil : *Paramètres → Utilisateur → Supprimer ce profil…*, avec confirmation puis **mot de passe maître de ce profil**. Sa base, son trousseau et ses sauvegardes automatiques sont effacés ; les autres utilisateurs et les sauvegardes exportées ailleurs ne sont pas touchés.
 
 ## Sécurité (V1.1)
 

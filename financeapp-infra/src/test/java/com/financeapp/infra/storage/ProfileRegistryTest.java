@@ -71,4 +71,50 @@ class ProfileRegistryTest {
         Files.writeString(root.resolve(ProfileRegistry.FILE_NAME), "order=evil\nprofile.evil.name=Evil\nprofile.evil.dir=../../etc\n");
         assertThrows(IllegalStateException.class, () -> new ProfileRegistry(root).list());
     }
+
+    @Test
+    void deletingAProfileErasesItsDataAndBackupsButNotTheOthers() throws Exception {
+        ProfileRegistry registry = new ProfileRegistry(root);
+        Profile alice = registry.create("Alice");
+        Profile bob = registry.create("Bob");
+        for (Profile p : java.util.List.of(alice, bob)) {
+            Files.writeString(p.directories().databaseFile(), "db");
+            Files.writeString(p.directories().keystoreFile(), "key");
+            Files.writeString(p.directories().backupsDir().resolve("auto.db"), "backup");
+            Files.writeString(p.directories().logsDir().resolve("financeapp.log"), "log");
+        }
+        registry.markUsed(alice.id());
+
+        registry.delete(alice.id());
+
+        assertFalse(Files.exists(alice.directories().root()), "dossier du profil supprime");
+        assertEquals(java.util.List.of(bob.id()), registry.list().stream().map(Profile::id).toList());
+        assertTrue(registry.lastUsed().isEmpty());
+        assertEquals("key", Files.readString(bob.directories().keystoreFile()), "les autres profils sont intacts");
+        assertEquals("backup", Files.readString(bob.directories().backupsDir().resolve("auto.db")));
+        assertThrows(IllegalArgumentException.class, () -> registry.delete(alice.id()));
+
+        Profile again = new ProfileRegistry(root).create("Alice");
+        assertNotEquals(alice.id(), again.id());
+    }
+
+    @Test
+    void deletingTheMainProfileKeepsTheApplicationFolderAndOtherProfiles() throws Exception {
+        AppDirectories legacy = new AppDirectories(root).createAll();
+        Files.writeString(legacy.databaseFile(), "db");
+        Files.writeString(legacy.keystoreFile(), "key");
+        Files.writeString(legacy.backupsDir().resolve("auto.db"), "backup");
+        ProfileRegistry registry = new ProfileRegistry(root);
+        Profile other = registry.create("Julie");
+        Files.writeString(other.directories().keystoreFile(), "julie");
+
+        registry.delete(ProfileRegistry.LEGACY_ID);
+
+        assertFalse(Files.exists(legacy.databaseFile().getParent()));
+        assertFalse(Files.exists(legacy.backupsDir()));
+        assertTrue(Files.exists(root.resolve(ProfileRegistry.FILE_NAME)));
+        assertEquals("julie", Files.readString(other.directories().keystoreFile()));
+        assertEquals(java.util.List.of("Julie"), new ProfileRegistry(root).list().stream().map(Profile::name).toList(),
+                "le profil principal ne reapparait pas");
+    }
 }

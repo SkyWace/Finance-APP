@@ -362,3 +362,5 @@
 /* ---------- Utilisateurs (profils) ---------- */
 .lock-user { -fx-text-fill: #9aa7bd; -fx-font-size: 13px; }
 .profile-button { -fx-font-size: 15px; -fx-padding: 10 16; -fx-alignment: center-left; }
+.button.danger { -fx-background-color: transparent; -fx-text-fill: #ffb0b0; -fx-border-color: #6b2b2d; -fx-border-radius: 6; -fx-background-radius: 6; }
+.button.danger:hover { -fx-background-color: #341819; }

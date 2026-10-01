@@ -167,6 +167,32 @@ public final class SecuritySession implements SecurityControls {
         showPicker();
     }
 
+    @Override
+    public boolean checkPassword(char[] password) throws Exception {
+        try {
+            byte[] dek = vault.unlock(password);
+            Arrays.fill(dek, (byte) 0);
+            return true;
+        } catch (com.financeapp.infra.security.InvalidSecretException e) {
+            return false;
+        }
+    }
+
+    @Override
+    public void deleteCurrentProfile() throws java.io.IOException {
+        Profile deleted = profile;
+        closeSecondaryWindows();
+        closeContext(); // base fermee avant d'effacer ses fichiers ; pas de sauvegarde
+        profile = null;
+        vault = null;
+        try {
+            registry.delete(deleted.id());
+            log.info("Profil supprime");
+        } finally {
+            showPicker();
+        }
+    }
+
     /** Sauvegarde automatique (si activee) tant que la base est encore ouverte. */
     public void backupBeforeClosing() {
         try {

@@ -723,5 +723,12 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   précédent ; le contexte du nouvel utilisateur est démarré à son
   déverrouillage. Les réglages (menus facultatifs, verrouillage automatique…)
   sont propres à chaque profil, car stockés dans sa base.
-- Non couvert : suppression d'un profil depuis l'application (supprimer son
-  dossier `profiles/<id>` et sa ligne dans `profiles.properties`).
+- **Suppression** (*Paramètres → Utilisateur*) : confirmation, puis mot de
+  passe maître du profil, vérifié en déverrouillant son trousseau (rien n'est
+  modifié en cas d'échec). La base est fermée, puis `ProfileRegistry.delete`
+  efface `data/` (base, trousseau, restauration en attente) et `backups/` ;
+  si l'un d'eux ne peut pas être effacé, le profil reste listé. Ensuite
+  seulement, l'entrée est retirée de `profiles.properties`. Les journaux sont
+  effacés au mieux (un fichier encore ouvert sous Windows peut subsister,
+  sans donnée financière). Pour le profil principal, la racine, `profiles/` et
+  `profiles.properties` sont conservés. Pas de sauvegarde avant suppression.
