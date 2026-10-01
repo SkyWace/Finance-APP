@@ -685,3 +685,17 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
 - Non filtrés : Budgets. Un budget est un plafond par catégorie, tous comptes
   confondus ; le comparer aux dépenses d'un seul compte donnerait des alertes
   trompeuses.
+
+## 18. Menus facultatifs
+
+- **À valider, Budgets, Objectifs, Prévisions, Simulations, Crédits, Analyses**
+  sont des menus facultatifs, masqués par défaut ; le bouton « + Ajouter des
+  menus » (bas de la barre latérale) les coche ou décoche, un clic droit sur un
+  menu ajouté propose « Retirer du menu ».
+- Choix enregistré dans la base chiffrée (`ui.optional_menus`, liste
+  d'identifiants d'écran).
+- Masquer n'est qu'un choix d'affichage : aucune donnée supprimée, calculs
+  inchangés (budgets et objectifs restent réservés dans le disponible réel).
+  Les liens internes ouvrent toujours l'écran (« Valider maintenant », « Tous
+  les budgets », « Objectifs d'épargne »).
+- Ctrl+1…9 suivent l'ordre des menus affichés.

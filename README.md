@@ -16,6 +16,8 @@ toutes mes dépenses futures prises en compte ? »*
 
 ## Fonctionnalités (V1 → V4)
 
+Menus facultatifs : **À valider, Budgets, Objectifs, Prévisions, Simulations, Crédits et Analyses** sont masqués par défaut pour garder une navigation simple. Le bouton **« + Ajouter des menus »**, en bas de la barre latérale, les affiche ou les masque (clic droit sur un menu ajouté : « Retirer du menu »). Masquer un menu ne supprime aucune donnée et ne change aucun calcul.
+
 | Écran | Contenu |
 |---|---|
 | Tableau de bord | Patrimoine, comptes courants, épargne, **disponible réel** (cliquable), revenus/dépenses du mois, à venir, prévision 30 jours, prochaines et dernières opérations |
