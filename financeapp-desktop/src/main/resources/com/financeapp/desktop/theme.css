@@ -364,3 +364,7 @@
 .profile-button { -fx-font-size: 15px; -fx-padding: 10 16; -fx-alignment: center-left; }
 .button.danger { -fx-background-color: transparent; -fx-text-fill: #ffb0b0; -fx-border-color: #6b2b2d; -fx-border-radius: 6; -fx-background-radius: 6; }
 .button.danger:hover { -fx-background-color: #341819; }
+
+/* ---------- V0.2.0 : ventilation et etiquettes ---------- */
+.split-editor { -fx-padding: 10 12; -fx-background-color: #10151d; -fx-background-radius: 8; -fx-border-color: #263041; -fx-border-radius: 8; }
+.button.tag-suggestion { -fx-font-size: 12px; -fx-padding: 2 8; }

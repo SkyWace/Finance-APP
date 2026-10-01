@@ -7,6 +7,7 @@ import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.TextInputDialog;
@@ -58,10 +59,70 @@ public final class CategoriesPage extends Page {
         showArchived.setOnAction(e -> refresh());
         Button addRoot = button("+  Catégorie", "primary", this::addRoot);
         VBox.setVgrow(tree, Priority.ALWAYS);
+        Button addTag = button("+  Étiquette", "secondary", this::addTag);
+        tagScroll.setFitToWidth(true);
+        tagScroll.setMaxHeight(230);
+        tagScroll.getStyleClass().add("page-scroll");
+        Label tagHint = Widgets.label("Les étiquettes s'ajoutent aux catégories (« vacances 2026 », « travaux », « remboursable »…) : "
+                + "saisissez-les dans une opération, puis filtrez l'écran Transactions par étiquette. Supprimer une "
+                + "étiquette la retire des opérations, sans les supprimer.", "muted");
+        tagHint.setWrapText(true);
+        tagHint.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        VBox tagSection = Widgets.section("Étiquettes", Widgets.row(addTag), tagScroll, tagHint);
         content.getChildren().setAll(
                 Widgets.row(addRoot, addChild, rename, archive, delete, Widgets.spacer(), showArchived),
                 tree,
-                Widgets.label("Une catégorie utilisée ne peut pas être supprimée : archivez-la, l'historique reste intact.", "muted"));
+                Widgets.label("Une catégorie utilisée ne peut pas être supprimée : archivez-la, l'historique reste intact.", "muted"),
+                tagSection);
+    }
+
+    private final VBox tagList = new VBox(2);
+    private final javafx.scene.control.ScrollPane tagScroll = new javafx.scene.control.ScrollPane(tagList);
+
+    /** Etiquettes avec leur usage : nombre d'operations, depenses et revenus (devise de reference). */
+    private void refreshTags() {
+        var f = ctx.formats();
+        var usage = ctx.services().tags().usage(ctx.services().settings().baseCurrency());
+        tagList.getChildren().clear();
+        if (usage.isEmpty()) {
+            tagList.getChildren().add(Widgets.emptyState("Aucune étiquette pour le moment."));
+            return;
+        }
+        for (var u : usage) {
+            String detail = u.count() + " opération(s)";
+            if (!u.totals().expenses().isZero()) {
+                detail += " · dépensé " + f.money(u.totals().expenses().negate());
+            }
+            if (!u.totals().income().isZero()) {
+                detail += " · reçu " + f.money(u.totals().income());
+            }
+            Label name = Widgets.label("[" + u.tag().name() + "]", "op-label");
+            name.setMinWidth(180);
+            javafx.scene.layout.HBox row = Widgets.row(name, Widgets.label(detail, "op-detail"), Widgets.spacer(),
+                    button("Renommer", "ghost", () -> askName("Renommer l'étiquette", u.tag().name()).ifPresent(n -> {
+                        ctx.services().tags().rename(u.tag().id(), n);
+                        ctx.events().fireChanged();
+                    })),
+                    button("Supprimer", "ghost", () -> {
+                        if (Dialogs.confirm(window(), "Supprimer l'étiquette", "Supprimer « " + u.tag().name() + " » ? "
+                                + "Elle sera retirée de " + u.count() + " opération(s) ; les opérations sont conservées.",
+                                "Supprimer")) {
+                            ctx.services().tags().delete(u.tag().id());
+                            ctx.events().fireChanged();
+                        }
+                    }));
+            row.getStyleClass().add("op-row");
+            row.getChildren().stream().filter(n -> n instanceof Button)
+                    .forEach(n -> n.getStyleClass().add("compact"));
+            tagList.getChildren().add(row);
+        }
+    }
+
+    private void addTag() {
+        askName("Nouvelle étiquette", "").ifPresent(n -> {
+            ctx.services().tags().create(n);
+            ctx.events().fireChanged();
+        });
     }
 
     @Override
@@ -108,6 +169,7 @@ public final class CategoriesPage extends Page {
             tree.getSelectionModel().select(toSelect);
         }
         updateButtons();
+        refreshTags();
     }
 
     private Optional<Category> selected() {

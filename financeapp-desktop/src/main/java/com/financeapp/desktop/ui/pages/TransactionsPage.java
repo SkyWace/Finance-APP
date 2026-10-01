@@ -72,6 +72,7 @@ public final class TransactionsPage extends Page {
     private final ComboBox<Period> periodFilter = new ComboBox<>();
     private final TextField search = new TextField();
     private final ComboBox<Choice<Long>> categoryFilter = new ComboBox<>();
+    private final ComboBox<Choice<Long>> tagFilter = new ComboBox<>();
     private final TextField minAmount = new TextField();
     private final TextField maxAmount = new TextField();
     private final javafx.scene.control.DatePicker fromDate = Widgets.datePicker(null);
@@ -80,6 +81,7 @@ public final class TransactionsPage extends Page {
     private final Button loadMore = new Button("Charger plus");
     private Map<Long, Account> accounts = Map.of();
     private Map<Long, String> categoryNames = Map.of();
+    private Map<Long, String> tagNames = Map.of();
     private int limit = PAGE_SIZE;
     private TransactionQuery lastQuery;
 
@@ -110,6 +112,7 @@ public final class TransactionsPage extends Page {
         periodFilter.setOnAction(e -> resetAndRefresh());
         categoryFilter.setOnAction(e -> resetAndRefresh());
         categoryFilter.setPrefWidth(210);
+        tagFilter.setPrefWidth(170);
         minAmount.setPromptText("Montant min.");
         maxAmount.setPromptText("max.");
         minAmount.setPrefWidth(105);
@@ -135,7 +138,7 @@ public final class TransactionsPage extends Page {
                 + "(filtres compris) dans un fichier CSV pour Excel ou LibreOffice"));
         HBox actions = Widgets.row(expense, income, transfer, Widgets.spacer(), export, search);
         javafx.scene.layout.FlowPane filters = new javafx.scene.layout.FlowPane(8, 8, Widgets.label("Filtres", "muted"),
-                accountFilter, categoryFilter, periodFilter, fromDate, toDate, statusFilter, minAmount, maxAmount);
+                accountFilter, categoryFilter, tagFilter, periodFilter, fromDate, toDate, statusFilter, minAmount, maxAmount);
         filters.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         HBox bottom = Widgets.row(footer, Widgets.spacer(), loadMore);
         VBox.setVgrow(table, Priority.ALWAYS);
@@ -161,6 +164,18 @@ public final class TransactionsPage extends Page {
     public void refresh() {
         accounts = ctx.services().accounts().findAll().stream().collect(Collectors.toMap(Account::id, a -> a));
         categoryNames = ctx.services().categories().fullNames();
+        tagNames = ctx.services().tags().names();
+        Long selectedTag = Widgets.selected(tagFilter);
+        tagFilter.setOnAction(null);
+        tagFilter.getItems().setAll(new Choice<>(null, "Toutes les étiquettes"));
+        ctx.services().tags().findAll().forEach(t -> tagFilter.getItems().add(new Choice<>(t.id(), "[" + t.name() + "]")));
+        Widgets.select(tagFilter, selectedTag);
+        if (tagFilter.getValue() == null) {
+            tagFilter.getSelectionModel().selectFirst();
+        }
+        tagFilter.setOnAction(e -> resetAndRefresh());
+        tagFilter.setVisible(tagFilter.getItems().size() > 1); // rien a filtrer tant qu'aucune etiquette n'existe
+        tagFilter.setManaged(tagFilter.isVisible());
         Long selectedAccount = Widgets.selected(accountFilter);
         accountFilter.setOnAction(null);
         accountFilter.getItems().setAll(new Choice<>(null, "Tous les comptes"));
@@ -208,13 +223,38 @@ public final class TransactionsPage extends Page {
         }
         TransactionQuery query = new TransactionQuery(Widgets.selected(accountFilter), from, to,
                 search.getText().isBlank() ? null : search.getText(), Widgets.selected(categoryFilter),
-                Widgets.selected(statusFilter), null, amount(minAmount), amount(maxAmount), limit, 0);
+                Widgets.selected(statusFilter), null, amount(minAmount), amount(maxAmount), limit, 0,
+                Widgets.selected(tagFilter));
         lastQuery = query;
         List<Transaction> rows = ctx.services().transactions().search(query);
         table.getItems().setAll(rows);
         loadMore.setVisible(rows.size() >= limit);
         updateFooter(rows, query);
         table.refresh();
+    }
+
+    /** "Ventilée : Courses + Maison" pour une operation ventilee, sinon sa categorie. */
+    private String categoryText(Transaction t) {
+        if (!t.isSplit()) {
+            return categoryNames.getOrDefault(t.categoryId(), "");
+        }
+        return "Ventilée : " + t.splits().stream()
+                .map(l -> l.categoryId() == null ? "Sans catégorie" : shortName(categoryNames.getOrDefault(l.categoryId(), "?")))
+                .collect(Collectors.joining(" + "));
+    }
+
+    private static String shortName(String fullName) {
+        int arrow = fullName.lastIndexOf(" › ");
+        return arrow < 0 ? fullName : fullName.substring(arrow + 3);
+    }
+
+    /** Etiquettes affichees apres le libelle : "  [travaux] [vacances]". */
+    private String tagsText(Transaction t) {
+        if (t.tagIds().isEmpty()) {
+            return "";
+        }
+        return "   " + t.tagIds().stream().map(id -> tagNames.getOrDefault(id, "")).filter(n -> !n.isEmpty())
+                .sorted(String.CASE_INSENSITIVE_ORDER).map(n -> "[" + n + "]").collect(Collectors.joining(" "));
     }
 
     /** Export CSV de TOUS les resultats de la recherche affichee (pas seulement les lignes chargees). */
@@ -245,7 +285,7 @@ public final class TransactionsPage extends Page {
         }
         Map<Long, String> accountNames = accounts.values().stream().collect(Collectors.toMap(Account::id, Account::name));
         try (var out = java.nio.file.Files.newBufferedWriter(path, java.nio.charset.StandardCharsets.UTF_8)) {
-            int n = com.financeapp.core.export.TransactionCsvExporter.write(rows, accountNames, categoryNames, out);
+            int n = com.financeapp.core.export.TransactionCsvExporter.write(rows, accountNames, categoryNames, tagNames, out);
             Dialogs.info(window(), "Export terminé", n + " opération(s) exportée(s) dans :\n" + path
                     + "\n\nAttention : ce fichier n'est pas chiffré. Rangez-le en lieu sûr ou supprimez-le après usage.");
         } catch (java.io.IOException | RuntimeException ex) {
@@ -289,12 +329,12 @@ public final class TransactionsPage extends Page {
         date.setMaxWidth(120);
 
         TableColumn<Transaction, String> label = new TableColumn<>("Libellé");
-        label.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().label()));
+        label.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().label() + tagsText(c.getValue())));
         label.setPrefWidth(260);
 
         TableColumn<Transaction, String> category = new TableColumn<>("Catégorie");
         category.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().isTransfer()
-                ? transferText(c.getValue()) : categoryNames.getOrDefault(c.getValue().categoryId(), "")));
+                ? transferText(c.getValue()) : categoryText(c.getValue())));
         category.setPrefWidth(220);
 
         TableColumn<Transaction, String> account = new TableColumn<>("Compte");

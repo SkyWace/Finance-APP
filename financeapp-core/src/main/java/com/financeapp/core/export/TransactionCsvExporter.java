@@ -23,7 +23,7 @@ public final class TransactionCsvExporter {
 
     public static final char SEPARATOR = ';';
     public static final List<String> HEADER = List.of("Date", "Compte", "Libellé", "Catégorie", "Type", "Statut",
-            "Montant", "Devise", "Autre compte (virement)", "Commentaire");
+            "Montant", "Devise", "Autre compte (virement)", "Commentaire", "Étiquettes");
 
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final char BOM = '﻿';
@@ -38,6 +38,15 @@ public final class TransactionCsvExporter {
      */
     public static int write(List<Transaction> transactions, Map<Long, String> accountNames,
                             Map<Long, String> categoryNames, Writer out) throws IOException {
+        return write(transactions, accountNames, categoryNames, Map.of(), out);
+    }
+
+    /**
+     * @param tagNames nom de chaque etiquette ; une operation ventilee a sa colonne
+     *                 Categorie detaillee ("Alimentation (90,00) + Maison (30,00)")
+     */
+    public static int write(List<Transaction> transactions, Map<Long, String> accountNames,
+                            Map<Long, String> categoryNames, Map<Long, String> tagNames, Writer out) throws IOException {
         out.write(BOM);
         line(out, HEADER);
         for (Transaction t : transactions) {
@@ -45,16 +54,29 @@ public final class TransactionCsvExporter {
                     DATE.format(t.date()),
                     text(accountNames.getOrDefault(t.accountId(), "")),
                     text(t.label()),
-                    text(t.categoryId() == null ? "" : categoryNames.getOrDefault(t.categoryId(), "")),
+                    text(category(t, categoryNames)),
                     t.type().label(),
                     t.status().label(),
                     amount(t.amount().amount(), t.amount().currency().getDefaultFractionDigits()),
                     t.amount().currency().getCurrencyCode(),
                     text(t.transferAccountId() == null ? "" : accountNames.getOrDefault(t.transferAccountId(), "")),
-                    text(t.note() == null ? "" : t.note())));
+                    text(t.note() == null ? "" : t.note()),
+                    text(t.tagIds().stream().map(id -> tagNames.getOrDefault(id, "")).filter(n -> !n.isEmpty())
+                            .sorted(String.CASE_INSENSITIVE_ORDER).collect(java.util.stream.Collectors.joining(", ")))));
         }
         out.flush();
         return transactions.size();
+    }
+
+    private static String category(Transaction t, Map<Long, String> categoryNames) {
+        if (!t.isSplit()) {
+            return t.categoryId() == null ? "" : categoryNames.getOrDefault(t.categoryId(), "");
+        }
+        int digits = t.amount().currency().getDefaultFractionDigits();
+        return t.splits().stream()
+                .map(s -> (s.categoryId() == null ? "Sans catégorie" : categoryNames.getOrDefault(s.categoryId(), "?"))
+                        + " (" + amount(s.amount().amount().abs(), digits) + ")")
+                .collect(java.util.stream.Collectors.joining(" + "));
     }
 
     /** Montant signe, virgule decimale, sans separateur de milliers ("-1234,50"). */

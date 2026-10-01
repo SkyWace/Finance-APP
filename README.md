@@ -22,7 +22,7 @@ Menus facultatifs : **À valider, Budgets, Objectifs, Prévisions, Simulations, 
 |---|---|
 | Tableau de bord | Patrimoine, comptes courants, épargne, **disponible réel** (cliquable), revenus/dépenses du mois, à venir, prévision 30 jours, prochaines et dernières opérations |
 | Comptes | Création, solde initial, type, couleur, inclusion dans le disponible, archivage |
-| Transactions | **Export CSV** (Excel / LibreOffice) des résultats de la recherche ; dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
+| Transactions | **Ventilation** d'une opération sur plusieurs catégories, **étiquettes** (filtre et total par étiquette), **export CSV** (Excel / LibreOffice) des résultats de la recherche ; dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
 | Calendrier | **Filtre par compte** (solde du compte jour par jour) ; mois en grille : opérations réelles et prévues, solde en fin de journée (réel puis prévu), détail du jour |
 | Budgets | Plafond mensuel par catégorie, progression, alertes (proche / atteint / dépassé, en texte et symbole), reste réservé dans le disponible |
 | Épargne | Épargne détenue : **Livret A, LDDS, LEP, Livret Jeune, CEL, PEL, assurance-vie, PEA, PER, épargne salariale (PEE, PERCOL…), compte-titres, crypto-actifs**… ; valeur actuelle mise à jour à la main (relevé, valorisation) avec historique ; épargne disponible / à moyen et long terme ; part du patrimoine ; **marge sous le plafond** des livrets réglementés |
@@ -39,7 +39,7 @@ Menus facultatifs : **À valider, Budgets, Objectifs, Prévisions, Simulations, 
 | Prévisions | Courbe réel (plein) / prévu (pointillés), 7 jours à **48 mois**, point bas, alerte de solde négatif, dépenses courantes estimées (option) |
 | Simulations | **What If?** : achat financé à crédit, nouvelle charge ou rentrée, crédit, arrêt d'une récurrence ; disponible, reste à vivre et capacité d'épargne **avant / après**, mois par mois, courbe de solde, objectifs ; ne modifie jamais les données réelles |
 | Crédits | Capital restant, mensualité, prochaine échéance, progression, **tableau d'amortissement**, taux estimé si inconnu ; mensualités reliées à une récurrence (comptées une seule fois) |
-| Catégories | Catégories par défaut + personnelles, sous-catégories, archivage |
+| Catégories | Catégories par défaut + personnelles, sous-catégories, archivage ; **étiquettes** (usage et totaux, renommer, supprimer) |
 | Paramètres | Devise de référence, échéance par défaut, **sécurité** (verrouillage auto, changement de mot de passe, nouvelle clé de récupération), **mode confidentialité**, sauvegardes chiffrées (auto à la fermeture avec rotation, export, restauration) |
 
 ## Plusieurs utilisateurs
@@ -179,7 +179,8 @@ devise), centimes (`INTEGER`) en base. Dates : `java.time`.
 ## Limites connues
 
 - Une seule devise de référence pour les totaux ; pas de conversion.
-- Étiquettes (tags) non encore disponibles. Crédits à taux fixe uniquement.
+- Crédits à taux fixe uniquement. Les opérations récurrentes ne se ventilent pas
+  (ventilez l'occurrence une fois validée).
   Synchronisation bancaire : **prototype** (Enable Banking), à valider avec un
   vrai compte ; étude, choix et limites dans
   [`docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md).

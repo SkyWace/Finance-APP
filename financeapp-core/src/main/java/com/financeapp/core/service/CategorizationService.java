@@ -103,7 +103,7 @@ public final class CategorizationService {
         candidates.addAll(transactions.findPlannedUntil(FAR_FUTURE));
         int count = 0;
         for (Transaction t : candidates) {
-            if (t.categoryId() != null || t.isTransfer()) {
+            if (t.categoryId() != null || t.isTransfer() || t.isSplit()) { // une ventilation n'est jamais ecrasee
                 continue;
             }
             Optional<CategorizationRule> rule = engine.matchingRule(t.label(), t.type());
@@ -116,7 +116,6 @@ public final class CategorizationService {
     }
 
     static Transaction withCategory(Transaction t, Long categoryId) {
-        return new Transaction(t.id(), t.accountId(), t.date(), t.label(), t.amount(), t.type(), t.status(),
-                categoryId, t.note(), t.transferGroup(), t.transferAccountId(), t.recurringId(), t.occurrenceDate());
+        return t.withCategory(categoryId);
     }
 }

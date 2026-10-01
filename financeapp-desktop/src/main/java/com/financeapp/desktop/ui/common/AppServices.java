@@ -51,7 +51,8 @@ public record AppServices(
         LoanService loans,
         SimulationService simulations,
         BankSyncService bankSync,
-        SavingsService savings) {
+        SavingsService savings,
+        com.financeapp.core.service.TagService tags) {
 
     public static AppServices from(ApplicationContext ctx) {
         return new AppServices(
@@ -78,6 +79,7 @@ public record AppServices(
                 ctx.getBean(LoanService.class),
                 ctx.getBean(SimulationService.class),
                 ctx.getBean(BankSyncService.class),
-                ctx.getBean(SavingsService.class));
+                ctx.getBean(SavingsService.class),
+                ctx.getBean(com.financeapp.core.service.TagService.class));
     }
 }

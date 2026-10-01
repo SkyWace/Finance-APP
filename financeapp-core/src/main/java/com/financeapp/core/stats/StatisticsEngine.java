@@ -140,8 +140,10 @@ public final class StatisticsEngine {
             if (t.type() != TransactionType.EXPENSE || !t.amount().currency().equals(currency)) {
                 continue;
             }
-            Long root = t.categoryId() == null ? null : rootOf.apply(t.categoryId());
-            totals.merge(root, t.amount().negate(), Money::plus);
+            for (var share : t.categoryShares()) { // une operation ventilee compte dans chacune de ses categories
+                Long root = share.categoryId() == null ? null : rootOf.apply(share.categoryId());
+                totals.merge(root, share.amount().negate(), Money::plus);
+            }
         }
         return totals;
     }

@@ -63,6 +63,7 @@ public final class TestApp {
     public final FakeBankSync bank = new FakeBankSync();
     public final BankSyncService bankSync;
     public final com.financeapp.core.service.SavingsService savings;
+    public final com.financeapp.core.service.TagService tags;
 
     public TestApp(LocalDate today) {
         this.today = today;
@@ -88,6 +89,7 @@ public final class TestApp {
         loans = new LoanService(store.loans, recurring, accounts, clock);
         simulations = new SimulationService(store.simulations, forecast, goals, planning);
         savings = new com.financeapp.core.service.SavingsService(accounts, settings);
+        tags = new com.financeapp.core.service.TagService(store.tags, store.transactions);
         bankSync = new BankSyncService(store.bankSync, bank, imports, accounts, clock);
     }
 

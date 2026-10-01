@@ -81,7 +81,13 @@ public final class InboxPage extends Page {
                 category.getSelectionModel().selectFirst();
             }
             category.setPrefWidth(240);
-            String origin = t.categoryId() != null ? "catégorie appliquée à l'import"
+            if (t.isSplit()) { // deja ventilee : validee telle quelle
+                category.setDisable(true);
+                category.setPromptText("Ventilée");
+                category.getSelectionModel().clearSelection();
+            }
+            String origin = t.isSplit() ? "ventilée sur " + t.splits().size() + " catégories"
+                    : t.categoryId() != null ? "catégorie appliquée à l'import"
                     : item.suggestion() == null ? "aucune suggestion"
                     : "suggestion : " + item.suggestion().source().label()
                       + (item.suggestion().rule() != null ? " « " + item.suggestion().rule().pattern() + " »" : "");
@@ -98,7 +104,7 @@ public final class InboxPage extends Page {
                 Long chosen = Widgets.selected(category);
                 ctx.services().inbox().validate(t.id(), chosen);
                 boolean corrected = !Objects.equals(chosen, item.proposedCategoryId());
-                if (corrected || item.suggestion() == null || item.suggestion().rule() == null) {
+                if (!t.isSplit() && (corrected || item.suggestion() == null || item.suggestion().rule() == null)) {
                     RuleProposal.offer(ctx, t.label(), t.type(), chosen);
                 }
                 ctx.events().fireChanged();

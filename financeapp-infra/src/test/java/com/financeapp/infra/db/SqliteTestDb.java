@@ -58,6 +58,8 @@ public final class SqliteTestDb {
     public final com.financeapp.core.service.LoanService loans;
     public final com.financeapp.core.service.ForecastService forecast;
     public final com.financeapp.core.service.SimulationService simulations;
+    public final JdbcTagRepository tagRepo;
+    public final com.financeapp.core.service.TagService tags;
 
     public SqliteTestDb(Path root, LocalDate today) {
         this(root, today, randomKey());
@@ -102,6 +104,8 @@ public final class SqliteTestDb {
         loans = new com.financeapp.core.service.LoanService(loanRepo, recurring, accounts, clock);
         forecast = new com.financeapp.core.service.ForecastService(available, planning, transactionRepo, settings, recurring);
         simulations = new com.financeapp.core.service.SimulationService(simulationRepo, forecast, goals, planning);
+        tagRepo = new JdbcTagRepository(jdbc);
+        tags = new com.financeapp.core.service.TagService(tagRepo, transactionRepo);
     }
 
     public static byte[] randomKey() {

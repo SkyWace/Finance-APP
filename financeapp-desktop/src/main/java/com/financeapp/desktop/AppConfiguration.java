@@ -142,6 +142,17 @@ public class AppConfiguration {
     }
 
     @Bean
+    com.financeapp.core.port.TagRepository tagRepository(JdbcClient jdbc) {
+        return new com.financeapp.infra.db.JdbcTagRepository(jdbc);
+    }
+
+    @Bean
+    com.financeapp.core.service.TagService tagService(com.financeapp.core.port.TagRepository tags,
+                                                      TransactionRepository transactions) {
+        return new com.financeapp.core.service.TagService(tags, transactions);
+    }
+
+    @Bean
     ValuationRepository valuationRepository(JdbcClient jdbc) {
         return new JdbcValuationRepository(jdbc);
     }

@@ -5,6 +5,7 @@ import com.financeapp.core.money.Money;
 import com.financeapp.core.port.AccountRepository;
 import com.financeapp.core.port.TransactionQuery;
 import com.financeapp.core.port.TransactionRepository;
+import com.financeapp.core.transaction.SplitLine;
 import com.financeapp.core.transaction.Transaction;
 import com.financeapp.core.transaction.TransactionStatus;
 import com.financeapp.core.transaction.TransactionType;
@@ -101,8 +102,40 @@ public final class TransactionService {
         Account account = activeAccount(d.accountId());
         Money amount = positiveAmount(d.amount(), account);
         Money signed = d.type() == TransactionType.EXPENSE ? amount.negate() : amount;
+        List<SplitLine> splits = splits(d, account, amount);
         return new Transaction(id, account.id(), d.date(), d.label(), signed, d.type(), d.status(),
-                d.categoryId(), blankToNull(d.note()), null, null, recurringId, occurrence);
+                splits.isEmpty() ? d.categoryId() : null, blankToNull(d.note()), null, null, recurringId, occurrence,
+                splits, d.tagIds());
+    }
+
+    /** Lignes de ventilation signees ; la somme doit etre exactement le montant de l'operation. */
+    private static List<SplitLine> splits(TransactionDraft d, Account account, Money amount) {
+        if (d.splits().isEmpty()) {
+            return List.of();
+        }
+        if (d.splits().size() < 2) {
+            throw new BusinessException("Une ventilation comporte au moins deux lignes");
+        }
+        List<SplitLine> lines = new ArrayList<>();
+        Money total = Money.zero(account.currency());
+        for (TransactionDraft.Split split : d.splits()) {
+            if (split.amount() == null || split.amount().signum() <= 0) {
+                throw new BusinessException("Chaque ligne de la ventilation doit avoir un montant positif");
+            }
+            Money part = Money.of(split.amount(), account.currency());
+            if (part.isZero()) {
+                throw new BusinessException("Un montant de ventilation est trop petit pour la devise du compte");
+            }
+            total = total.plus(part);
+            lines.add(new SplitLine(split.categoryId(), d.type() == TransactionType.EXPENSE ? part.negate() : part));
+        }
+        if (!total.equals(amount)) {
+            Money gap = amount.minus(total);
+            throw new BusinessException("La ventilation (" + decimal(total) + ") ne correspond pas au montant ("
+                    + decimal(amount) + ") : " + (gap.isPositive() ? "reste " + decimal(gap) + " à répartir"
+                                                               : "dépassement de " + decimal(gap.negate())));
+        }
+        return lines;
     }
 
     List<Transaction> transferLegs(TransferDraft d, String group, Long outId, Long inId,
@@ -141,6 +174,11 @@ public final class TransactionService {
             throw new BusinessException("Le montant est trop petit pour la devise du compte");
         }
         return amount;
+    }
+
+    /** Montant en notation francaise ("10,00"), pour les messages. */
+    private static String decimal(Money m) {
+        return m.amount().toPlainString().replace('.', ',');
     }
 
     private static String blankToNull(String s) {
