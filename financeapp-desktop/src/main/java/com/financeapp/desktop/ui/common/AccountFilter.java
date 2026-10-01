@@ -36,6 +36,9 @@ public final class AccountFilter {
     public Long sync() {
         syncing = true;
         try {
+            // Vider la selection avant de remplacer les elements : sinon, reselectionner un
+            // element egal (record) ne rafraichit pas l'affichage et la liste parait vide.
+            combo.getSelectionModel().clearSelection();
             combo.getItems().setAll(new Choice<>(null, "Tous les comptes"));
             for (Account a : ctx.services().accounts().findActive()) {
                 combo.getItems().add(new Choice<>(a.id(), a.name()));

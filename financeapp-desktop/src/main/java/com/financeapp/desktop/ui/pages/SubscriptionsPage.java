@@ -44,7 +44,8 @@ public final class SubscriptionsPage extends Page {
     public void refresh() {
         var service = ctx.services().subscriptions();
         Long account = filter.sync();
-        UiAsync.load(() -> new Data(filtered(service.overview(), account), service.detectCandidates()), this::render);
+        UiAsync.load(() -> new Data(filtered(service.overview(), account),
+                service.detectCandidates().stream().filter(c -> account == null || c.accountId() == account).toList()), this::render);
     }
 
     /** Abonnements preleves sur le compte choisi, totaux recalcules. */

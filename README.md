@@ -21,7 +21,7 @@ toutes mes dépenses futures prises en compte ? »*
 | Tableau de bord | Patrimoine, comptes courants, épargne, **disponible réel** (cliquable), revenus/dépenses du mois, à venir, prévision 30 jours, prochaines et dernières opérations |
 | Comptes | Création, solde initial, type, couleur, inclusion dans le disponible, archivage |
 | Transactions | Dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
-| Calendrier | Mois en grille : opérations réelles et prévues, solde en fin de journée (réel puis prévu), détail du jour |
+| Calendrier | **Filtre par compte** (solde du compte jour par jour) ; mois en grille : opérations réelles et prévues, solde en fin de journée (réel puis prévu), détail du jour |
 | Budgets | Plafond mensuel par catégorie, progression, alertes (proche / atteint / dépassé, en texte et symbole), reste réservé dans le disponible |
 | Épargne | Épargne détenue : **Livret A, LDDS, LEP, Livret Jeune, CEL, PEL, assurance-vie, PEA, PER, épargne salariale (PEE, PERCOL…), compte-titres, crypto-actifs**… ; valeur actuelle mise à jour à la main (relevé, valorisation) avec historique ; épargne disponible / à moyen et long terme ; part du patrimoine ; **marge sous le plafond** des livrets réglementés |
 | Objectifs | Objectifs d'épargne (montant, échéance), suivi via un compte ou manuel, épargne mensuelle nécessaire |
