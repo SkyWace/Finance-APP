@@ -41,6 +41,8 @@ public abstract class FormDialog<R> extends Dialog<R> {
         error.setWrapText(true);
         error.setMaxWidth(480);
         error.managedProperty().bind(error.textProperty().isNotEmpty());
+        error.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        error.textProperty().addListener((o, a, b) -> fitToContent()); // message entier, jamais tronque
         getDialogPane().setContent(new VBox(14, grid, error));
 
         ButtonType ok = new ButtonType(okLabel, ButtonBar.ButtonData.OK_DONE);

@@ -16,6 +16,7 @@ import java.util.Set;
  * @param minAmount  montant minimal en valeur absolue (inclus)
  * @param maxAmount  montant maximal en valeur absolue (inclus)
  * @param limit      nombre maximal de lignes (pagination)
+ * @param tagId      etiquette
  */
 public record TransactionQuery(
         Long accountId,
@@ -28,11 +29,18 @@ public record TransactionQuery(
         BigDecimal minAmount,
         BigDecimal maxAmount,
         int limit,
-        int offset) {
+        int offset,
+        Long tagId) {
 
     public TransactionQuery(Long accountId, LocalDate from, LocalDate to, String text, Long categoryId,
                             Set<TransactionStatus> statuses, int limit, int offset) {
-        this(accountId, from, to, text, categoryId, statuses, null, null, null, limit, offset);
+        this(accountId, from, to, text, categoryId, statuses, null, null, null, limit, offset, null);
+    }
+
+    public TransactionQuery(Long accountId, LocalDate from, LocalDate to, String text, Long categoryId,
+                            Set<TransactionStatus> statuses, TransactionType type, BigDecimal minAmount,
+                            BigDecimal maxAmount, int limit, int offset) {
+        this(accountId, from, to, text, categoryId, statuses, type, minAmount, maxAmount, limit, offset, null);
     }
 
     public static TransactionQuery all() {
@@ -41,6 +49,11 @@ public record TransactionQuery(
 
     public TransactionQuery withLimit(int newLimit) {
         return new TransactionQuery(accountId, from, to, text, categoryId, statuses, type, minAmount, maxAmount,
-                newLimit, offset);
+                newLimit, offset, tagId);
+    }
+
+    public TransactionQuery withTag(Long newTagId) {
+        return new TransactionQuery(accountId, from, to, text, categoryId, statuses, type, minAmount, maxAmount,
+                limit, offset, newTagId);
     }
 }

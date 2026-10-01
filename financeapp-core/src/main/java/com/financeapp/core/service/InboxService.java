@@ -44,16 +44,20 @@ public final class InboxService {
         CategorizationEngine engine = categorization.engine();
         List<InboxItem> items = new ArrayList<>();
         for (Transaction t : transactions.findNeedingReview()) {
-            items.add(new InboxItem(t, t.categoryId() != null ? null : engine.suggest(t.label(), t.type()).orElse(null)));
+            boolean categorized = t.categoryId() != null || t.isSplit();
+            items.add(new InboxItem(t, categorized ? null : engine.suggest(t.label(), t.type()).orElse(null)));
         }
         return items;
     }
 
-    /** Valide l'operation avec la categorie choisie ({@code null} = sans categorie). */
+    /**
+     * Valide l'operation avec la categorie choisie ({@code null} = sans categorie).
+     * Une operation deja ventilee est validee telle quelle : sa ventilation n'est jamais ecrasee.
+     */
     public void validate(long transactionId, Long categoryId) {
         Transaction t = transactions.findById(transactionId)
                 .orElseThrow(() -> new BusinessException("Opération introuvable"));
-        if (!Objects.equals(t.categoryId(), categoryId) && !t.isTransfer()) {
+        if (!Objects.equals(t.categoryId(), categoryId) && !t.isTransfer() && !t.isSplit()) {
             transactions.update(CategorizationService.withCategory(t, categoryId));
         }
         transactions.markReviewed(transactionId);

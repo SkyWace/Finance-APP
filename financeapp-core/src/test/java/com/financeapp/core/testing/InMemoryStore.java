@@ -59,6 +59,11 @@ public final class InMemoryStore {
     private final Map<Long, Budget> budgetMap = new LinkedHashMap<>();
     private final Map<Long, CategorizationRule> ruleMapCat = new LinkedHashMap<>();
     private final Set<Long> needsReview = new java.util.HashSet<>();
+
+    /** Pour les tests : place une operation dans "A valider", comme un import. */
+    public void markNeedsReview(long transactionId) {
+        needsReview.add(transactionId);
+    }
     private final Map<Long, String> externalIdByTx = new HashMap<>();
     private final Map<Long, Long> batchByTx = new HashMap<>();
     private final Map<Long, ImportBatch> batchMap = new LinkedHashMap<>();
@@ -162,7 +167,8 @@ public final class InMemoryStore {
         }
         public void delete(long id) { categoryMap.remove(id); }
         public long countUsages(long id) {
-            return transactionMap.values().stream().filter(t -> Objects.equals(t.categoryId(), id)).count()
+            return transactionMap.values().stream().filter(t -> Objects.equals(t.categoryId(), id)
+                            || t.splits().stream().anyMatch(l -> Objects.equals(l.categoryId(), id))).count()
                     + ruleMap.values().stream().filter(r -> Objects.equals(r.categoryId(), id)).count()
                     + categoryMap.values().stream().filter(c -> Objects.equals(c.parentId(), id)).count();
         }
@@ -195,7 +201,8 @@ public final class InMemoryStore {
                     .filter(t -> q.from() == null || !t.date().isBefore(q.from()))
                     .filter(t -> q.to() == null || !t.date().isAfter(q.to()))
                     .filter(t -> q.text() == null || t.label().toLowerCase().contains(q.text().toLowerCase()))
-                    .filter(t -> categories == null || categories.contains(t.categoryId()))
+                    .filter(t -> categories == null || t.categoryShares().stream().anyMatch(l -> categories.contains(l.categoryId())))
+                    .filter(t -> q.tagId() == null || t.tagIds().contains(q.tagId()))
                     .filter(t -> q.statuses() == null || q.statuses().contains(t.status()))
                     .filter(t -> q.type() == null || t.type() == q.type())
                     .filter(t -> q.minAmount() == null || t.amount().abs().amount().compareTo(q.minAmount()) >= 0)
@@ -213,9 +220,18 @@ public final class InMemoryStore {
                     .filter(t -> t.amount().currency().equals(currency)).toList();
             Money zero = Money.zero(currency);
             List<Transaction> expenses = rows.stream().filter(t -> t.type() == TransactionType.EXPENSE).toList();
+            // Filtre par categorie : seule la part ventilee dans la categorie compte.
+            Set<Long> scope = new java.util.HashSet<>();
+            if (q.categoryId() != null) {
+                scope.add(q.categoryId());
+                categoryMap.values().stream().filter(c -> q.categoryId().equals(c.parentId())).forEach(c -> scope.add(c.id()));
+            }
+            java.util.function.Function<Transaction, Money> part = t -> q.categoryId() == null ? t.amount()
+                    : t.categoryShares().stream().filter(l -> scope.contains(l.categoryId()))
+                      .map(com.financeapp.core.transaction.SplitLine::amount).reduce(zero, Money::plus);
             return new SearchTotals(rows.size(), expenses.size(),
-                    expenses.stream().map(Transaction::amount).reduce(zero, Money::plus),
-                    rows.stream().filter(t -> t.type() == TransactionType.INCOME).map(Transaction::amount).reduce(zero, Money::plus));
+                    expenses.stream().map(part).reduce(zero, Money::plus),
+                    rows.stream().filter(t -> t.type() == TransactionType.INCOME).map(part).reduce(zero, Money::plus));
         }
         public Map<Long, Long> sumCountedMinorByAccount() {
             return transactionMap.values().stream().filter(t -> t.status().countsInBalance())
@@ -251,6 +267,36 @@ public final class InMemoryStore {
         }
         public long countNeedingReview() { return needsReview.stream().filter(transactionMap::containsKey).count(); }
         public void markReviewed(long id) { needsReview.remove(id); }
+    };
+
+    private final Map<Long, com.financeapp.core.tag.Tag> tagMap = new LinkedHashMap<>();
+
+    public final com.financeapp.core.port.TagRepository tags = new com.financeapp.core.port.TagRepository() {
+        public List<com.financeapp.core.tag.Tag> findAll() {
+            return tagMap.values().stream().sorted(Comparator.comparing(t -> t.name().toLowerCase())).toList();
+        }
+        public Optional<com.financeapp.core.tag.Tag> findById(long id) { return Optional.ofNullable(tagMap.get(id)); }
+        public Optional<com.financeapp.core.tag.Tag> findByName(String name) {
+            return tagMap.values().stream().filter(t -> t.name().equalsIgnoreCase(name.strip())).findFirst();
+        }
+        public com.financeapp.core.tag.Tag save(com.financeapp.core.tag.Tag tag) {
+            com.financeapp.core.tag.Tag saved = tag.id() == null ? tag.withId(ids.getAndIncrement()) : tag;
+            tagMap.put(saved.id(), saved);
+            return saved;
+        }
+        public void delete(long id) {
+            tagMap.remove(id);
+            transactionMap.replaceAll((k, t) -> {
+                Set<Long> kept = new java.util.HashSet<>(t.tagIds());
+                kept.remove(id);
+                return t.withDetails(t.splits(), kept);
+            });
+        }
+        public Map<Long, Long> usageCounts() {
+            Map<Long, Long> counts = new HashMap<>();
+            transactionMap.values().forEach(t -> t.tagIds().forEach(id -> counts.merge(id, 1L, Long::sum)));
+            return counts;
+        }
     };
 
     public final RecurringRuleRepository rules = new RecurringRuleRepository() {

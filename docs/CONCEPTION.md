@@ -758,3 +758,41 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   importés de relevés). Les montants ne sont pas concernés.
 - Le fichier n'est pas chiffré : l'utilisateur en est averti après l'export.
   Rien n'est écrit dans les journaux.
+
+## 21. V0.2.0 — Ventilation et étiquettes
+
+### Ventilation (`SplitLine`, migration `V8__splits_and_tags.sql`)
+- Une dépense ou un revenu peut être réparti sur plusieurs catégories
+  (`transaction_splits` : position, catégorie éventuelle, montant). La somme
+  des lignes est exactement le montant ; chaque ligne est du même sens, au moins
+  deux lignes ; un virement interne ne se ventile pas. `category_id` de
+  l'opération est alors vide.
+- **Un seul mouvement sur le compte** : soldes, disponible réel et prévisions
+  utilisent le montant de l'opération, inchangés.
+- `Transaction.categoryShares()` (ses lignes, ou une part unique) est la base de
+  **tous les totaux par catégorie** : analyses (catégories, comparaisons),
+  budgets (dépensé, et part des opérations prévues ventilées).
+- Recherche par catégorie : trouve l'opération si une de ses lignes est dans la
+  catégorie (sous-catégories comprises) ; les totaux de la recherche ne
+  comptent alors que la part concernée.
+- Les règles de catégorisation n'écrasent jamais une ventilation. Une catégorie
+  utilisée par une ligne ne peut pas être supprimée (contrainte RESTRICT).
+- Export CSV : colonne Catégorie détaillée (« Alimentation (90,00) + Maison
+  (30,00) »).
+- Non couvert : ventilation des opérations récurrentes (règles).
+
+### Étiquettes (`Tag`, `TagService`)
+- `tags` (nom unique sans tenir compte de la casse, 30 caractères, sans
+  virgule) et `transaction_tags`. Saisie libre dans l'opération (« vacances,
+  travaux ») : les étiquettes sont créées à la volée, et les existantes sont
+  proposées en un clic.
+- Filtre de l'écran Transactions par étiquette, avec ses totaux ; usage de
+  chaque étiquette (nombre d'opérations, dépensé, reçu) dans l'écran Catégories,
+  renommage, suppression (retirée des opérations, qui sont conservées).
+- Export CSV : colonne « Étiquettes ».
+
+### Stockage
+- Ventilation et étiquettes sont écrites dans la même transaction SQL que
+  l'opération (remplacement complet), et relues par paquets de 500 opérations.
+  Suppression d'une opération ou annulation d'un import : effacement en
+  cascade.
