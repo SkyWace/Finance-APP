@@ -22,7 +22,7 @@ Menus facultatifs : **À valider, Budgets, Objectifs, Prévisions, Simulations, 
 |---|---|
 | Tableau de bord | Patrimoine, comptes courants, épargne, **disponible réel** (cliquable), revenus/dépenses du mois, à venir, prévision 30 jours, prochaines et dernières opérations |
 | Comptes | Création, solde initial, type, couleur, inclusion dans le disponible, archivage |
-| Transactions | Dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
+| Transactions | **Export CSV** (Excel / LibreOffice) des résultats de la recherche ; dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
 | Calendrier | **Filtre par compte** (solde du compte jour par jour) ; mois en grille : opérations réelles et prévues, solde en fin de journée (réel puis prévu), détail du jour |
 | Budgets | Plafond mensuel par catégorie, progression, alertes (proche / atteint / dépassé, en texte et symbole), reste réservé dans le disponible |
 | Épargne | Épargne détenue : **Livret A, LDDS, LEP, Livret Jeune, CEL, PEL, assurance-vie, PEA, PER, épargne salariale (PEE, PERCOL…), compte-titres, crypto-actifs**… ; valeur actuelle mise à jour à la main (relevé, valorisation) avec historique ; épargne disponible / à moyen et long terme ; part du patrimoine ; **marge sous le plafond** des livrets réglementés |
@@ -49,6 +49,7 @@ Chaque personne qui utilise l'application sur l'ordinateur a son **propre profil
 - Au démarrage : « Qui utilise FinanceApp ? » puis le mot de passe de l'utilisateur choisi (avec un seul profil, l'écran de mot de passe s'affiche directement).
 - Ajouter un utilisateur : bouton à son nom en haut de l'écran (ou *Paramètres → Utilisateur → Changer d'utilisateur*), puis « Ajouter un utilisateur ».
 - Changer d'utilisateur fait d'abord la sauvegarde automatique, puis verrouille.
+- Un profil ne peut être ouvert que dans **une seule fenêtre à la fois** (verrou sur ses données) : un second lancement affiche « Déjà ouvert » avec « Réessayer ».
 - Une installation existante devient le « Profil principal » (renommable dans *Paramètres → Utilisateur*), sans déplacer de fichier ; les profils suivants sont dans `profiles/<identifiant>` du dossier de données.
 - Seuls les noms des profils sont lisibles sans mot de passe (`profiles.properties`).
 - Supprimer un profil : *Paramètres → Utilisateur → Supprimer ce profil…*, avec confirmation puis **mot de passe maître de ce profil**. Sa base, son trousseau et ses sauvegardes automatiques sont effacés ; les autres utilisateurs et les sauvegardes exportées ailleurs ne sont pas touchés.
@@ -178,7 +179,6 @@ devise), centimes (`INTEGER`) en base. Dates : `java.time`.
 ## Limites connues
 
 - Une seule devise de référence pour les totaux ; pas de conversion.
-- Ne pas ouvrir deux instances sur le même dossier de données.
 - Étiquettes (tags) non encore disponibles. Crédits à taux fixe uniquement.
   Synchronisation bancaire : **prototype** (Enable Banking), à valider avec un
   vrai compte ; étude, choix et limites dans

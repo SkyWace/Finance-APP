@@ -93,6 +93,16 @@ public final class LockScreen {
         show(withSwitch(card(Widgets.label(title, "lock-title"), text(message), spinner)));
     }
 
+    /** Message sans attente, avec une action (ex. "Reessayer"). */
+    public void showNotice(String title, String message, String actionLabel, Runnable action) {
+        Button button = new Button(actionLabel);
+        button.getStyleClass().add("primary");
+        button.setDefaultButton(true);
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setOnAction(e -> action.run());
+        show(withSwitch(card(brand(), Widgets.label(title, "lock-title"), text(message), button)));
+    }
+
     // ---------------------------------------------------------------- creation
 
     private void showCreate(boolean existingData) {

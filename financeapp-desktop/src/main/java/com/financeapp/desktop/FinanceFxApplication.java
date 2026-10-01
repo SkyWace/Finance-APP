@@ -83,6 +83,9 @@ public class FinanceFxApplication extends Application {
             if (context != null) {
                 context.close();
             }
+            if (session != null) {
+                session.shutdown();
+            }
         }
     }
 }

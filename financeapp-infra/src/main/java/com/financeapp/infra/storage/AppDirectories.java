@@ -63,6 +63,11 @@ public record AppDirectories(Path root) {
         return root.resolve("data").resolve("pending-restore.db");
     }
 
+    /** Verrou d'ouverture : un seul exemplaire de l'application a la fois sur ces donnees. */
+    public Path lockFile() {
+        return root.resolve("data").resolve("financeapp.lock");
+    }
+
     public AppDirectories createAll() {
         try {
             Files.createDirectories(databaseFile().getParent());
