@@ -7,7 +7,7 @@
   <parent>
     <groupId>com.financeapp</groupId>
     <artifactId>financeapp-parent</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>financeapp-infra</artifactId>
