@@ -63,6 +63,9 @@ public final class TransactionsPage extends Page {
         }
     }
 
+    /** Plafond de securite de l'export (bien au-dela d'un historique personnel). */
+    private static final int EXPORT_LIMIT = 1_000_000;
+
     private final TableView<Transaction> table = new TableView<>();
     private final ComboBox<Choice<Long>> accountFilter = new ComboBox<>();
     private final ComboBox<Choice<Set<TransactionStatus>>> statusFilter = new ComboBox<>();
@@ -78,6 +81,7 @@ public final class TransactionsPage extends Page {
     private Map<Long, Account> accounts = Map.of();
     private Map<Long, String> categoryNames = Map.of();
     private int limit = PAGE_SIZE;
+    private TransactionQuery lastQuery;
 
     public TransactionsPage(UiContext ctx) {
         super(ctx);
@@ -126,7 +130,10 @@ public final class TransactionsPage extends Page {
             refresh();
         });
 
-        HBox actions = Widgets.row(expense, income, transfer, Widgets.spacer(), search);
+        Button export = action("⇪  Exporter (CSV)…", "ghost", this::exportCsv);
+        export.setTooltip(new javafx.scene.control.Tooltip("Exporte toutes les opérations de la recherche en cours "
+                + "(filtres compris) dans un fichier CSV pour Excel ou LibreOffice"));
+        HBox actions = Widgets.row(expense, income, transfer, Widgets.spacer(), export, search);
         javafx.scene.layout.FlowPane filters = new javafx.scene.layout.FlowPane(8, 8, Widgets.label("Filtres", "muted"),
                 accountFilter, categoryFilter, periodFilter, fromDate, toDate, statusFilter, minAmount, maxAmount);
         filters.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
@@ -202,11 +209,48 @@ public final class TransactionsPage extends Page {
         TransactionQuery query = new TransactionQuery(Widgets.selected(accountFilter), from, to,
                 search.getText().isBlank() ? null : search.getText(), Widgets.selected(categoryFilter),
                 Widgets.selected(statusFilter), null, amount(minAmount), amount(maxAmount), limit, 0);
+        lastQuery = query;
         List<Transaction> rows = ctx.services().transactions().search(query);
         table.getItems().setAll(rows);
         loadMore.setVisible(rows.size() >= limit);
         updateFooter(rows, query);
         table.refresh();
+    }
+
+    /** Export CSV de TOUS les resultats de la recherche affichee (pas seulement les lignes chargees). */
+    private void exportCsv() {
+        if (lastQuery == null) {
+            return;
+        }
+        List<Transaction> rows = ctx.services().transactions().search(lastQuery.withLimit(EXPORT_LIMIT));
+        if (rows.isEmpty()) {
+            Dialogs.info(window(), "Exporter", "Aucune opération ne correspond à la recherche : rien à exporter.");
+            return;
+        }
+        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Exporter " + rows.size() + " opération(s)");
+        chooser.setInitialFileName("operations-" + ctx.services().planning().today() + ".csv");
+        // Documents (sinon dossier personnel) : jamais le dossier d'installation de l'application.
+        java.io.File home = new java.io.File(System.getProperty("user.home"));
+        java.io.File documents = new java.io.File(home, "Documents");
+        chooser.setInitialDirectory(documents.isDirectory() ? documents : home);
+        chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Fichier CSV (*.csv)", "*.csv"));
+        java.io.File file = chooser.showSaveDialog(window());
+        if (file == null) {
+            return;
+        }
+        java.nio.file.Path path = file.toPath();
+        if (!path.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".csv")) {
+            path = path.resolveSibling(path.getFileName() + ".csv");
+        }
+        Map<Long, String> accountNames = accounts.values().stream().collect(Collectors.toMap(Account::id, Account::name));
+        try (var out = java.nio.file.Files.newBufferedWriter(path, java.nio.charset.StandardCharsets.UTF_8)) {
+            int n = com.financeapp.core.export.TransactionCsvExporter.write(rows, accountNames, categoryNames, out);
+            Dialogs.info(window(), "Export terminé", n + " opération(s) exportée(s) dans :\n" + path
+                    + "\n\nAttention : ce fichier n'est pas chiffré. Rangez-le en lieu sûr ou supprimez-le après usage.");
+        } catch (java.io.IOException | RuntimeException ex) {
+            Dialogs.error(window(), new IllegalStateException("Export impossible : " + ex.getMessage(), ex));
+        }
     }
 
     /** Montant de filtre saisi (valeur absolue) ; saisie invalide signalee et ignoree. */

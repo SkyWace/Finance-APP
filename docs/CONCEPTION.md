@@ -732,3 +732,29 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   effacés au mieux (un fichier encore ouvert sous Windows peut subsister,
   sans donnée financière). Pour le profil principal, la racine, `profiles/` et
   `profiles.properties` sont conservés. Pas de sauvegarde avant suppression.
+
+## 20. Un seul exemplaire par profil, export CSV
+
+### Verrou de profil (`ProfileLock`)
+- Verrou exclusif du système (`FileChannel.tryLock`) sur `data/financeapp.lock`,
+  pris à l'ouverture d'un profil (avant toute restauration en attente) et tenu
+  jusqu'au changement d'utilisateur, à la suppression du profil ou à la
+  fermeture. Un second exemplaire, ou une autre session Windows, affiche
+  « Déjà ouvert » avec « Réessayer ».
+- Libéré automatiquement par le système si l'application s'arrête brutalement :
+  pas de verrou orphelin. Testé entre deux processus.
+- Chaque profil a son propre verrou : deux personnes peuvent ouvrir chacune leur
+  profil dans deux sessions Windows différentes.
+
+### Export CSV (`TransactionCsvExporter`, cœur)
+- Écran Transactions, « Exporter (CSV)… » : **tous** les résultats de la
+  recherche en cours (filtres compris), pas seulement les lignes chargées.
+- Format pour Excel et LibreOffice en français : `;`, virgule décimale,
+  `jj/mm/aaaa`, UTF-8 avec BOM, CRLF. Colonnes : date, compte, libellé,
+  catégorie, type, statut, montant signé, devise, autre compte (virement),
+  commentaire.
+- **Injection de formules** : un champ texte commençant par `= + - @`, une
+  tabulation ou un retour chariot est préfixé d'une apostrophe (libellés
+  importés de relevés). Les montants ne sont pas concernés.
+- Le fichier n'est pas chiffré : l'utilisateur en est averti après l'export.
+  Rien n'est écrit dans les journaux.

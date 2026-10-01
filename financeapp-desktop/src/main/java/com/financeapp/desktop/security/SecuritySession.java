@@ -12,6 +12,7 @@ import com.financeapp.infra.security.Argon2Params;
 import com.financeapp.infra.security.DatabaseKey;
 import com.financeapp.infra.security.VaultService;
 import com.financeapp.infra.storage.Profile;
+import com.financeapp.infra.storage.ProfileLock;
 import com.financeapp.infra.storage.ProfileRegistry;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -68,6 +69,7 @@ public final class SecuritySession implements SecurityControls {
     private ConfigurableApplicationContext context;
     private MainWindow mainWindow;
     private ChangeListener<Number> autoLockSaver;
+    private ProfileLock profileLock;
 
     public SecuritySession(ProfileRegistry registry, DatabaseKey key, Stage stage,
                            Scene scene, String appName, String[] args) {
@@ -101,13 +103,25 @@ public final class SecuritySession implements SecurityControls {
     private void open(Profile chosen) {
         if (profile != null && !profile.id().equals(chosen.id())) {
             closeContext();
+            releaseProfileLock();
         }
         profile = chosen;
         try {
             chosen.directories().createAll();
+            if (profileLock == null) {
+                // Un seul exemplaire de l'application a la fois sur ces donnees.
+                var acquired = ProfileLock.tryAcquire(chosen.directories());
+                if (acquired.isEmpty()) {
+                    profile = null;
+                    showAlreadyOpen(chosen);
+                    return;
+                }
+                profileLock = acquired.get();
+            }
             BackupService.applyPendingRestore(chosen.directories(), Clock.systemDefaultZone());
         } catch (java.io.IOException | RuntimeException e) {
             log.error("Preparation du profil impossible", e);
+            releaseProfileLock();
             LockScreen failed = new LockScreen(null, appName, chosen.name(), this::showPicker, stage, d -> { });
             failed.showMessage("Ouverture impossible", "Les fichiers de cet utilisateur n'ont pas pu être préparés : "
                     + e.getMessage());
@@ -117,6 +131,32 @@ public final class SecuritySession implements SecurityControls {
         vault = new VaultService(chosen.directories().keystoreFile(), chosen.directories().databaseFile(),
                 chosen.directories().backupsDir(), Argon2Params.DEFAULT);
         showLockScreen();
+    }
+
+    private void showAlreadyOpen(Profile chosen) {
+        LockScreen busy = new LockScreen(null, appName, chosen.name(), this::showPicker, stage, d -> { });
+        busy.showNotice("Déjà ouvert", "Les données de « " + chosen.name() + " » sont déjà ouvertes dans une autre "
+                + "fenêtre de " + appName + " (sur cet ordinateur ou une autre session Windows). Fermez-la, puis "
+                + "réessayez : deux fenêtres ne peuvent pas modifier les mêmes données en même temps.",
+                "Réessayer", () -> open(chosen));
+        scene.setRoot(busy.root());
+        stage.setTitle(appName);
+    }
+
+    private void releaseProfileLock() {
+        if (profileLock != null) {
+            try {
+                profileLock.close();
+            } catch (java.io.IOException e) {
+                log.warn("Liberation du verrou du profil impossible", e);
+            }
+            profileLock = null;
+        }
+    }
+
+    /** Fermeture de l'application : le verrou du profil est libere. */
+    public void shutdown() {
+        releaseProfileLock();
     }
 
     public ConfigurableApplicationContext context() {
@@ -183,6 +223,7 @@ public final class SecuritySession implements SecurityControls {
         Profile deleted = profile;
         closeSecondaryWindows();
         closeContext(); // base fermee avant d'effacer ses fichiers ; pas de sauvegarde
+        releaseProfileLock();
         profile = null;
         vault = null;
         try {
