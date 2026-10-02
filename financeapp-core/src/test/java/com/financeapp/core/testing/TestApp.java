@@ -64,6 +64,7 @@ public final class TestApp {
     public final BankSyncService bankSync;
     public final com.financeapp.core.service.SavingsService savings;
     public final com.financeapp.core.service.TagService tags;
+    public final com.financeapp.core.service.NetWorthService netWorth;
 
     public TestApp(LocalDate today) {
         this.today = today;
@@ -90,6 +91,7 @@ public final class TestApp {
         simulations = new SimulationService(store.simulations, forecast, goals, planning);
         savings = new com.financeapp.core.service.SavingsService(accounts, settings);
         tags = new com.financeapp.core.service.TagService(store.tags, store.transactions);
+        netWorth = new com.financeapp.core.service.NetWorthService(accounts, store.transactions, settings, clock);
         bankSync = new BankSyncService(store.bankSync, bank, imports, accounts, clock);
     }
 

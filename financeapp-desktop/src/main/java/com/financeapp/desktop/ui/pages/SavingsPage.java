@@ -56,6 +56,7 @@ public final class SavingsPage extends Page {
                     "Aucune épargne renseignée. Ajoutez vos livrets (Livret A, LDDS, LEP…), votre épargne logement, "
                             + "assurance-vie, PEA, PER ou épargne salariale avec leur valeur actuelle : vous suivrez "
                             + "ainsi votre patrimoine et la marge restante sous les plafonds.")));
+            netWorthSection();
             return;
         }
 
@@ -68,6 +69,7 @@ public final class SavingsPage extends Page {
                 Widgets.kpiCard("Moyen et long terme", f.money(o.totalLongTerm()), null,
                         count(o.longTerm().size()) + " · placements et épargne bloquée")));
 
+        netWorthSection();
         section("Épargne disponible", o.available(), f);
         section("Épargne à moyen et long terme", o.longTerm(), f);
 
@@ -77,6 +79,56 @@ public final class SavingsPage extends Page {
                 "hint");
         note.setWrapText(true);
         content.getChildren().add(note);
+    }
+
+    /** Periode choisie pour l'evolution du patrimoine (mois ; 0 = depuis le debut). */
+    private int netWorthMonths = 12;
+
+    /** Evolution du patrimoine en fin de mois, avec le choix de la periode. */
+    private void netWorthSection() {
+        javafx.scene.control.ComboBox<com.financeapp.desktop.ui.common.Choice<Integer>> period =
+                new javafx.scene.control.ComboBox<>();
+        period.getItems().setAll(
+                new com.financeapp.desktop.ui.common.Choice<>(12, "12 derniers mois"),
+                new com.financeapp.desktop.ui.common.Choice<>(24, "24 derniers mois"),
+                new com.financeapp.desktop.ui.common.Choice<>(60, "5 dernières années"),
+                new com.financeapp.desktop.ui.common.Choice<>(0, "Depuis le début"));
+        Widgets.select(period, netWorthMonths);
+        VBox body = new VBox(10);
+        VBox box = new VBox(10, Widgets.row(Widgets.label("Période", "form-label"), period), body);
+        period.valueProperty().addListener((o, old, c) -> {
+            if (c != null) {
+                netWorthMonths = c.value();
+                loadNetWorth(body);
+            }
+        });
+        content.getChildren().add(Widgets.section("Évolution du patrimoine", box));
+        loadNetWorth(body);
+    }
+
+    private void loadNetWorth(VBox body) {
+        int months = netWorthMonths;
+        UiAsync.load(() -> ctx.services().netWorth().history(months), h -> {
+            Formats f = ctx.formats();
+            if (h.isEmpty()) {
+                body.getChildren().setAll(Widgets.emptyState("Pas encore assez d'historique : la courbe apparaîtra à "
+                        + "la fin du premier mois suivi."));
+                return;
+            }
+            var first = h.points().getFirst();
+            var last = h.points().getLast();
+            Label summary = Widgets.label("Aujourd'hui : " + f.money(last.total()) + " · " + f.signed(h.change())
+                    + " depuis le " + Formats.date(first.date()), "op-label");
+            var chart = com.financeapp.desktop.ui.common.Charts.netWorthChart(h, f);
+            chart.setPrefHeight(300);
+            Label legend = Widgets.label("Trait plein épais : patrimoine (tous les comptes actifs) · tirets : épargne · "
+                    + "pointillés : comptes courants. Soldes en fin de mois, puis aujourd'hui ; un compte compte à "
+                    + "partir de sa date d'ouverture ; les valeurs d'épargne saisies sont reprises à leur date."
+                    + (h.otherCurrencies() > 0 ? " Comptes dans une autre devise non comptés : " + h.otherCurrencies() + "." : ""),
+                    "hint");
+            legend.setWrapText(true);
+            body.getChildren().setAll(summary, chart, legend);
+        });
     }
 
     private static String count(int n) {

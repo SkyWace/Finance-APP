@@ -47,6 +47,26 @@ public final class Charts {
         return chart;
     }
 
+    /**
+     * Evolution du patrimoine : total (trait plein epais), epargne (tirets) et comptes
+     * courants (pointilles). Les series se distinguent par leur trait et la legende,
+     * pas seulement par la couleur.
+     */
+    public static LineChart<Number, Number> netWorthChart(com.financeapp.core.service.NetWorthService.History history,
+                                                          Formats formats) {
+        var points = history.points();
+        LineChart<Number, Number> chart = chart(points.getFirst().date().toEpochDay(),
+                points.getLast().date().toEpochDay(), formats);
+        chart.getStyleClass().add("networth-chart");
+        chart.getData().add(series("Patrimoine", points.stream()
+                .map(p -> new ForecastPoint(p.date(), p.total(), false)).toList(), formats, "patrimoine"));
+        chart.getData().add(series("Épargne", points.stream()
+                .map(p -> new ForecastPoint(p.date(), p.savings(), false)).toList(), formats, "épargne"));
+        chart.getData().add(series("Comptes courants", points.stream()
+                .map(p -> new ForecastPoint(p.date(), p.current(), false)).toList(), formats, "comptes courants"));
+        return chart;
+    }
+
     private static LineChart<Number, Number> chart(long from, long to, Formats formats) {
         NumberAxis x = new NumberAxis();
         x.setForceZeroInRange(false);
