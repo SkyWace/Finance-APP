@@ -27,6 +27,7 @@ import java.util.Set;
  *                    elles n'apparaissent jamais comme "en retard"
  * @param splits      ventilation sur plusieurs categories (montants positifs, somme = {@code amount}) ;
  *                    vide : une seule categorie, {@code categoryId}
+ * @param tagIds      etiquettes reprises par chaque occurrence validee (pas pour un virement)
  */
 public record RecurringRule(
         Long id,
@@ -44,14 +45,23 @@ public record RecurringRule(
         boolean certain,
         boolean active,
         String note,
-        List<SplitLine> splits) {
+        List<SplitLine> splits,
+        Set<Long> tagIds) {
 
     /** Regle sans ventilation. */
     public RecurringRule(Long id, long accountId, Long toAccountId, TransactionType type, String label, Money amount,
                          Long categoryId, Frequency frequency, int interval, LocalDate startDate, LocalDate endDate,
                          LocalDate trackedFrom, boolean certain, boolean active, String note) {
         this(id, accountId, toAccountId, type, label, amount, categoryId, frequency, interval, startDate, endDate,
-                trackedFrom, certain, active, note, List.of());
+                trackedFrom, certain, active, note, List.of(), Set.of());
+    }
+
+    /** Regle sans etiquette. */
+    public RecurringRule(Long id, long accountId, Long toAccountId, TransactionType type, String label, Money amount,
+                         Long categoryId, Frequency frequency, int interval, LocalDate startDate, LocalDate endDate,
+                         LocalDate trackedFrom, boolean certain, boolean active, String note, List<SplitLine> splits) {
+        this(id, accountId, toAccountId, type, label, amount, categoryId, frequency, interval, startDate, endDate,
+                trackedFrom, certain, active, note, splits, Set.of());
     }
 
     public RecurringRule {
@@ -86,6 +96,10 @@ public record RecurringRule(
             throw new IllegalArgumentException("Seul un virement a un compte destinataire");
         }
         splits = splits == null ? List.of() : List.copyOf(splits);
+        tagIds = tagIds == null ? Set.of() : Set.copyOf(tagIds);
+        if (type == TransactionType.TRANSFER && !tagIds.isEmpty()) {
+            throw new IllegalArgumentException("Un virement récurrent ne porte pas d'étiquette");
+        }
         if (!splits.isEmpty()) {
             if (type == TransactionType.TRANSFER) {
                 throw new IllegalArgumentException("Un virement récurrent ne se ventile pas");
@@ -181,16 +195,16 @@ public record RecurringRule(
 
     public RecurringRule withId(long newId) {
         return new RecurringRule(newId, accountId, toAccountId, type, label, amount, categoryId, frequency,
-                interval, startDate, endDate, trackedFrom, certain, active, note, splits);
+                interval, startDate, endDate, trackedFrom, certain, active, note, splits, tagIds);
     }
 
     public RecurringRule withTrackedFrom(LocalDate date) {
         return new RecurringRule(id, accountId, toAccountId, type, label, amount, categoryId, frequency,
-                interval, startDate, endDate, date, certain, active, note, splits);
+                interval, startDate, endDate, date, certain, active, note, splits, tagIds);
     }
 
     public RecurringRule withEndDate(LocalDate newEndDate) {
         return new RecurringRule(id, accountId, toAccountId, type, label, amount, categoryId, frequency,
-                interval, startDate, newEndDate, trackedFrom, certain, active, note, splits);
+                interval, startDate, newEndDate, trackedFrom, certain, active, note, splits, tagIds);
     }
 }

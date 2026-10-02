@@ -109,8 +109,20 @@ public final class RecurringPage extends Page {
         String next = ended ? "terminée" : ctx.services().recurring().nextOccurrence(r)
                 .map(d -> "prochaine : " + Formats.date(d)).orElse("aucune échéance à venir");
 
+        String tags = "";
+        if (!r.tagIds().isEmpty()) {
+            Map<Long, String> tagNames = ctx.services().tags().names();
+            tags = r.tagIds().stream().map(id -> tagNames.getOrDefault(id, "")).filter(n -> !n.isEmpty())
+                    .sorted(String.CASE_INSENSITIVE_ORDER).map(n -> "[" + n + "]").collect(Collectors.joining(" "));
+        }
         Label label = Widgets.label(r.label(), "op-label");
         VBox texts = new VBox(2, label, Widgets.label(detail, "op-detail"));
+        if (!tags.isEmpty()) {
+            texts.getChildren().add(Widgets.label("Étiquettes : " + tags, "op-detail"));
+        }
+        // Le texte se raccourcit si la place manque ; les boutons gardent leur largeur.
+        texts.setMinWidth(0);
+        texts.getChildren().forEach(n -> ((Label) n).setMinWidth(0));
         VBox schedule = new VBox(2, Widgets.label(frequency, "op-detail"), Widgets.label(next, "op-detail"));
         schedule.setMinWidth(200);
         HBox badges = new HBox(6);
@@ -145,6 +157,9 @@ public final class RecurringPage extends Page {
                 ctx.events().fireChanged();
             }
         });
+        for (Button b : List.of(edit, stop, delete)) {
+            b.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        }
         HBox row = new HBox(14, texts, Widgets.spacer(), badges, schedule, amount, edit, stop, delete);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("op-row");

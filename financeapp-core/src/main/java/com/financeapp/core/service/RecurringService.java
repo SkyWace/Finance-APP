@@ -175,7 +175,7 @@ public final class RecurringService {
         List<com.financeapp.core.transaction.SplitLine> splits = rule.signedSplitsFor(amount);
         Transaction t = new Transaction(null, rule.accountId(), actualDate, rule.label(), signed, rule.type(), status,
                 splits.isEmpty() ? rule.mainCategoryId() : null, rule.note(), null, null, rule.id(), occurrence,
-                splits, java.util.Set.of());
+                splits, rule.tagIds());
         return List.of(transactions.insert(t));
     }
 }

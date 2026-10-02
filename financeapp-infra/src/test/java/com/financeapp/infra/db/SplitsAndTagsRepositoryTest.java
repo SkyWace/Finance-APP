@@ -142,4 +142,29 @@ class SplitsAndTagsRepositoryTest {
         db.recurring.delete(rule.id());
         assertEquals(0L, db.jdbc.sql("SELECT count(*) FROM recurring_splits").query(Long.class).single(), "cascade");
     }
+
+    @Test
+    void recurringTagsAreStoredAndFollowTheTag() {
+        SqliteTestDb db = new SqliteTestDb(dir, TODAY);
+        Account checking = db.accounts.save(Account.create("Courant", AccountType.CHECKING, Money.eur("3000"), TODAY.minusYears(1)));
+        Set<Long> tags = db.tags.resolve(List.of("Travail", "Remboursable"));
+        var rule = db.recurring.save(new com.financeapp.core.recurring.RecurringRule(null, checking.id(), null,
+                TransactionType.EXPENSE, "Forfait", Money.eur("20"), null, com.financeapp.core.recurring.Frequency.MONTHLY,
+                1, TODAY.withDayOfMonth(20), null, null, false, true, null, List.of(), tags));
+
+        assertEquals(tags, db.ruleRepo.findById(rule.id()).orElseThrow().tagIds());
+        assertEquals(tags, db.ruleRepo.findAll().getFirst().tagIds());
+        Transaction t = db.recurring.confirm(rule.id(), TODAY.withDayOfMonth(20), TODAY.withDayOfMonth(20),
+                new BigDecimal("20")).getFirst();
+        assertEquals(tags, db.transactions.get(t.id()).tagIds(), "l'occurrence validee porte les etiquettes");
+
+        long removed = tags.iterator().next();
+        db.tags.delete(removed);
+        Set<Long> left = db.ruleRepo.findById(rule.id()).orElseThrow().tagIds();
+        assertEquals(1, left.size(), "etiquette supprimee : retiree de la regle, qui est conservee");
+        assertFalse(left.contains(removed));
+
+        db.recurring.delete(rule.id());
+        assertEquals(0L, db.jdbc.sql("SELECT count(*) FROM recurring_tags").query(Long.class).single(), "cascade");
+    }
 }
