@@ -44,18 +44,19 @@ public final class SubscriptionsPage extends Page {
     public void refresh() {
         var service = ctx.services().subscriptions();
         Long account = filter.sync();
-        UiAsync.load(() -> new Data(filtered(service.overview(), account),
+        UiAsync.load(() -> new Data(filtered(service, service.overview(), account),
                 service.detectCandidates().stream().filter(c -> account == null || c.accountId() == account).toList()), this::render);
     }
 
     /** Abonnements preleves sur le compte choisi, totaux recalcules. */
-    private static SubscriptionService.Overview filtered(SubscriptionService.Overview all, Long account) {
+    private static SubscriptionService.Overview filtered(SubscriptionService service, SubscriptionService.Overview all,
+                                                         Long account) {
         if (account == null) {
             return all;
         }
         List<RecurringRule> rules = all.subscriptions().stream().filter(r -> r.accountId() == account).toList();
         var zero = all.monthlyTotal().minus(all.monthlyTotal());
-        var monthly = rules.stream().map(r -> r.monthlyEquivalent().negate()).reduce(zero, (a, b) -> a.plus(b));
+        var monthly = rules.stream().map(r -> service.monthlyCost(r).negate()).reduce(zero, (a, b) -> a.plus(b));
         return new SubscriptionService.Overview(rules, monthly, monthly.multiply(BigDecimal.valueOf(12)));
     }
 
@@ -69,8 +70,8 @@ public final class SubscriptionsPage extends Page {
 
         VBox list = new VBox(2);
         for (RecurringRule r : o.subscriptions()) {
-            var monthly = r.monthlyEquivalent().negate();
-            Label name = Widgets.label(r.label(), "op-label");
+            var monthly = ctx.services().subscriptions().monthlyCost(r).negate(); // ventilee : part abonnement seule
+            Label name = Widgets.label(r.label() + (r.isSplit() ? "  (part abonnement)" : ""), "op-label");
             String next = ctx.services().recurring().nextOccurrence(r).map(d -> " · prochain : " + Formats.date(d)).orElse("");
             VBox texts = new VBox(1, name, Widgets.label(frequency(r) + next, "op-detail"));
             Label perMonth = Widgets.label(f.money(monthly) + " /mois", "op-label");

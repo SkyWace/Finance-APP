@@ -82,7 +82,6 @@ public final class BudgetService implements ReservationProvider {
         List<Transaction> counted = transactions.findCounted(month.atDay(1), month.atEndOfMonth());
         boolean current = month.equals(YearMonth.from(planning.today()));
         List<PlannedItem> upcoming = current ? planning.upcoming(month.atEndOfMonth()) : List.of();
-        Map<Long, List<SplitLine>> plannedSplits = current ? splitsOfPlanned(month.atEndOfMonth()) : Map.of();
         List<BudgetProgress> result = new ArrayList<>();
         for (Budget b : budgets.findAll()) {
             if (!b.active()) {
@@ -90,7 +89,7 @@ public final class BudgetService implements ReservationProvider {
             }
             Set<Long> scope = categories.selfAndChildren(b.categoryId());
             Money spent = spent(counted, scope, currency);
-            Money planned = plannedByMonth(upcoming, plannedSplits, scope, currency,
+            Money planned = plannedByMonth(upcoming, scope, currency,
                     planning.today(), month.atEndOfMonth())
                     .getOrDefault(month, Money.zero(currency));
             result.add(engine.progress(b, names.getOrDefault(b.categoryId(), "?"), spent, planned));
@@ -111,25 +110,13 @@ public final class BudgetService implements ReservationProvider {
         YearMonth month = YearMonth.from(today);
         List<Transaction> counted = transactions.findCounted(month.atDay(1), month.atEndOfMonth());
         List<PlannedItem> upcoming = planning.upcoming(horizonEnd);
-        Map<Long, List<SplitLine>> plannedSplits = splitsOfPlanned(horizonEnd);
         Map<Long, String> names = categories.fullNames();
         for (Budget b : reserved) {
             Set<Long> scope = categories.selfAndChildren(b.categoryId());
             Money amount = engine.reservation(b, spent(counted, scope, currency),
-                    plannedByMonth(upcoming, plannedSplits, scope, currency, today, horizonEnd), today, horizonEnd);
+                    plannedByMonth(upcoming, scope, currency, today, horizonEnd), today, horizonEnd);
             result.add(new Reservation("Budget " + names.getOrDefault(b.categoryId(), "?") + " (reste)",
                     amount, Reservation.Kind.BUDGET));
-        }
-        return result;
-    }
-
-    /** Ventilation des operations prevues (saisies), par identifiant d'operation. */
-    private Map<Long, List<SplitLine>> splitsOfPlanned(LocalDate until) {
-        Map<Long, List<SplitLine>> result = new HashMap<>();
-        for (Transaction t : transactions.findPlannedUntil(until)) {
-            if (t.isSplit()) {
-                result.put(t.id(), t.splits());
-            }
         }
         return result;
     }
@@ -145,8 +132,7 @@ public final class BudgetService implements ReservationProvider {
     }
 
     /** Depenses prevues de la categorie jusqu'a {@code until}, par mois ; les retards comptent pour le mois en cours. */
-    private static Map<YearMonth, Money> plannedByMonth(List<PlannedItem> items, Map<Long, List<SplitLine>> splitsOfPlanned,
-                                                       Set<Long> scope, Currency currency,
+    private static Map<YearMonth, Money> plannedByMonth(List<PlannedItem> items, Set<Long> scope, Currency currency,
                                                        LocalDate today, LocalDate until) {
         Map<YearMonth, Money> result = new HashMap<>();
         for (PlannedItem i : items) {
@@ -154,16 +140,10 @@ public final class BudgetService implements ReservationProvider {
                 continue;
             }
             Money part = Money.zero(currency);
-            List<SplitLine> plannedSplits = i.transactionId() == null ? List.of()
-                    : splitsOfPlanned.getOrDefault(i.transactionId(), List.of());
-            if (!plannedSplits.isEmpty()) { // operation prevue ventilee : seulement la part de la categorie
-                for (SplitLine share : plannedSplits) {
-                    if (share.categoryId() != null && scope.contains(share.categoryId())) {
-                        part = part.plus(share.amount().negate());
-                    }
+            for (SplitLine share : i.categoryShares()) { // operation ou recurrence ventilee : part de la categorie
+                if (share.categoryId() != null && scope.contains(share.categoryId())) {
+                    part = part.plus(share.amount().negate());
                 }
-            } else if (i.categoryId() != null && scope.contains(i.categoryId())) {
-                part = i.amount().negate();
             }
             if (part.isZero()) {
                 continue;

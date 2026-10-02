@@ -16,6 +16,7 @@ import java.util.Objects;
  * @param transactionId     renseigne si {@code source == PLANNED_TRANSACTION}
  * @param recurringId       renseigne si {@code source == RECURRING}
  * @param certain           revenu juge suffisamment certain
+ * @param splits            ventilation signee comme {@code amount} (vide : une seule categorie)
  */
 public record PlannedItem(
         LocalDate date,
@@ -28,7 +29,14 @@ public record PlannedItem(
         Long transactionId,
         Long recurringId,
         Long transferAccountId,
-        boolean certain) {
+        boolean certain,
+        java.util.List<com.financeapp.core.transaction.SplitLine> splits) {
+
+    public PlannedItem(LocalDate date, long accountId, String label, Money amount, TransactionType type, Long categoryId,
+                       Source source, Long transactionId, Long recurringId, Long transferAccountId, boolean certain) {
+        this(date, accountId, label, amount, type, categoryId, source, transactionId, recurringId, transferAccountId,
+                certain, java.util.List.of());
+    }
 
     public enum Source { PLANNED_TRANSACTION, RECURRING }
 
@@ -37,6 +45,12 @@ public record PlannedItem(
         Objects.requireNonNull(amount, "amount");
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(source, "source");
+        splits = splits == null ? java.util.List.of() : java.util.List.copyOf(splits);
+    }
+
+    /** Repartition par categorie : la ventilation, ou une part unique. */
+    public java.util.List<com.financeapp.core.transaction.SplitLine> categoryShares() {
+        return splits.isEmpty() ? java.util.List.of(new com.financeapp.core.transaction.SplitLine(categoryId, amount)) : splits;
     }
 
     public boolean isOverdue(LocalDate today) {

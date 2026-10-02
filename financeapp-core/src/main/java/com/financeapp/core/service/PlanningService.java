@@ -45,7 +45,7 @@ public final class PlanningService {
         List<PlannedItem> items = new ArrayList<>();
         for (Transaction t : transactions.findPlannedUntil(until)) {
             items.add(new PlannedItem(t.date(), t.accountId(), t.label(), t.amount(), t.type(), t.categoryId(),
-                    PlannedItem.Source.PLANNED_TRANSACTION, t.id(), null, t.transferAccountId(), true));
+                    PlannedItem.Source.PLANNED_TRANSACTION, t.id(), null, t.transferAccountId(), true, t.splits()));
         }
         items.addAll(recurring.pendingOccurrences(today.minusDays(RECURRING_OVERDUE_DAYS), until));
         items.sort(Comparator.comparing(PlannedItem::date).thenComparing(i -> i.amount().amount()));

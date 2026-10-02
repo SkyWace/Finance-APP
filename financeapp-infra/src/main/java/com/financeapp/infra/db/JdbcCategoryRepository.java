@@ -80,6 +80,7 @@ public final class JdbcCategoryRepository implements CategoryRepository {
         return jdbc.sql("""
                         SELECT (SELECT count(*) FROM transactions WHERE category_id = :id)
                              + (SELECT count(*) FROM transaction_splits WHERE category_id = :id)
+                             + (SELECT count(*) FROM recurring_splits WHERE category_id = :id)
                              + (SELECT count(*) FROM recurring_transactions WHERE category_id = :id)
                              + (SELECT count(*) FROM categories WHERE parent_id = :id)
                         """)
