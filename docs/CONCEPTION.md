@@ -87,6 +87,11 @@ microservices : rien ne le justifie.
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
+S'y ajoute `financeapp-banksync` (V5), **seul module qui accède au réseau** :
+synchronisation bancaire facultative (Enable Banking) et liste publique des
+versions (`GitHubReleaseFeed`), toutes deux désactivées par défaut. Il implémente
+des ports du cœur (`BankSyncClientFactory`, `ReleaseFeed`).
+
 - **Le domaine ne dépend pas de JavaFX** (garanti par le build : le module
   `core` n'a aucune dépendance de compilation).
 - Les calculs financiers sont testables en JUnit pur, avec une `Clock`
@@ -128,6 +133,8 @@ microservices : rien ne le justifie.
 
 ## 5. Arborescence Maven
 
+État du MVP ; les ajouts ultérieurs sont listés après l'arborescence.
+
 ```
 financeapp/
 ├── pom.xml                          (parent : versions, plugins)
@@ -161,6 +168,22 @@ financeapp/
         │   └── ui/  MainWindow, pages/*, dialogs/*, common/*
         └── resources/  application.properties, logback-spring.xml, css/theme.css
 ```
+
+Ajouts depuis le MVP :
+
+- `financeapp-core` : `budget/`, `goal/` (V2), `imports/`, `categorization/`,
+  `stats/` (V3), `loan/`, `simulation/` (V4), `banksync/` (V5), `calendar/`,
+  `subscription/`, `export/` (CSV), `tag/` (étiquettes), `update/` (nouvelles
+  versions), `text/` ; `settings/MenuLayout` (barre latérale).
+- `financeapp-infra` : `security/` (mot de passe maître, trousseau, V1.1) ;
+  migrations `V3` à `V9` (budgets et objectifs, imports et règles, crédits et
+  simulations, synchronisation, produits d'épargne, ventilation et étiquettes,
+  récurrences ventilées).
+- `financeapp-banksync` : client Enable Banking (`EnableBankingClient`,
+  `JwtSigner`, `PemKeys`) et `update/GitHubReleaseFeed`.
+- `financeapp-desktop` : `ui/security/` (déverrouillage, profils),
+  `theme-light.css` ; `packaging/` (jlink, jpackage, icône) et
+  `.github/workflows/` (installateur, notes de release) à la racine.
 
 ## 6. Schéma SQLite (V1)
 
@@ -267,8 +290,9 @@ Définitions retenues :
   ne redéfinit que ces tokens. Les états ne sont jamais
   communiqués par la seule couleur : signe `+`/`−`, libellés, icônes.
 - **Navigation latérale** : Tableau de bord · Comptes · Transactions · À venir
-  · Récurrences · Disponible · Prévisions · Catégories · Paramètres. Les
-  entrées V2+ (Budgets, Calendrier…) s'ajouteront au même endroit.
+  · Calendrier · Épargne · Disponible réel · Récurrences · Abonnements · Import
+  · Synchronisation · Règles · Catégories · Paramètres, plus les menus
+  facultatifs ; ordre et choix des menus modifiables (section 18).
 - **Tableau de bord** : rangée de cartes (Patrimoine, Comptes courants,
   Épargne, **Disponible réel** cliquable, Revenus du mois, Dépenses du mois,
   À venir), graphique de prévision 30 jours, liste des prochaines opérations,
@@ -279,7 +303,8 @@ Définitions retenues :
   (pointillée), 7 j / 30 j / 90 j, point bas signalé.
 - **Mode confidentialité** : `Ctrl+M` (ou bouton) remplace tous les
   montants par `•••••• €`.
-- **Raccourcis** : `Ctrl+N` nouvelle transaction, `Ctrl+1…9` navigation.
+- **Raccourcis** : `Ctrl+N` nouvelle transaction, `Ctrl+M` montants masqués,
+  `Ctrl+L` verrouillage, `Ctrl+1…9` navigation (menus affichés, dans l'ordre).
 
 ## 10. Étapes du MVP
 
@@ -593,9 +618,9 @@ ou « il manquerait X €/mois », en texte et symbole).
 - Les simulations raisonnent sur les comptes inclus dans le disponible et dans
   la devise de référence.
 
-## 15. V5 — Synchronisation bancaire : étude uniquement
+## 15. V5 — Synchronisation bancaire : étude puis prototype
 
-Aucune implémentation, conformément au cahier des charges. L'étude
+D'abord étudiée sans implémentation, conformément au cahier des charges. L'étude
 (cadre DSP2, options, fournisseurs, architecture envisagée, menaces, points à
 trancher) est dans [`ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](ETUDE-V5-SYNCHRONISATION-BANCAIRE.md).
 Recommandation : prototype facultatif via un agrégateur agréé utilisé avec les
@@ -641,8 +666,15 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   vide (mot de passe maître, clé de récupération, tableau de bord, formats
   français) : ce test a révélé un plantage du disponible réel sans aucun compte
   (tri d'une liste immuable), corrigé et couvert par `FirstRunTest`.
+- **Publication d'une version** : notes rédigées dans
+  `docs/releases/vX.Y.Z.md` ; commit « Version X.Y.Z » (poms sans `-SNAPSHOT`),
+  puis version de développement suivante ; étiquette `vX.Y.Z` sur le commit de
+  version. Le workflow construit le `.msi` et publie la release avec ce texte
+  (`release-notes.yml` permet de le remplacer après coup). Les versions
+  publiées (ni brouillon, ni préversion) sont celles que signale la recherche
+  de nouvelles versions (section 22).
 - **Non couvert** : signature de code (certificat Authenticode requis pour
-  éviter l'avertissement SmartScreen), paquet macOS.
+  éviter l'avertissement SmartScreen), paquet macOS, mise à jour automatique.
 
 ## 17. Épargne détenue et filtres par compte
 
