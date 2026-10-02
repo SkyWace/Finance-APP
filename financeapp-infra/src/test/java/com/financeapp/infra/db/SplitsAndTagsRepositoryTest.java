@@ -113,4 +113,33 @@ class SplitsAndTagsRepositoryTest {
         assertEquals(1200, all.size());
         assertTrue(all.stream().allMatch(t -> t.tagIds().equals(tag)));
     }
+
+    @Test
+    void recurringSplitsAreStoredAndProtectTheirCategories() {
+        SqliteTestDb db = new SqliteTestDb(dir, TODAY);
+        Account checking = db.accounts.save(Account.create("Courant", AccountType.CHECKING, Money.eur("3000"), TODAY.minusYears(1)));
+        Category rent = db.categories.create(null, "Test loyer", CategoryKind.EXPENSE);
+        Category charges = db.categories.create(null, "Test charges", CategoryKind.EXPENSE);
+        var rule = db.recurring.save(new com.financeapp.core.recurring.RecurringRule(null, checking.id(), null,
+                TransactionType.EXPENSE, "Loyer", Money.eur("800"), null, com.financeapp.core.recurring.Frequency.MONTHLY,
+                1, TODAY.withDayOfMonth(20), null, null, true, true, null,
+                List.of(new com.financeapp.core.transaction.SplitLine(rent.id(), Money.eur("700")),
+                        new com.financeapp.core.transaction.SplitLine(charges.id(), Money.eur("100")))));
+
+        var read = db.ruleRepo.findById(rule.id()).orElseThrow();
+        assertEquals(List.of(rent.id(), charges.id()), read.splits().stream().map(l -> l.categoryId()).toList());
+        assertEquals(Money.eur("700"), read.splits().getFirst().amount());
+        assertNull(read.categoryId());
+        assertEquals(1, db.ruleRepo.findAll().size());
+        assertThrows(BusinessException.class, () -> db.categories.delete(charges.id()), "utilisee dans une ventilation");
+
+        Transaction t = db.recurring.confirm(rule.id(), TODAY.withDayOfMonth(20), TODAY.withDayOfMonth(20),
+                new BigDecimal("800")).getFirst();
+        assertEquals(2, db.transactions.get(t.id()).splits().size(), "l'occurrence validee est ventilee");
+
+        db.recurring.save(read.withEndDate(TODAY.plusMonths(6)));
+        assertEquals(2, db.ruleRepo.findById(rule.id()).orElseThrow().splits().size(), "conservee a la modification");
+        db.recurring.delete(rule.id());
+        assertEquals(0L, db.jdbc.sql("SELECT count(*) FROM recurring_splits").query(Long.class).single(), "cascade");
+    }
 }

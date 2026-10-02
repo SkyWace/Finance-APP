@@ -78,7 +78,7 @@ public final class SqliteTestDb {
         accountRepo = new JdbcAccountRepository(jdbc);
         categoryRepo = new JdbcCategoryRepository(jdbc);
         transactionRepo = new JdbcTransactionRepository(jdbc, tx);
-        ruleRepo = new JdbcRecurringRuleRepository(jdbc);
+        ruleRepo = new JdbcRecurringRuleRepository(jdbc, tx);
         settingsRepo = new JdbcSettingsRepository(jdbc);
         clock = Clock.fixed(today.atTime(10, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
         settings = new SettingsService(settingsRepo);

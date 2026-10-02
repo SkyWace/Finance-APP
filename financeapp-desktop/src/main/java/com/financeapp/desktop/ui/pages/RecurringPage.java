@@ -100,6 +100,9 @@ public final class RecurringPage extends Page {
         String account = accounts.containsKey(r.accountId()) ? accounts.get(r.accountId()).name() : "?";
         String detail = r.type() == TransactionType.TRANSFER
                 ? account + " → " + (accounts.containsKey(r.toAccountId()) ? accounts.get(r.toAccountId()).name() : "?")
+                : r.isSplit() ? "Ventilée : " + r.splits().stream()
+                        .map(l -> shortName(categories.getOrDefault(l.categoryId(), "Sans catégorie")))
+                        .collect(Collectors.joining(" + ")) + " · " + account
                 : (r.categoryId() == null ? account : categories.getOrDefault(r.categoryId(), "") + " · " + account);
         String frequency = r.frequency().isCustom()
                 ? r.frequency().label().replace("N", Integer.toString(r.interval())) : r.frequency().label();
@@ -163,5 +166,10 @@ public final class RecurringPage extends Page {
 
     private void edit(RecurringRule r) {
         new RecurringDialog(ctx, r).showAndWait().ifPresent(saved -> ctx.events().fireChanged());
+    }
+
+    private static String shortName(String fullName) {
+        int arrow = fullName.lastIndexOf(" › ");
+        return arrow < 0 ? fullName : fullName.substring(arrow + 3);
     }
 }

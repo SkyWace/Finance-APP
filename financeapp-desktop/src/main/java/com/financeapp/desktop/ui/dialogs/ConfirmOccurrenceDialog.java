@@ -29,6 +29,14 @@ public final class ConfirmOccurrenceDialog extends FormDialog<List<Transaction>>
         addFullRow(what);
         addRow("Date réelle", date);
         addRow("Montant réel", amount);
+        if (!item.splits().isEmpty()) {
+            Label hint = Widgets.label("Cette récurrence est ventilée sur " + item.splits().size() + " catégories. Si le "
+                    + "montant réel diffère, chaque part est ajustée au prorata ; vous pourrez la corriger ensuite dans "
+                    + "Transactions.", "hint");
+            hint.setWrapText(true);
+            hint.setMaxWidth(440);
+            addFullRow(hint);
+        }
         setOnShown(e -> amount.requestFocus());
     }
 

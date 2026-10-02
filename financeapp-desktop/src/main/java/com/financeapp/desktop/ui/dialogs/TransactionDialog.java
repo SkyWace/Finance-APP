@@ -7,6 +7,7 @@ import com.financeapp.core.transaction.TransactionType;
 import com.financeapp.desktop.ui.common.AmountParser;
 import com.financeapp.desktop.ui.common.Choice;
 import com.financeapp.desktop.ui.common.FormDialog;
+import com.financeapp.desktop.ui.common.SplitEditor;
 import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
 import javafx.scene.control.Button;
@@ -49,22 +50,17 @@ public final class TransactionDialog extends FormDialog<Transaction> {
     private final ComboBox<TransactionStatus> status = new ComboBox<>();
     private final TextArea note = new TextArea();
     private final Button splitButton = new Button("Ventiler…");
-    private final VBox splitEditor = new VBox(6);
-    private final VBox splitLines = new VBox(6);
-    private final Label splitStatus = Widgets.label("", "op-detail");
-    private final List<SplitRow> rows = new ArrayList<>();
+    private final SplitEditor splitEditor;
     private final TextField tags = new TextField();
     private final FlowPane tagSuggestions = new FlowPane(6, 6);
     private boolean statusTouched;
 
-    /** Ligne de l'editeur de ventilation. */
-    private record SplitRow(HBox node, ComboBox<Choice<Long>> category, TextField amount) {
-    }
 
     public TransactionDialog(UiContext ctx, Transaction existing, TransactionType initialType, Long accountId) {
         super(ctx, existing == null ? "Nouvelle opération" : "Modifier l'opération", "Enregistrer");
         this.existing = existing;
         LocalDate today = ctx.services().planning().today();
+        splitEditor = new SplitEditor(this::categoryChoices, amount::getText, this::fitToContent, this::stopSplit);
 
         ToggleGroup group = new ToggleGroup();
         expenseToggle.setToggleGroup(group);
@@ -113,21 +109,11 @@ public final class TransactionDialog extends FormDialog<Transaction> {
                 "Répartir le montant sur plusieurs catégories (ex. courses 90 € + maison 30 €)"));
         splitButton.setOnAction(e -> startSplit());
         HBox.setHgrow(category, Priority.ALWAYS);
-        Button addLine = new Button("+  Ajouter une ligne");
-        addLine.getStyleClass().addAll("ghost", "compact");
-        addLine.setOnAction(e -> addSplitRow(null, ""));
-        Button cancelSplit = new Button("Ne pas ventiler");
-        cancelSplit.getStyleClass().addAll("ghost", "compact");
-        cancelSplit.setOnAction(e -> stopSplit());
-        splitEditor.getChildren().setAll(splitLines, Widgets.row(addLine, cancelSplit, Widgets.spacer(), splitStatus));
-        splitEditor.getStyleClass().add("split-editor");
-        splitEditor.setVisible(false);
-        splitEditor.managedProperty().bind(splitEditor.visibleProperty());
-        amount.textProperty().addListener((o, a, b) -> updateSplitStatus());
+        amount.textProperty().addListener((o, a, b) -> splitEditor.totalChanged());
         if (existing != null && existing.isSplit()) {
             Widgets.select(category, null);
-            showSplitEditor(true);
-            existing.splits().forEach(l -> addSplitRow(l.categoryId(), AmountParser.toEditable(l.amount().abs().amount())));
+            showSplit(existing.splits().stream()
+                    .map(l -> new SplitEditor.Line(l.categoryId(), l.amount().abs().amount())).toList());
         }
 
         // Etiquettes
@@ -153,7 +139,7 @@ public final class TransactionDialog extends FormDialog<Transaction> {
         addRow("Libellé", label);
         addRow("Montant", amount);
         addRow("Catégorie", new HBox(8, category, splitButton));
-        addFullRow(splitEditor);
+        addFullRow(splitEditor.node());
         addRow("Statut", status);
         addRow("Étiquettes", new VBox(6, tags, tagSuggestions));
         addRow("Commentaire", note);
@@ -167,10 +153,8 @@ public final class TransactionDialog extends FormDialog<Transaction> {
         if (category.getValue() == null) {
             category.getSelectionModel().selectFirst();
         }
-        for (SplitRow r : rows) {
-            Long value = Widgets.selected(r.category());
-            r.category().getItems().setAll(categoryChoices(value));
-            Widgets.select(r.category(), value);
+        if (splitEditor != null) {
+            splitEditor.refreshChoices();
         }
     }
 
@@ -182,83 +166,26 @@ public final class TransactionDialog extends FormDialog<Transaction> {
 
     /** Passe en ventilation : la categorie choisie garde tout le montant, une ligne vide est ajoutee. */
     private void startSplit() {
-        Long current = Widgets.selected(category);
-        showSplitEditor(true);
-        addSplitRow(current, amount.getText());
-        addSplitRow(null, "");
-        rows.getLast().amount().requestFocus();
+        BigDecimal total = AmountParser.parse(amount.getText()).map(BigDecimal::abs).orElse(null);
+        showSplit(List.of(new SplitEditor.Line(Widgets.selected(category), total), new SplitEditor.Line(null, null)));
+    }
+
+    private void showSplit(List<SplitEditor.Line> lines) {
+        category.setVisible(false);
+        category.setManaged(false);
+        splitButton.setVisible(false);
+        splitButton.setManaged(false);
+        splitEditor.open(lines);
     }
 
     /** Retour a une seule categorie : celle de la premiere ligne. */
     private void stopSplit() {
-        Long first = rows.isEmpty() ? null : Widgets.selected(rows.getFirst().category());
-        rows.clear();
-        splitLines.getChildren().clear();
-        showSplitEditor(false);
+        Long first = splitEditor.close();
+        category.setVisible(true);
+        category.setManaged(true);
+        splitButton.setVisible(true);
+        splitButton.setManaged(true);
         Widgets.select(category, first);
-    }
-
-    private void showSplitEditor(boolean on) {
-        splitEditor.setVisible(on);
-        category.setVisible(!on);
-        category.setManaged(!on);
-        splitButton.setVisible(!on);
-        splitButton.setManaged(!on);
-        fitToContent();
-    }
-
-    private void addSplitRow(Long categoryId, String value) {
-        ComboBox<Choice<Long>> combo = new ComboBox<>();
-        combo.getItems().setAll(categoryChoices(categoryId));
-        Widgets.select(combo, categoryId);
-        if (combo.getValue() == null) {
-            combo.getSelectionModel().selectFirst();
-        }
-        combo.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(combo, Priority.ALWAYS);
-        TextField part = new TextField(value);
-        part.setPromptText("0,00");
-        part.setPrefColumnCount(8);
-        part.textProperty().addListener((o, a, b) -> updateSplitStatus());
-        Button remove = new Button("✕");
-        remove.getStyleClass().addAll("ghost", "compact");
-        remove.setTooltip(new javafx.scene.control.Tooltip("Retirer cette ligne"));
-        HBox node = new HBox(8, combo, part, remove);
-        node.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        SplitRow row = new SplitRow(node, combo, part);
-        remove.setOnAction(e -> {
-            rows.remove(row);
-            splitLines.getChildren().remove(node);
-            updateSplitStatus();
-            fitToContent();
-        });
-        rows.add(row);
-        splitLines.getChildren().add(node);
-        updateSplitStatus();
-        fitToContent();
-    }
-
-    /** "Reste a repartir", "Ventilation complete" ou "Depassement", en texte (pas seulement en couleur). */
-    private void updateSplitStatus() {
-        if (!splitEditor.isVisible()) {
-            return;
-        }
-        BigDecimal total = AmountParser.parse(amount.getText()).map(BigDecimal::abs).orElse(BigDecimal.ZERO);
-        BigDecimal sum = BigDecimal.ZERO;
-        for (SplitRow r : rows) {
-            sum = sum.add(AmountParser.parse(r.amount().getText()).map(BigDecimal::abs).orElse(BigDecimal.ZERO));
-        }
-        BigDecimal gap = total.subtract(sum);
-        splitStatus.getStyleClass().removeAll("amount-negative", "amount-positive");
-        if (gap.signum() == 0 && total.signum() > 0) {
-            splitStatus.setText("✓  Ventilation complète");
-            splitStatus.getStyleClass().add("amount-positive");
-        } else if (gap.signum() > 0) {
-            splitStatus.setText("Reste à répartir : " + AmountParser.toEditable(gap));
-        } else {
-            splitStatus.setText("⚠  Dépassement : " + AmountParser.toEditable(gap.negate()));
-            splitStatus.getStyleClass().add("amount-negative");
-        }
     }
 
     // -------------------------------------------------------------- etiquettes
@@ -293,19 +220,9 @@ public final class TransactionDialog extends FormDialog<Transaction> {
         if (label.getText() == null || label.getText().isBlank()) {
             throw new com.financeapp.core.service.BusinessException("Le libellé est obligatoire");
         }
-        List<TransactionDraft.Split> splits = new ArrayList<>();
-        if (splitEditor.isVisible()) {
-            for (SplitRow r : rows) {
-                if (r.amount().getText().isBlank()) {
-                    continue; // ligne laissee vide
-                }
-                splits.add(new TransactionDraft.Split(Widgets.selected(r.category()), requireAmount(r.amount(), false)));
-            }
-            if (splits.size() < 2) {
-                throw new com.financeapp.core.service.BusinessException(
-                        "Une ventilation comporte au moins deux lignes avec un montant (ou choisissez « Ne pas ventiler »)");
-            }
-        }
+        List<TransactionDraft.Split> splits = splitEditor.isActive()
+                ? splitEditor.lines().stream().map(l -> new TransactionDraft.Split(l.categoryId(), l.amount())).toList()
+                : List.of();
         Set<Long> tagIds = ctx.services().tags().resolve(typedTags());
         TransactionDraft draft = new TransactionDraft(
                 require(Widgets.selected(account), "Choisissez un compte"),

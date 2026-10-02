@@ -119,7 +119,11 @@ public final class UpcomingPage extends Page {
             // Jambe creditrice (vue du compte qui recoit) : l'origine est l'autre compte.
             detail = i.amount().isPositive() ? otherName + " → " + account : account + " → " + otherName;
         } else {
-            String cat = i.categoryId() == null ? "" : categories.getOrDefault(i.categoryId(), "");
+            String cat = !i.splits().isEmpty() ? "Ventilée : " + i.splits().stream()
+                    .map(l -> { String n = categories.getOrDefault(l.categoryId(), "Sans catégorie");
+                                int a = n.lastIndexOf(" › "); return a < 0 ? n : n.substring(a + 3); })
+                    .collect(Collectors.joining(" + "))
+                    : i.categoryId() == null ? "" : categories.getOrDefault(i.categoryId(), "");
             detail = cat.isEmpty() ? account : cat + " · " + account;
         }
         Label source = i.source() == PlannedItem.Source.RECURRING

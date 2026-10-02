@@ -8,6 +8,7 @@ import com.financeapp.core.transaction.TransactionType;
 import com.financeapp.desktop.ui.common.AmountParser;
 import com.financeapp.desktop.ui.common.Choice;
 import com.financeapp.desktop.ui.common.FormDialog;
+import com.financeapp.desktop.ui.common.SplitEditor;
 import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
 import javafx.scene.control.CheckBox;
@@ -35,6 +36,9 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
     private final CheckBox certain = new CheckBox("Revenu suffisamment certain pour être compté dans le disponible réel");
     private final CheckBox active = new CheckBox("Récurrence active");
     private final TextField note = new TextField();
+    private final javafx.scene.control.Button splitButton = new javafx.scene.control.Button("Ventiler…");
+    private final javafx.scene.layout.HBox categoryBox = new javafx.scene.layout.HBox(8);
+    private final SplitEditor splitEditor;
 
     /** @param existing regle a modifier, ou modele pre-rempli sans identifiant (creation), ou {@code null} */
     public RecurringDialog(UiContext ctx, RecurringRule existing) {
@@ -42,6 +46,16 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
                 "Enregistrer");
         this.existing = existing;
         var accounts = ctx.services().accounts().findAll();
+        splitEditor = new SplitEditor(keep -> Widgets.categoryChoices(ctx.services().categories().activeTree(),
+                Widgets.selected(type) == TransactionType.INCOME, keep), amount::getText, this::fitToContent, this::stopSplit);
+        splitButton.getStyleClass().addAll("ghost", "compact");
+        splitButton.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        splitButton.setTooltip(new javafx.scene.control.Tooltip(
+                "Répartir le montant sur plusieurs catégories (ex. loyer 700 € + charges 100 €)"));
+        splitButton.setOnAction(e -> startSplit());
+        javafx.scene.layout.HBox.setHgrow(category, javafx.scene.layout.Priority.ALWAYS);
+        categoryBox.getChildren().setAll(category, splitButton);
+        amount.textProperty().addListener((o, a, b) -> splitEditor.totalChanged());
 
         type.getItems().setAll(
                 new Choice<>(TransactionType.EXPENSE, "Dépense"),
@@ -87,7 +101,8 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
         addOptionalRow("Vers le compte", toAccount);
         addRow("Libellé", label);
         addRow("Montant", amount);
-        addOptionalRow("Catégorie", category);
+        addOptionalRow("Catégorie", categoryBox);
+        addFullRow(splitEditor.node());
         addRow("Fréquence", frequency);
         addOptionalRow("Intervalle (N)", interval);
         addRow("Première échéance", start);
@@ -98,6 +113,10 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
         updateVisibility();
         if (existing != null) {
             Widgets.select(category, existing.categoryId());
+            if (existing.isSplit()) {
+                showSplit(existing.splits().stream()
+                        .map(l -> new SplitEditor.Line(l.categoryId(), l.amount().amount())).toList());
+            }
         }
         setOnShown(e -> label.requestFocus());
     }
@@ -106,7 +125,10 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
         TransactionType t = Widgets.selected(type);
         boolean transfer = t == TransactionType.TRANSFER;
         toAccount.setVisible(transfer);
-        category.setVisible(!transfer);
+        if (transfer && splitEditor.isActive()) {
+            stopSplit(); // un virement ne se ventile pas
+        }
+        categoryBox.setVisible(!transfer);
         certain.setVisible(t == TransactionType.INCOME);
         certain.setManaged(t == TransactionType.INCOME);
         interval.setVisible(frequency.getValue() != null && frequency.getValue().isCustom());
@@ -117,6 +139,29 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
         if (category.getValue() == null) {
             category.getSelectionModel().selectFirst();
         }
+        splitEditor.refreshChoices();
+    }
+
+    private void startSplit() {
+        java.math.BigDecimal total = AmountParser.parse(amount.getText()).map(java.math.BigDecimal::abs).orElse(null);
+        showSplit(java.util.List.of(new SplitEditor.Line(Widgets.selected(category), total), new SplitEditor.Line(null, null)));
+    }
+
+    private void showSplit(java.util.List<SplitEditor.Line> lines) {
+        category.setVisible(false);
+        category.setManaged(false);
+        splitButton.setVisible(false);
+        splitButton.setManaged(false);
+        splitEditor.open(lines);
+    }
+
+    private void stopSplit() {
+        Long first = splitEditor.close();
+        category.setVisible(true);
+        category.setManaged(true);
+        splitButton.setVisible(true);
+        splitButton.setManaged(true);
+        Widgets.select(category, first);
     }
 
     @Override
@@ -132,14 +177,30 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
         if (label.getText().isBlank()) {
             throw new BusinessException("Le libellé est obligatoire");
         }
+        Money total = Money.of(requireAmount(amount, false), acc.currency());
+        java.util.List<com.financeapp.core.transaction.SplitLine> splits = java.util.List.of();
+        if (t != TransactionType.TRANSFER && splitEditor.isActive()) {
+            splits = splitEditor.lines().stream()
+                    .map(l -> new com.financeapp.core.transaction.SplitLine(l.categoryId(), Money.of(l.amount(), acc.currency())))
+                    .toList();
+            Money sum = splits.stream().map(com.financeapp.core.transaction.SplitLine::amount)
+                    .reduce(Money.zero(acc.currency()), Money::plus);
+            if (!sum.equals(total)) {
+                Money gap = total.minus(sum);
+                throw new BusinessException("La ventilation (" + AmountParser.toEditable(sum.amount()) + ") ne correspond pas "
+                        + "au montant (" + AmountParser.toEditable(total.amount()) + ") : "
+                        + (gap.isPositive() ? "reste " + AmountParser.toEditable(gap.amount()) + " à répartir"
+                                            : "dépassement de " + AmountParser.toEditable(gap.negate().amount())));
+            }
+        }
         RecurringRule rule = new RecurringRule(
                 existing == null ? null : existing.id(),
                 accountId,
                 t == TransactionType.TRANSFER ? require(Widgets.selected(toAccount), "Choisissez le compte destinataire") : null,
                 t,
                 label.getText(),
-                Money.of(requireAmount(amount, false), acc.currency()),
-                t == TransactionType.TRANSFER ? null : Widgets.selected(category),
+                total,
+                t == TransactionType.TRANSFER || !splits.isEmpty() ? null : Widgets.selected(category),
                 require(frequency.getValue(), "Choisissez une fréquence"),
                 interval.getValue() == null ? 1 : interval.getValue(),
                 startDate,
@@ -147,7 +208,8 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
                 existing == null ? null : existing.trackedFrom(),
                 t != TransactionType.INCOME || certain.isSelected(),
                 active.isSelected(),
-                note.getText().isBlank() ? null : note.getText().strip());
+                note.getText() == null || note.getText().isBlank() ? null : note.getText().strip(),
+                splits);
         return ctx.services().recurring().save(rule);
     }
 }

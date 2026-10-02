@@ -17,6 +17,9 @@ public final class SettingsService {
     static final String AUTO_LOCK_MINUTES = "security.auto_lock_minutes";
     static final String DISMISSED_PAYMENTS = "subscriptions.dismissed";
     static final String OPTIONAL_MENUS = "ui.optional_menus";
+    static final String UPDATE_CHECK = "update.check_enabled";
+    static final String UPDATE_LAST_CHECK = "update.last_check";
+    static final String UPDATE_IGNORED = "update.ignored_version";
 
     public static final int MIN_BACKUPS_KEPT = 2;
 
@@ -126,6 +129,35 @@ public final class SettingsService {
 
     public void setEnabledOptionalMenus(java.util.Set<String> ids) {
         repository.put(OPTIONAL_MENUS, String.join(",", new java.util.TreeSet<>(ids)));
+    }
+
+    /** Verification des nouvelles versions a l'ouverture ; desactivee par defaut (aucune connexion). */
+    public boolean updateCheckEnabled() {
+        return bool(UPDATE_CHECK, false);
+    }
+
+    public void setUpdateCheckEnabled(boolean value) {
+        repository.put(UPDATE_CHECK, Boolean.toString(value));
+    }
+
+    public java.util.Optional<java.time.LocalDate> lastUpdateCheck() {
+        try {
+            return repository.get(UPDATE_LAST_CHECK).map(java.time.LocalDate::parse);
+        } catch (java.time.format.DateTimeParseException e) {
+            return java.util.Optional.empty();
+        }
+    }
+
+    public void setLastUpdateCheck(java.time.LocalDate date) {
+        repository.put(UPDATE_LAST_CHECK, date.toString());
+    }
+
+    public java.util.Optional<String> ignoredUpdateVersion() {
+        return repository.get(UPDATE_IGNORED).filter(v -> !v.isBlank());
+    }
+
+    public void setIgnoredUpdateVersion(String version) {
+        repository.put(UPDATE_IGNORED, version);
     }
 
     private boolean bool(String key, boolean defaultValue) {

@@ -115,7 +115,7 @@ public final class RecurringService {
                 }
                 items.add(new PlannedItem(date, rule.accountId(), rule.label(), rule.signedAmount(), rule.type(),
                         rule.categoryId(), PlannedItem.Source.RECURRING, null, rule.id(), rule.toAccountId(),
-                        rule.type() != TransactionType.INCOME || rule.certain()));
+                        rule.type() != TransactionType.INCOME || rule.certain(), rule.signedSplitsFor(rule.amount())));
                 if (rule.type() == TransactionType.TRANSFER) {
                     items.add(new PlannedItem(date, rule.toAccountId(), rule.label(), rule.amount(), rule.type(),
                             null, PlannedItem.Source.RECURRING, null, rule.id(), rule.accountId(), true));
@@ -171,8 +171,11 @@ public final class RecurringService {
             throw new BusinessException("Le montant doit être strictement positif");
         }
         Money signed = rule.type() == TransactionType.EXPENSE ? amount.negate() : amount;
+        // Ventilation de la regle, ajustee au montant reel ; a defaut, sa categorie principale.
+        List<com.financeapp.core.transaction.SplitLine> splits = rule.signedSplitsFor(amount);
         Transaction t = new Transaction(null, rule.accountId(), actualDate, rule.label(), signed, rule.type(), status,
-                rule.categoryId(), rule.note(), null, null, rule.id(), occurrence);
+                splits.isEmpty() ? rule.mainCategoryId() : null, rule.note(), null, null, rule.id(), occurrence,
+                splits, java.util.Set.of());
         return List.of(transactions.insert(t));
     }
 }

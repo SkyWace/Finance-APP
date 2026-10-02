@@ -44,6 +44,16 @@ public final class SubscriptionService {
         this.settings = settings;
     }
 
+    /** Categories "Abonnements" (et sous-categories). */
+    public Set<Long> subscriptionCategories() {
+        return categories.findBySystemCode(SUBSCRIPTIONS_CODE).map(c -> categories.selfAndChildren(c.id())).orElse(Set.of());
+    }
+
+    /** Cout mensuel (negatif) de la part "abonnement" d'une regle. */
+    public Money monthlyCost(RecurringRule rule) {
+        return rule.monthlyEquivalentIn(subscriptionCategories());
+    }
+
     public Overview overview() {
         Currency currency = settings.baseCurrency();
         Set<Long> scope = categories.findBySystemCode(SUBSCRIPTIONS_CODE)
@@ -52,11 +62,11 @@ public final class SubscriptionService {
         List<RecurringRule> subs = recurring.findAll().stream()
                 .filter(r -> r.active() && r.type() == TransactionType.EXPENSE)
                 .filter(r -> r.endDate() == null || !r.endDate().isBefore(today))
-                .filter(r -> r.categoryId() != null && scope.contains(r.categoryId()))
                 .filter(r -> r.amount().currency().equals(currency))
-                .sorted(Comparator.comparing((RecurringRule r) -> r.monthlyEquivalent().amount()))
+                .filter(r -> !r.monthlyEquivalentIn(scope).isZero()) // ventilee : une de ses lignes est un abonnement
+                .sorted(Comparator.comparing((RecurringRule r) -> r.monthlyEquivalentIn(scope).amount()))
                 .toList();
-        Money monthly = subs.stream().map(r -> r.monthlyEquivalent().negate()).reduce(Money.zero(currency), Money::plus);
+        Money monthly = subs.stream().map(r -> r.monthlyEquivalentIn(scope).negate()).reduce(Money.zero(currency), Money::plus);
         return new Overview(subs, monthly, monthly.multiply(BigDecimal.valueOf(12)));
     }
 
