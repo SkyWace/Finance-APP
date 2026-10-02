@@ -783,7 +783,7 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   utilisée par une ligne ne peut pas être supprimée (contrainte RESTRICT).
 - Export CSV : colonne Catégorie détaillée (« Alimentation (90,00) + Maison
   (30,00) »).
-- Non couvert : ventilation des opérations récurrentes (règles).
+- Ventilation des opérations récurrentes : voir section 22.
 
 ### Étiquettes (`Tag`, `TagService`)
 - `tags` (nom unique sans tenir compte de la casse, 30 caractères, sans
@@ -800,3 +800,34 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   l'opération (remplacement complet), et relues par paquets de 500 opérations.
   Suppression d'une opération ou annulation d'un import : effacement en
   cascade.
+
+## 22. V0.2.3 — Récurrences ventilées, nouvelles versions
+
+### Récurrences ventilées (migration `V9__recurring_splits.sql`)
+- `recurring_splits` (règle, position, catégorie éventuelle, montant positif) ;
+  mêmes règles que pour une opération : au moins deux lignes, même devise,
+  somme égale au montant de la règle, pas de ventilation d'un virement.
+  `category_id` de la règle est alors vide. Suppression de la règle : effacement
+  en cascade ; une catégorie utilisée par une ligne ne peut pas être supprimée.
+- Les occurrences à venir et les opérations prévues portent la ventilation :
+  budgets (part prévue) et analyses la comptent par catégorie.
+- Validation d'une occurrence : si le montant réel diffère, les lignes sont
+  **réparties au prorata** (arrondi à la devise, la dernière ligne absorbe
+  l'écart) ; l'opération créée reste modifiable.
+- Abonnements : seule la part des lignes dans les catégories d'abonnement est
+  comptée (« part abonnement »).
+
+### Recherche de nouvelles versions (`UpdateService`, `GitHubReleaseFeed`)
+- **Désactivée par défaut** (`update.check_enabled`). Activée dans
+  *Paramètres → Mises à jour*, elle se fait au plus une fois par jour, au
+  démarrage ; « Vérifier maintenant » est toujours possible.
+- Une seule requête HTTPS GET vers l'API publique des versions du dépôt
+  (`app.update-repository`, vide = aucune connexion). Rien n'est envoyé hormis
+  ce qu'implique la requête elle-même (adresse IP, en-tête `User-Agent`
+  générique) : **aucune donnée financière, aucun identifiant**.
+- Les brouillons et préversions sont ignorés ; le lien affiché n'est accepté que
+  s'il pointe vers la page des versions du dépôt. Rien n'est téléchargé ni
+  installé automatiquement : un bandeau propose « Voir la nouvelle version »
+  (navigateur) ou « Plus tard » (cette version n'est plus signalée).
+- Une erreur réseau au démarrage est silencieuse ; elle est affichée en texte
+  après « Vérifier maintenant ».

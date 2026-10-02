@@ -5,6 +5,7 @@ import com.financeapp.core.settings.SettingsService;
 import com.financeapp.desktop.ui.common.Choice;
 import com.financeapp.desktop.ui.common.Dialogs;
 import com.financeapp.desktop.ui.common.Formats;
+import com.financeapp.desktop.ui.common.UiAsync;
 import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
 import com.financeapp.desktop.ui.dialogs.ChangePasswordDialog;
@@ -47,7 +48,7 @@ public final class SettingsPage extends Page {
 
     @Override
     public void refresh() {
-        content.getChildren().setAll(generalSection(), userSection(), securitySection(), privacySection(), backupSection(), aboutSection());
+        content.getChildren().setAll(generalSection(), userSection(), securitySection(), privacySection(), backupSection(), updateSection(), aboutSection());
     }
 
     private VBox generalSection() {
@@ -271,6 +272,59 @@ public final class SettingsPage extends Page {
             box.getChildren().add(1, Widgets.row(Widgets.badge("Restauration programmée : elle sera appliquée au prochain démarrage", "warning"), cancel));
         }
         return box;
+    }
+
+    /** Resultat d'une verification : nouvelle version, a jour, ou erreur reseau (jamais d'exception affichee). */
+    private record UpdateResult(java.util.Optional<com.financeapp.core.update.AvailableRelease> release, String error) {
+    }
+
+    private VBox updateSection() {
+        var updates = ctx.services().updates();
+        CheckBox auto = new CheckBox("Vérifier les nouvelles versions à l'ouverture (au plus une fois par jour)");
+        auto.setSelected(updates.autoCheckEnabled());
+        auto.setOnAction(e -> updates.setAutoCheckEnabled(auto.isSelected()));
+        Label result = Widgets.label("", "op-detail");
+        result.setWrapText(true);
+        Button open = new Button("Voir la nouvelle version");
+        open.getStyleClass().add("primary");
+        open.setVisible(false);
+        open.setManaged(false);
+        Button check = new Button("Vérifier maintenant");
+        check.getStyleClass().add("secondary");
+        check.setOnAction(e -> {
+            check.setDisable(true);
+            open.setVisible(false);
+            open.setManaged(false);
+            result.setText("Vérification en cours…");
+            UiAsync.load(() -> {
+                try {
+                    return new UpdateResult(updates.checkNow(), null);
+                } catch (java.io.IOException ex) {
+                    return new UpdateResult(java.util.Optional.empty(), ex.getMessage());
+                }
+            }, r -> {
+                check.setDisable(false);
+                if (r.error() != null) {
+                    result.setText("Vérification impossible (pas de connexion ?) : " + r.error());
+                } else if (r.release().isPresent()) {
+                    var rel = r.release().get();
+                    result.setText("Nouvelle version disponible : " + rel.version()
+                            + (rel.publishedOn() == null ? "" : ", publiée le " + Formats.date(rel.publishedOn())) + ".");
+                    open.setOnAction(x -> com.financeapp.desktop.ui.common.Browser.open(rel.pageUrl()));
+                    open.setVisible(true);
+                    open.setManaged(true);
+                } else {
+                    result.setText("Vous utilisez la dernière version.");
+                }
+            });
+        });
+        Label how = Widgets.label("La vérification interroge la page des versions publiées sur GitHub. Aucune donnée "
+                + "(financière ou personnelle) n'est envoyée, et rien n'est téléchargé ni installé automatiquement : "
+                + "vous choisissez d'ouvrir la page de la nouvelle version. Désactivée par défaut.", "muted");
+        how.setWrapText(true);
+        return Widgets.section("Mises à jour",
+                Widgets.label("Version installée : " + updates.currentVersion(), "op-label"),
+                auto, Widgets.row(check, open), result, how);
     }
 
     private VBox aboutSection() {

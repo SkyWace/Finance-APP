@@ -401,3 +401,10 @@
 
 /* Bouton clair / sombre de l'en-tete : icone seule, assez grande pour rester lisible. */
 .button.theme-toggle { -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 3 12 3 12; -fx-text-fill: -fa-text; }
+
+/* Bandeau "nouvelle version disponible" sous l'en-tete. */
+.update-bar {
+    -fx-padding: 10 28 10 28;
+    -fx-background-color: -fa-info-bg;
+    -fx-border-color: transparent transparent -fa-info-border transparent;
+}

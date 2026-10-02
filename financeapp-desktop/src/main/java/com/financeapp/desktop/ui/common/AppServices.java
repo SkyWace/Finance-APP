@@ -52,7 +52,8 @@ public record AppServices(
         SimulationService simulations,
         BankSyncService bankSync,
         SavingsService savings,
-        com.financeapp.core.service.TagService tags) {
+        com.financeapp.core.service.TagService tags,
+        com.financeapp.core.service.UpdateService updates) {
 
     public static AppServices from(ApplicationContext ctx) {
         return new AppServices(
@@ -80,6 +81,7 @@ public record AppServices(
                 ctx.getBean(SimulationService.class),
                 ctx.getBean(BankSyncService.class),
                 ctx.getBean(SavingsService.class),
-                ctx.getBean(com.financeapp.core.service.TagService.class));
+                ctx.getBean(com.financeapp.core.service.TagService.class),
+                ctx.getBean(com.financeapp.core.service.UpdateService.class));
     }
 }

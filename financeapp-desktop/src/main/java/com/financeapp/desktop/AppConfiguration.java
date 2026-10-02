@@ -121,8 +121,8 @@ public class AppConfiguration {
     }
 
     @Bean
-    RecurringRuleRepository recurringRuleRepository(JdbcClient jdbc) {
-        return new JdbcRecurringRuleRepository(jdbc);
+    RecurringRuleRepository recurringRuleRepository(JdbcClient jdbc, TransactionTemplate tx) {
+        return new JdbcRecurringRuleRepository(jdbc, tx);
     }
 
     @Bean
@@ -139,6 +139,22 @@ public class AppConfiguration {
     AccountService accountService(AccountRepository accounts, TransactionRepository transactions,
                                   RecurringRuleRepository rules, ValuationRepository valuations, Clock clock) {
         return new AccountService(accounts, transactions, rules, valuations, clock);
+    }
+
+    /** Derniere version publiee ; sans depot configure, aucune connexion n'est jamais faite. */
+    @Bean
+    com.financeapp.core.port.ReleaseFeed releaseFeed(
+            @org.springframework.beans.factory.annotation.Value("${app.update-repository:}") String repository) {
+        if (repository == null || repository.isBlank()) {
+            return java.util.Optional::empty;
+        }
+        return new com.financeapp.banksync.update.GitHubReleaseFeed(repository.strip());
+    }
+
+    @Bean
+    com.financeapp.core.service.UpdateService updateService(com.financeapp.core.port.ReleaseFeed feed,
+                                                            SettingsService settings, AppProperties properties, Clock clock) {
+        return new com.financeapp.core.service.UpdateService(feed, settings, properties.version(), clock);
     }
 
     @Bean
