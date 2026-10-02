@@ -39,6 +39,7 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
     private final javafx.scene.control.Button splitButton = new javafx.scene.control.Button("Ventiler…");
     private final javafx.scene.layout.HBox categoryBox = new javafx.scene.layout.HBox(8);
     private final SplitEditor splitEditor;
+    private final com.financeapp.desktop.ui.common.TagField tags;
 
     /** @param existing regle a modifier, ou modele pre-rempli sans identifiant (creation), ou {@code null} */
     public RecurringDialog(UiContext ctx, RecurringRule existing) {
@@ -93,6 +94,10 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
             note.setText(existing.note());
         }
 
+        tags = new com.financeapp.desktop.ui.common.TagField(ctx.services().tags());
+        if (existing != null) {
+            tags.setTagIds(existing.tagIds());
+        }
         type.valueProperty().addListener((o, old, t) -> updateVisibility());
         frequency.valueProperty().addListener((o, old, f) -> updateVisibility());
 
@@ -107,6 +112,7 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
         addOptionalRow("Intervalle (N)", interval);
         addRow("Première échéance", start);
         addRow("Dernière échéance", end);
+        addOptionalRow("Étiquettes", tags.node());
         addRow("Commentaire", note);
         addFullRow(certain);
         addFullRow(active);
@@ -129,6 +135,7 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
             stopSplit(); // un virement ne se ventile pas
         }
         categoryBox.setVisible(!transfer);
+        tags.node().setVisible(!transfer); // un virement ne porte pas d'etiquette
         certain.setVisible(t == TransactionType.INCOME);
         certain.setManaged(t == TransactionType.INCOME);
         interval.setVisible(frequency.getValue() != null && frequency.getValue().isCustom());
@@ -209,7 +216,8 @@ public final class RecurringDialog extends FormDialog<RecurringRule> {
                 t != TransactionType.INCOME || certain.isSelected(),
                 active.isSelected(),
                 note.getText() == null || note.getText().isBlank() ? null : note.getText().strip(),
-                splits);
+                splits,
+                t == TransactionType.TRANSFER ? java.util.Set.of() : tags.resolve());
         return ctx.services().recurring().save(rule);
     }
 }

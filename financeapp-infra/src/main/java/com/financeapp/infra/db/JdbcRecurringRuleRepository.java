@@ -65,7 +65,7 @@ public final class JdbcRecurringRuleRepository implements RecurringRuleRepositor
                 .map(r -> withSplits(List.of(r)).getFirst());
     }
 
-    /** Rattache la ventilation aux regles lues (peu nombreuses : une seule requete). */
+    /** Rattache ventilation et etiquettes aux regles lues (peu nombreuses : une requete chacune). */
     private List<RecurringRule> withSplits(List<RecurringRule> rules) {
         if (rules.isEmpty()) {
             return rules;
@@ -82,12 +82,20 @@ public final class JdbcRecurringRuleRepository implements RecurringRuleRepositor
                             DbCodec.nullableLong(rs, "category_id"),
                             Money.ofMinor(rs.getLong("amount_minor"), currencies.get(id))));
                 });
-        if (splits.isEmpty()) {
+        Map<Long, java.util.Set<Long>> tags = new HashMap<>();
+        jdbc.sql("SELECT rule_id, tag_id FROM recurring_tags WHERE rule_id IN (:ids)")
+                .param("ids", rules.stream().map(RecurringRule::id).toList())
+                .query(rs -> {
+                    tags.computeIfAbsent(rs.getLong("rule_id"), k -> new java.util.HashSet<>()).add(rs.getLong("tag_id"));
+                });
+        if (splits.isEmpty() && tags.isEmpty()) {
             return rules;
         }
-        return rules.stream().map(r -> !splits.containsKey(r.id()) ? r : new RecurringRule(r.id(), r.accountId(),
-                r.toAccountId(), r.type(), r.label(), r.amount(), null, r.frequency(), r.interval(), r.startDate(),
-                r.endDate(), r.trackedFrom(), r.certain(), r.active(), r.note(), splits.get(r.id()))).toList();
+        return rules.stream().map(r -> !splits.containsKey(r.id()) && !tags.containsKey(r.id()) ? r
+                : new RecurringRule(r.id(), r.accountId(), r.toAccountId(), r.type(), r.label(), r.amount(),
+                        splits.containsKey(r.id()) ? null : r.categoryId(), r.frequency(), r.interval(), r.startDate(),
+                        r.endDate(), r.trackedFrom(), r.certain(), r.active(), r.note(),
+                        splits.getOrDefault(r.id(), List.of()), tags.getOrDefault(r.id(), java.util.Set.of()))).toList();
     }
 
     @Override
@@ -107,6 +115,11 @@ public final class JdbcRecurringRuleRepository implements RecurringRuleRepositor
                             + "VALUES (:id, :position, :category, :amount)")
                     .param("id", saved.id()).param("position", position++)
                     .param("category", line.categoryId()).param("amount", line.amount().toMinorUnits()).update();
+        }
+        jdbc.sql("DELETE FROM recurring_tags WHERE rule_id = :id").param("id", saved.id()).update();
+        for (Long tagId : saved.tagIds()) {
+            jdbc.sql("INSERT INTO recurring_tags (rule_id, tag_id) VALUES (:id, :tag)")
+                    .param("id", saved.id()).param("tag", tagId).update();
         }
         return saved;
     }

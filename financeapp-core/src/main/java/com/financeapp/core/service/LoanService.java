@@ -167,6 +167,6 @@ public final class LoanService {
         return new RecurringRule(r.id(), r.accountId(), null, TransactionType.EXPENSE, r.label(),
                 schedule.paymentWithInsurance(), loan.categoryId() != null ? loan.categoryId() : r.categoryId(),
                 Frequency.MONTHLY, 1, loan.firstPaymentDate(), schedule.endDate(), r.trackedFrom(), r.certain(),
-                r.active(), r.note());
+                r.active(), r.note(), List.of(), r.tagIds());
     }
 }

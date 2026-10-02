@@ -8,6 +8,7 @@ import com.financeapp.desktop.ui.common.AmountParser;
 import com.financeapp.desktop.ui.common.Choice;
 import com.financeapp.desktop.ui.common.FormDialog;
 import com.financeapp.desktop.ui.common.SplitEditor;
+import com.financeapp.desktop.ui.common.TagField;
 import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
 import javafx.scene.control.Button;
@@ -18,7 +19,6 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -26,9 +26,7 @@ import javafx.scene.layout.VBox;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -51,8 +49,7 @@ public final class TransactionDialog extends FormDialog<Transaction> {
     private final TextArea note = new TextArea();
     private final Button splitButton = new Button("Ventiler…");
     private final SplitEditor splitEditor;
-    private final TextField tags = new TextField();
-    private final FlowPane tagSuggestions = new FlowPane(6, 6);
+    private final TagField tags;
     private boolean statusTouched;
 
 
@@ -117,14 +114,10 @@ public final class TransactionDialog extends FormDialog<Transaction> {
         }
 
         // Etiquettes
-        tags.setPromptText("Ex. vacances 2026, remboursable");
-        Map<Long, String> tagNames = ctx.services().tags().names();
+        tags = new TagField(ctx.services().tags());
         if (existing != null) {
-            tags.setText(String.join(", ", existing.tagIds().stream().map(tagNames::get)
-                    .filter(java.util.Objects::nonNull).sorted(String.CASE_INSENSITIVE_ORDER).toList()));
+            tags.setTagIds(existing.tagIds());
         }
-        tags.textProperty().addListener((o, a, b) -> refreshTagSuggestions());
-        refreshTagSuggestions();
 
         status.setOnAction(e -> statusTouched = true);
         date.valueProperty().addListener((o, old, d) -> {
@@ -141,7 +134,7 @@ public final class TransactionDialog extends FormDialog<Transaction> {
         addRow("Catégorie", new HBox(8, category, splitButton));
         addFullRow(splitEditor.node());
         addRow("Statut", status);
-        addRow("Étiquettes", new VBox(6, tags, tagSuggestions));
+        addRow("Étiquettes", tags.node());
         addRow("Commentaire", note);
         setOnShown(e -> (existing == null ? amount : label).requestFocus());
     }
@@ -188,33 +181,6 @@ public final class TransactionDialog extends FormDialog<Transaction> {
         Widgets.select(category, first);
     }
 
-    // -------------------------------------------------------------- etiquettes
-
-    /** Etiquettes existantes pas encore saisies, cliquables pour les ajouter. */
-    private void refreshTagSuggestions() {
-        Set<String> typed = new java.util.HashSet<>(typedTags().stream().map(t -> t.toLowerCase(java.util.Locale.ROOT)).toList());
-        tagSuggestions.getChildren().clear();
-        ctx.services().tags().findAll().stream()
-                .filter(t -> !typed.contains(t.name().toLowerCase(java.util.Locale.ROOT)))
-                .limit(10)
-                .forEach(t -> {
-                    Button b = new Button("+ " + t.name());
-                    b.getStyleClass().addAll("ghost", "compact", "tag-suggestion");
-                    b.setOnAction(e -> {
-                        String text = tags.getText().strip();
-                        tags.setText(text.isEmpty() || text.endsWith(",") ? text + (text.isEmpty() ? "" : " ") + t.name()
-                                : text + ", " + t.name());
-                    });
-                    tagSuggestions.getChildren().add(b);
-                });
-        tagSuggestions.setVisible(!tagSuggestions.getChildren().isEmpty());
-        tagSuggestions.setManaged(tagSuggestions.isVisible());
-    }
-
-    private List<String> typedTags() {
-        return Arrays.stream(tags.getText().split(",")).map(String::strip).filter(t -> !t.isEmpty()).toList();
-    }
-
     @Override
     protected Transaction submit() {
         if (label.getText() == null || label.getText().isBlank()) {
@@ -223,7 +189,7 @@ public final class TransactionDialog extends FormDialog<Transaction> {
         List<TransactionDraft.Split> splits = splitEditor.isActive()
                 ? splitEditor.lines().stream().map(l -> new TransactionDraft.Split(l.categoryId(), l.amount())).toList()
                 : List.of();
-        Set<Long> tagIds = ctx.services().tags().resolve(typedTags());
+        Set<Long> tagIds = tags.resolve();
         TransactionDraft draft = new TransactionDraft(
                 require(Widgets.selected(account), "Choisissez un compte"),
                 require(Widgets.dateValue(date), "Date invalide"),
