@@ -104,6 +104,7 @@ public final class MainWindow {
     private final ToggleButton privacyButton = new ToggleButton();
     private Page current;
     private Button userButton;
+    private final HBox updateBar = new HBox(12);
 
     public MainWindow(AppServices services, Stage stage, SecurityControls security) {
         Formats formats = new Formats();
@@ -114,7 +115,9 @@ public final class MainWindow {
         root.getStyleClass().add("app-root");
         root.setLeft(buildSidebar(services.properties().name()));
         center.getStyleClass().add("content");
-        VBox main = new VBox(buildHeader(), center);
+        updateBar.setVisible(false);
+        updateBar.managedProperty().bind(updateBar.visibleProperty());
+        VBox main = new VBox(buildHeader(), updateBar, center);
         VBox.setVgrow(center, javafx.scene.layout.Priority.ALWAYS);
         root.setCenter(main);
 
@@ -134,6 +137,45 @@ public final class MainWindow {
         updatePrivacyButton();
         updateInboxBadge();
         show("dashboard");
+        checkForUpdate();
+    }
+
+    /**
+     * Verification automatique des nouvelles versions, si l'utilisateur l'a activee
+     * (au plus une fois par jour). Une erreur reseau est ignoree en silence.
+     */
+    private void checkForUpdate() {
+        var updates = ctx.services().updates();
+        if (!updates.autoCheckEnabled()) {
+            return;
+        }
+        com.financeapp.desktop.ui.common.UiAsync.load(() -> {
+            try {
+                return updates.checkIfDue();
+            } catch (java.io.IOException | RuntimeException e) {
+                return java.util.Optional.<com.financeapp.core.update.AvailableRelease>empty();
+            }
+        }, found -> found.ifPresent(this::showUpdateBar));
+    }
+
+    private void showUpdateBar(com.financeapp.core.update.AvailableRelease release) {
+        Label text = Widgets.label("Une nouvelle version de " + ctx.services().properties().name() + " est disponible : "
+                + release.version() + (release.publishedOn() == null ? "" : " (publiée le "
+                + Formats.date(release.publishedOn()) + ")") + ".", "op-label");
+        Button open = new Button("Voir la nouvelle version");
+        open.getStyleClass().addAll("primary", "compact");
+        open.setOnAction(e -> com.financeapp.desktop.ui.common.Browser.open(release.pageUrl()));
+        Button later = new Button("Plus tard");
+        later.getStyleClass().addAll("ghost", "compact");
+        later.setTooltip(new Tooltip("Ne plus signaler cette version (elle reste visible dans Paramètres > Mises à jour)"));
+        later.setOnAction(e -> {
+            ctx.services().updates().ignore(release);
+            updateBar.setVisible(false);
+        });
+        updateBar.getChildren().setAll(Widgets.label("↑", "op-label"), text, Widgets.spacer(), open, later);
+        updateBar.setAlignment(Pos.CENTER_LEFT);
+        updateBar.getStyleClass().setAll("update-bar");
+        updateBar.setVisible(true);
     }
 
     public Parent root() {

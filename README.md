@@ -9,6 +9,7 @@ toutes mes dépenses futures prises en compte ? »*
 
 - Hors ligne, sans compte en ligne. Synchronisation bancaire facultative
   (prototype, désactivée par défaut) ; sinon, import de relevés.
+  Recherche de nouvelles versions facultative, elle aussi désactivée par défaut.
 - Données dans une base SQLite locale **chiffrée** (SQLCipher, AES-256),
   protégée par un mot de passe maître (Argon2id) ; aucune télémétrie.
 - Conception détaillée (architecture, risques, schéma, étapes) :
@@ -34,13 +35,13 @@ Menus facultatifs : **À valider, Budgets, Objectifs, Prévisions, Simulations, 
 | Synchronisation *(prototype, désactivée par défaut)* | Lecture seule via **Enable Banking** avec votre propre compte (mode restreint gratuit) : authentification chez votre banque, aucun identifiant saisi, aucun serveur FinanceApp ; opérations vérifiées comme un import (doublons, rapprochements, « À valider ») ; révocation et effacement en un clic |
 | Règles | Catégorisation automatique locale (« libellé contenant TOTAL → Carburant »), proposée quand vous corrigez une catégorie |
 | À venir | **Filtre par compte** (virements compris) ; opérations prévues + occurrences récurrentes ; valider (date et montant réels) ou ignorer |
-| Récurrences | **Filtre par compte** ; hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel |
+| Récurrences | **Filtre par compte** ; hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel ; **ventilation** sur plusieurs catégories (loyer + charges…), reprise par chaque occurrence validée |
 | Disponible réel | Échéance : fin de semaine, prochaine paie, fin du mois, date personnalisée ; **détail ligne à ligne** du calcul, budgets et objectifs réservés, « si aucune autre dépense variable » |
 | Prévisions | Courbe réel (plein) / prévu (pointillés), 7 jours à **48 mois**, point bas, alerte de solde négatif, dépenses courantes estimées (option) |
 | Simulations | **What If?** : achat financé à crédit, nouvelle charge ou rentrée, crédit, arrêt d'une récurrence ; disponible, reste à vivre et capacité d'épargne **avant / après**, mois par mois, courbe de solde, objectifs ; ne modifie jamais les données réelles |
 | Crédits | Capital restant, mensualité, prochaine échéance, progression, **tableau d'amortissement**, taux estimé si inconnu ; mensualités reliées à une récurrence (comptées une seule fois) |
 | Catégories | Catégories par défaut + personnelles, sous-catégories, archivage ; **étiquettes** (usage et totaux, renommer, supprimer) |
-| Paramètres | Devise de référence, échéance par défaut, **sécurité** (verrouillage auto, changement de mot de passe, nouvelle clé de récupération), **mode confidentialité**, sauvegardes chiffrées (auto à la fermeture avec rotation, export, restauration) |
+| Paramètres | Devise de référence, échéance par défaut, **sécurité** (verrouillage auto, changement de mot de passe, nouvelle clé de récupération), **mode confidentialité**, sauvegardes chiffrées (auto à la fermeture avec rotation, export, restauration), **mises à jour** (recherche des nouvelles versions, désactivée par défaut) |
 
 ## Plusieurs utilisateurs
 
@@ -172,7 +173,7 @@ mvn test
 ```
 financeapp-core      domaine, moteurs (Recurrence, AvailableBalance, Forecast, Import, Categorization, Loan, Simulation), services, ports — aucune dépendance
 financeapp-infra     SQLite chiffré + Spring JDBC, migrations Flyway, sauvegardes, mot de passe maître
-financeapp-banksync  adaptateur Enable Banking (optionnel, lecture seule) — seul module qui accède au réseau
+financeapp-banksync  adaptateur Enable Banking (optionnel, lecture seule) et recherche de nouvelles versions — seul module qui accède au réseau
 financeapp-desktop   JavaFX (vues en code, thème sombre CSS) + Spring Boot (injection, configuration)
 ```
 
@@ -182,8 +183,7 @@ devise), centimes (`INTEGER`) en base. Dates : `java.time`.
 ## Limites connues
 
 - Une seule devise de référence pour les totaux ; pas de conversion.
-- Crédits à taux fixe uniquement. Les opérations récurrentes ne se ventilent pas
-  (ventilez l'occurrence une fois validée).
+- Crédits à taux fixe uniquement.
   Synchronisation bancaire : **prototype** (Enable Banking), à valider avec un
   vrai compte ; étude, choix et limites dans
   [`docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md).
