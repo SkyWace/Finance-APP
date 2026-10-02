@@ -17,6 +17,9 @@ public final class SettingsService {
     static final String AUTO_LOCK_MINUTES = "security.auto_lock_minutes";
     static final String DISMISSED_PAYMENTS = "subscriptions.dismissed";
     static final String OPTIONAL_MENUS = "ui.optional_menus";
+    static final String MENU_ORDER = "ui.menu_order";
+    static final String MENU_HIDDEN = "ui.menu_hidden";
+    static final String MENUS_LOCKED = "ui.menus_locked";
     static final String UPDATE_CHECK = "update.check_enabled";
     static final String UPDATE_LAST_CHECK = "update.last_check";
     static final String UPDATE_IGNORED = "update.ignored_version";
@@ -129,6 +132,36 @@ public final class SettingsService {
 
     public void setEnabledOptionalMenus(java.util.Set<String> ids) {
         repository.put(OPTIONAL_MENUS, String.join(",", new java.util.TreeSet<>(ids)));
+    }
+
+    /**
+     * Disposition de la barre laterale (ordre, menus retires). Sans reglage enregistre :
+     * ordre par defaut, menus facultatifs retires sauf ceux ajoutes avec l'ancien reglage.
+     */
+    public MenuLayout menuLayout(java.util.List<String> catalog, java.util.Set<String> hiddenByDefault,
+                                 java.util.Set<String> pinned) {
+        java.util.List<String> order = repository.get(MENU_ORDER).map(SettingsService::csv).orElse(java.util.List.of());
+        java.util.Set<String> hidden = repository.get(MENU_HIDDEN)
+                .map(v -> (java.util.Set<String>) new java.util.LinkedHashSet<>(csv(v))).orElse(null);
+        return MenuLayout.resolve(catalog, hiddenByDefault, pinned, order, hidden, enabledOptionalMenus());
+    }
+
+    public void saveMenuLayout(MenuLayout layout) {
+        repository.put(MENU_ORDER, String.join(",", layout.order()));
+        repository.put(MENU_HIDDEN, String.join(",", new java.util.TreeSet<>(layout.hidden())));
+    }
+
+    /** Menus verrouilles (par defaut) : ils ne peuvent pas etre deplaces par erreur. */
+    public boolean menusLocked() {
+        return bool(MENUS_LOCKED, true);
+    }
+
+    public void setMenusLocked(boolean value) {
+        repository.put(MENUS_LOCKED, Boolean.toString(value));
+    }
+
+    private static java.util.List<String> csv(String value) {
+        return java.util.Arrays.stream(value.split(",")).map(String::strip).filter(x -> !x.isEmpty()).toList();
     }
 
     /** Verification des nouvelles versions a l'ouverture ; desactivee par defaut (aucune connexion). */

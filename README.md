@@ -17,7 +17,7 @@ toutes mes dépenses futures prises en compte ? »*
 
 ## Fonctionnalités (V1 → V4)
 
-Menus facultatifs : **À valider, Budgets, Objectifs, Prévisions, Simulations, Crédits et Analyses** sont masqués par défaut pour garder une navigation simple. Le bouton **« + Ajouter des menus »**, en bas de la barre latérale, les affiche ou les masque (clic droit sur un menu ajouté : « Retirer du menu »). Masquer un menu ne supprime aucune donnée et ne change aucun calcul.
+Barre latérale **organisable**, comme une barre des tâches : **« Organiser les menus »** la déverrouille, puis glissez un menu pour le déplacer (ou clic droit → Monter / Descendre) et **« Verrouiller »** pour qu'elle ne bouge plus. Clic droit sur un menu : « Retirer du menu » ; **« + Ajouter des menus »** le remet à sa place, ou ajoute un menu facultatif (**À valider, Budgets, Objectifs, Prévisions, Simulations, Crédits, Analyses**, retirés par défaut pour garder une navigation simple). Paramètres reste toujours présent. Retirer un menu ne supprime aucune donnée et ne change aucun calcul. Chaque profil garde sa propre disposition.
 
 | Écran | Contenu |
 |---|---|
