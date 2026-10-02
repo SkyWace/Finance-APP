@@ -15,7 +15,7 @@ toutes mes dépenses futures prises en compte ? »*
 - Conception détaillée (architecture, risques, schéma, étapes) :
   [`docs/CONCEPTION.md`](docs/CONCEPTION.md).
 
-## Fonctionnalités (V1 → V4)
+## Fonctionnalités
 
 Barre latérale **organisable**, comme une barre des tâches : **« Organiser les menus »** la déverrouille, puis glissez un menu pour le déplacer (ou clic droit → Monter / Descendre) et **« Verrouiller »** pour qu'elle ne bouge plus. Clic droit sur un menu : « Retirer du menu » ; **« + Ajouter des menus »** le remet à sa place, ou ajoute un menu facultatif (**À valider, Budgets, Objectifs, Prévisions, Simulations, Crédits, Analyses**, retirés par défaut pour garder une navigation simple). Paramètres reste toujours présent. Retirer un menu ne supprime aucune donnée et ne change aucun calcul. Chaque profil garde sa propre disposition.
 
@@ -75,7 +75,17 @@ l'en-tête ; le choix est retenu sur l'ordinateur (écran de déverrouillage com
 
 Raccourcis : `Ctrl+N` nouvelle opération · `Ctrl+M` masquer les montants ·
 `Ctrl+L` verrouiller ·
-`Ctrl+1`…`Ctrl+9` navigation (neuf premiers écrans).
+`Ctrl+1`…`Ctrl+9` navigation (neuf premiers menus, dans l'ordre choisi).
+
+## Mises à jour
+
+*Paramètres → Mises à jour* affiche la version installée. La case « Vérifier les
+nouvelles versions à l'ouverture » est **décochée par défaut** : sans elle,
+l'application ne se connecte jamais pour cela. Cochée, elle consulte au plus une
+fois par jour la liste publique des versions sur GitHub (aucune donnée
+financière envoyée) et affiche un bandeau « Voir la nouvelle version » /
+« Plus tard ». Rien n'est téléchargé ni installé automatiquement : on installe
+le nouveau `.msi` par-dessus l'ancien, les données sont conservées.
 
 ## Installer (Windows)
 
@@ -89,16 +99,14 @@ une mise à jour ou une désinstallation.
 
 - Sur GitHub : onglet *Actions* → *Installateur Windows* → *Run workflow*, puis
   télécharger l'artefact `FinanceApp-<version>.msi` de l'exécution (le fichier
-  `.msi` lui-même, sans zip). Une étiquette
-  `v*` (ex. `git tag v0.1.0 && git push --tags`) publie aussi une *release*.
-  Son texte vient de `docs/releases/<étiquette>.md` s'il existe au moment de
-  l'étiquette (sinon notes automatiques de GitHub) ; pour le modifier ensuite :
-  *Actions* → *Notes de release* → *Run workflow* avec l'étiquette.
+  `.msi` lui-même, sans zip).
+- Sur la page *Releases* du dépôt : chaque version publiée y a son `.msi` et
+  le résumé de ses nouveautés.
 - Sur un PC Windows (JDK 21, Maven, [WiX Toolset 3.14](https://github.com/wixtoolset/wix3/releases)) :
 
   ```powershell
   powershell -ExecutionPolicy Bypass -File packaging\windows\build-installer.ps1
-  # -> financeapp-desktop\target\installer\FinanceApp-0.1.0.msi   (-Type exe pour un .exe)
+  # -> financeapp-desktop\target\installer\FinanceApp-<version>.msi   (-Type exe pour un .exe)
   ```
 
 L'installateur n'est pas signé : Windows SmartScreen peut afficher « Windows a
@@ -107,6 +115,19 @@ même*. La signature de code nécessite un certificat (voir `docs/CONCEPTION.md`
 
 Même configuration sous Linux, pour vérifier le paquet sans Windows :
 `packaging/linux/build-app-image.sh` (image applicative) ou `… deb`.
+
+**Publier une version**
+
+1. Écrire `docs/releases/vX.Y.Z.md` (nouveautés, installation).
+2. Passer la version des `pom.xml` à `X.Y.Z` (sans `-SNAPSHOT`), vérifier
+   (`mvn install`), valider « Version X.Y.Z » ; puis passer à la version de
+   développement suivante (`X.Y.(Z+1)-SNAPSHOT`).
+3. Poser l'étiquette sur le commit « Version X.Y.Z » :
+   `git tag vX.Y.Z <commit> && git push origin vX.Y.Z`.
+   Le workflow *Installateur Windows* construit le `.msi` et publie la
+   *release* avec le texte de `docs/releases/vX.Y.Z.md` (sinon notes
+   automatiques de GitHub). Pour corriger ce texte après coup : *Actions* →
+   *Notes de release* → *Run workflow* avec l'étiquette.
 
 ## Lancer depuis les sources
 
@@ -154,17 +175,26 @@ mvn test
   d'être compté deux fois), tableaux d'amortissement (valeurs de référence),
   taux estimé, prévisions longues avec dépenses courantes, simulation « achat
   voiture » chiffrée au centime, et vérification qu'une simulation ne modifie
-  aucune donnée réelle.
+  aucune donnée réelle ; premier lancement sans aucun compte ; ventilation
+  et étiquettes (totaux par catégorie, budgets, recherche, export CSV),
+  récurrences ventilées (répartition au
+  prorata à la validation), filtres par compte et épargne, détection des
+  abonnements, recherche de nouvelles versions (une fois par jour, version
+  ignorée, désactivée par défaut), disposition des menus (ordre, menus
+  retirés, reprise de l'ancien réglage, menus d'une version ultérieure).
 - `financeapp-infra` : dépôts sur une vraie base SQLite **chiffrée**
   temporaire, atomicité des virements, contraintes d'intégrité, sauvegardes,
   rotation, restauration (y compris depuis une autre installation), mot de
   passe maître, récupération, trousseau altéré ou perdu, migration des données
   V1 en clair, import atomique et annulation (restauration des opérations
   prévues, réimport après annulation), crédits (taux exact, récurrence liée
-  unique), scénarios et hypothèses (remplacement atomique, cascade).
+  unique), scénarios et hypothèses (remplacement atomique, cascade),
+  ventilations et étiquettes (stockage, catégories protégées), épargne,
+  profils (registre, suppression, verrou d'un seul exemplaire).
 - `financeapp-banksync` : client Enable Banking contre un serveur HTTP local
   simulé qui vérifie la signature de chaque jeton ; correspondance des
-  opérations, pagination, erreurs, clés refusées.
+  opérations, pagination, erreurs, clés refusées ; liste des versions GitHub
+  (serveur local : préversions ignorées, liens hors du dépôt refusés).
 - `financeapp-desktop` : démarrage complet du contexte Spring (sans
   interface), verrouillage/déverrouillage.
 
@@ -174,7 +204,7 @@ mvn test
 financeapp-core      domaine, moteurs (Recurrence, AvailableBalance, Forecast, Import, Categorization, Loan, Simulation), services, ports — aucune dépendance
 financeapp-infra     SQLite chiffré + Spring JDBC, migrations Flyway, sauvegardes, mot de passe maître
 financeapp-banksync  adaptateur Enable Banking (optionnel, lecture seule) et recherche de nouvelles versions — seul module qui accède au réseau
-financeapp-desktop   JavaFX (vues en code, thème sombre CSS) + Spring Boot (injection, configuration)
+financeapp-desktop   JavaFX (vues en code, thèmes sombre et clair en CSS) + Spring Boot (injection, configuration)
 ```
 
 Montants : `BigDecimal` en mémoire (arrondi `HALF_EVEN`, échelle de la
@@ -184,8 +214,10 @@ devise), centimes (`INTEGER`) en base. Dates : `java.time`.
 
 - Une seule devise de référence pour les totaux ; pas de conversion.
 - Crédits à taux fixe uniquement.
-  Synchronisation bancaire : **prototype** (Enable Banking), à valider avec un
+- Synchronisation bancaire : **prototype** (Enable Banking), à valider avec un
   vrai compte ; étude, choix et limites dans
   [`docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md`](docs/ETUDE-V5-SYNCHRONISATION-BANCAIRE.md).
 - Installateur Windows non signé (avertissement SmartScreen) ; pas encore de
   paquet macOS (même script jpackage à adapter : `.dmg`, notarisation Apple).
+- Pas de mise à jour automatique : l'application signale une nouvelle version
+  (si l'option est cochée), l'installation reste manuelle.
