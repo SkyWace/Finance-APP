@@ -690,15 +690,28 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   confondus ; le comparer aux dépenses d'un seul compte donnerait des alertes
   trompeuses.
 
-## 18. Menus facultatifs
+## 18. Barre latérale organisable
 
 - **À valider, Budgets, Objectifs, Prévisions, Simulations, Crédits, Analyses**
-  sont des menus facultatifs, masqués par défaut ; le bouton « + Ajouter des
-  menus » (bas de la barre latérale) les coche ou décoche, un clic droit sur un
-  menu ajouté propose « Retirer du menu ».
-- Choix enregistré dans la base chiffrée (`ui.optional_menus`, liste
-  d'identifiants d'écran).
-- Masquer n'est qu'un choix d'affichage : aucune donnée supprimée, calculs
+  sont des menus facultatifs, retirés par défaut. Tous les autres menus, sauf
+  **Paramètres** (toujours présent, sinon les réglages deviendraient
+  introuvables), peuvent aussi être retirés.
+- « + Ajouter des menus » (bas de la barre) liste tous les menus : cochés =
+  affichés. Un clic droit sur un menu propose « Retirer du menu ». Un menu remis
+  reprend la place qu'il occupait. « Rétablir les menus d'origine » remet l'ordre
+  et le choix par défaut.
+- **Verrouillage**, comme une barre des tâches : verrouillée par défaut, la barre
+  ne bouge pas. « Organiser les menus » la déverrouille (cadre en pointillés,
+  poignée ⇅, texte d'aide) : glisser-déposer d'un menu (avant ou après celui
+  survolé, repère tracé), ou « Monter » / « Descendre » au clic droit (clavier,
+  sans souris). « Verrouiller » la fige de nouveau.
+- Logique dans le cœur (`MenuLayout`, valeur immuable, testée) ; réglages
+  enregistrés dans la base chiffrée du profil : `ui.menu_order` (ordre de tous
+  les menus), `ui.menu_hidden` (menus retirés), `ui.menus_locked`. Sans ces
+  réglages, l'ancien `ui.optional_menus` est repris (menus déjà ajoutés).
+  Un menu apparu dans une version ultérieure se place après son voisin par
+  défaut (retiré s'il est facultatif) ; un identifiant inconnu est ignoré.
+- Retirer n'est qu'un choix d'affichage : aucune donnée supprimée, calculs
   inchangés (budgets et objectifs restent réservés dans le disponible réel).
   Les liens internes ouvrent toujours l'écran (« Valider maintenant », « Tous
   les budgets », « Objectifs d'épargne »).

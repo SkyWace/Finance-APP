@@ -196,38 +196,77 @@ public final class MainWindow {
         return sidebar;
     }
 
-    /** (Re)construit la navigation : menus de base, menus facultatifs ajoutes, puis le bouton "+". */
+    /** Menus qui restent toujours dans la barre (sinon les reglages deviendraient introuvables). */
+    private static final java.util.Set<String> PINNED = java.util.Set.of("settings");
+    private static final javafx.scene.input.DataFormat MENU_ID = new javafx.scene.input.DataFormat("application/x-financeapp-menu");
+
+    private com.financeapp.core.settings.MenuLayout layout() {
+        java.util.List<String> catalog = new java.util.ArrayList<>();
+        java.util.Set<String> optional = new java.util.HashSet<>();
+        for (NavEntry entry : NAV) {
+            catalog.add(entry.id());
+            if (entry.optional()) {
+                optional.add(entry.id());
+            }
+        }
+        return ctx.services().settings().menuLayout(catalog, optional, PINNED);
+    }
+
+    private static NavEntry entry(String id) {
+        for (NavEntry n : NAV) {
+            if (n.id().equals(id)) {
+                return n;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * (Re)construit la navigation dans l'ordre choisi. Verrouillee (par defaut), elle ne bouge pas ;
+     * deverrouillee, les menus se deplacent par glisser-deposer ou par "Monter" / "Descendre".
+     */
     private void buildNav() {
-        java.util.Set<String> enabled = ctx.services().settings().enabledOptionalMenus();
+        var settings = ctx.services().settings();
+        var layout = layout();
+        boolean locked = settings.menusLocked();
         nav.getChildren().clear();
         navButtons.clear();
         visible.clear();
-        for (NavEntry entry : NAV) {
-            if (entry.optional() && !enabled.contains(entry.id())) {
-                continue;
-            }
+        nav.getStyleClass().remove("nav-unlocked");
+        if (!locked) {
+            nav.getStyleClass().add("nav-unlocked");
+        }
+        for (String id : layout.visible()) {
+            NavEntry entry = entry(id);
             visible.add(entry);
             int index = visible.size();
             ToggleButton b = new ToggleButton();
             Label icon = Widgets.label(entry.icon(), "nav-icon");
             Label text = Widgets.label(entry.label(), "nav-label");
             HBox graphic = new HBox(12, icon, text);
+            graphic.setMaxWidth(Double.MAX_VALUE);
             if (entry.id().equals("inbox")) {
                 inboxBadge.visibleProperty().unbind();
                 inboxBadge.visibleProperty().bind(inboxBadge.textProperty().isNotEmpty());
                 graphic.getChildren().addAll(Widgets.spacer(), inboxBadge);
-                graphic.setMaxWidth(Double.MAX_VALUE);
+            }
+            if (!locked) {
+                if (!entry.id().equals("inbox")) {
+                    graphic.getChildren().add(Widgets.spacer());
+                }
+                text.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+                graphic.getChildren().add(Widgets.label("⇅", "nav-handle"));
             }
             b.setGraphic(graphic);
             b.getStyleClass().add("nav-button");
             b.setToggleGroup(navGroup);
             b.setMaxWidth(Double.MAX_VALUE);
-            b.setTooltip(new Tooltip(entry.label() + (index <= 9 ? "  (Ctrl+" + index + ")" : "")));
+            b.setTooltip(new Tooltip(entry.label() + (index <= 9 ? "  (Ctrl+" + index + ")" : "")
+                    + (locked ? "" : "\nGlissez pour déplacer")));
             b.setOnAction(e -> show(entry.id()));
-            if (entry.optional()) {
-                MenuItem remove = new MenuItem("Retirer « " + entry.label() + " » du menu");
-                remove.setOnAction(e -> setMenuEnabled(entry.id(), false));
-                b.setContextMenu(new ContextMenu(remove));
+            b.setContextMenu(navMenu(entry, layout, locked));
+            if (!locked) {
+                enableDrag(b, entry.id());
             }
             if (entry.id().equals(currentId)) {
                 b.setSelected(true);
@@ -239,34 +278,136 @@ public final class MainWindow {
         Button more = new Button("+  Ajouter des menus");
         more.getStyleClass().addAll("ghost", "nav-more");
         more.setMaxWidth(Double.MAX_VALUE);
-        more.setTooltip(new Tooltip("Afficher ou masquer les menus facultatifs"));
+        more.setTooltip(new Tooltip("Remettre un menu retiré, ou en ajouter un"));
         ContextMenu choices = new ContextMenu();
+        for (String id : layout.order()) {
+            NavEntry entry = entry(id);
+            if (!layout.canHide(id)) {
+                continue;
+            }
+            CheckMenuItem item = new CheckMenuItem(entry.icon() + "  " + entry.label());
+            item.setSelected(layout.isVisible(id));
+            item.setOnAction(e -> setMenuEnabled(entry.id(), item.isSelected()));
+            choices.getItems().add(item);
+        }
+        MenuItem reset = new MenuItem("Rétablir les menus d'origine");
+        reset.setOnAction(e -> resetMenus());
+        choices.getItems().addAll(new javafx.scene.control.SeparatorMenuItem(), reset);
+        more.setOnAction(e -> choices.show(more, javafx.geometry.Side.TOP, 0, 0));
+
+        Button lock = new Button(locked ? "⇅  Organiser les menus" : "✓  Verrouiller");
+        lock.getStyleClass().addAll(locked ? "ghost" : "primary", "nav-more");
+        lock.setMaxWidth(Double.MAX_VALUE);
+        lock.setTooltip(new Tooltip(locked
+                ? "Déverrouiller pour déplacer les menus (glisser-déposer)"
+                : "Verrouiller : les menus ne bougent plus"));
+        lock.setOnAction(e -> setMenusLocked(!locked));
+
+        VBox.setMargin(more, new javafx.geometry.Insets(8, 0, 0, 0));
+        nav.getChildren().addAll(more, lock);
+        if (!locked) {
+            Label hint = Widgets.label("Glissez un menu pour le déplacer, clic droit pour le retirer.", "nav-hint");
+            hint.setWrapText(true);
+            nav.getChildren().add(hint);
+        }
+    }
+
+    /** Clic droit sur un menu : le retirer, le deplacer (deverrouille), verrouiller / deverrouiller. */
+    private ContextMenu navMenu(NavEntry entry, com.financeapp.core.settings.MenuLayout layout, boolean locked) {
+        ContextMenu menu = new ContextMenu();
+        if (layout.canHide(entry.id())) {
+            MenuItem remove = new MenuItem("Retirer « " + entry.label() + " » du menu");
+            remove.setOnAction(e -> setMenuEnabled(entry.id(), false));
+            menu.getItems().add(remove);
+        }
+        if (!locked) {
+            java.util.List<String> shown = layout.visible();
+            MenuItem up = new MenuItem("Monter");
+            up.setDisable(shown.indexOf(entry.id()) == 0);
+            up.setOnAction(e -> saveLayout(layout().moveBy(entry.id(), -1)));
+            MenuItem down = new MenuItem("Descendre");
+            down.setDisable(shown.indexOf(entry.id()) == shown.size() - 1);
+            down.setOnAction(e -> saveLayout(layout().moveBy(entry.id(), 1)));
+            menu.getItems().addAll(up, down);
+        }
+        if (!menu.getItems().isEmpty()) {
+            menu.getItems().add(new javafx.scene.control.SeparatorMenuItem());
+        }
+        MenuItem toggle = new MenuItem(locked ? "Déverrouiller les menus (pour les déplacer)" : "Verrouiller les menus");
+        toggle.setOnAction(e -> setMenusLocked(!locked));
+        menu.getItems().add(toggle);
+        return menu;
+    }
+
+    /** Glisser-deposer : le menu depose se place avant ou apres celui vise (selon la moitie survolee). */
+    private void enableDrag(ToggleButton b, String id) {
+        b.setOnDragDetected(e -> {
+            var board = b.startDragAndDrop(javafx.scene.input.TransferMode.MOVE);
+            var content = new javafx.scene.input.ClipboardContent();
+            content.put(MENU_ID, id);
+            board.setContent(content);
+            board.setDragView(b.snapshot(null, null), e.getX(), e.getY());
+            b.getStyleClass().add("nav-dragging");
+            e.consume();
+        });
+        b.setOnDragDone(e -> b.getStyleClass().remove("nav-dragging"));
+        b.setOnDragOver(e -> {
+            Object dragged = e.getDragboard().getContent(MENU_ID);
+            if (dragged != null && !id.equals(dragged)) {
+                e.acceptTransferModes(javafx.scene.input.TransferMode.MOVE);
+                boolean after = e.getY() > b.getHeight() / 2;
+                b.getStyleClass().removeAll("drop-before", "drop-after");
+                b.getStyleClass().add(after ? "drop-after" : "drop-before");
+            }
+            e.consume();
+        });
+        b.setOnDragExited(e -> b.getStyleClass().removeAll("drop-before", "drop-after"));
+        b.setOnDragDropped(e -> {
+            Object dragged = e.getDragboard().getContent(MENU_ID);
+            boolean done = false;
+            if (dragged instanceof String moved && !moved.equals(id)) {
+                boolean after = e.getY() > b.getHeight() / 2;
+                // Apres le deplacement la barre est reconstruite : on sort du traitement de l'evenement.
+                javafx.application.Platform.runLater(() -> saveLayout(layout().moveNextTo(moved, id, after)));
+                done = true;
+            }
+            e.setDropCompleted(done);
+            e.consume();
+        });
+    }
+
+    private void saveLayout(com.financeapp.core.settings.MenuLayout layout) {
+        ctx.services().settings().saveMenuLayout(layout);
+        buildNav();
+    }
+
+    private void setMenusLocked(boolean locked) {
+        ctx.services().settings().setMenusLocked(locked);
+        buildNav();
+    }
+
+    private void resetMenus() {
+        java.util.List<String> catalog = new java.util.ArrayList<>();
+        java.util.List<String> optional = new java.util.ArrayList<>();
         for (NavEntry entry : NAV) {
+            catalog.add(entry.id());
             if (entry.optional()) {
-                CheckMenuItem item = new CheckMenuItem(entry.icon() + "  " + entry.label());
-                item.setSelected(enabled.contains(entry.id()));
-                item.setOnAction(e -> setMenuEnabled(entry.id(), item.isSelected()));
-                choices.getItems().add(item);
+                optional.add(entry.id());
             }
         }
-        more.setOnAction(e -> choices.show(more, javafx.geometry.Side.TOP, 0, 0));
-        VBox.setMargin(more, new javafx.geometry.Insets(8, 0, 0, 0));
-        nav.getChildren().add(more);
+        saveLayout(com.financeapp.core.settings.MenuLayout.defaults(catalog, optional, PINNED));
+        if (currentId != null && !layout().isVisible(currentId)) {
+            show(visible.get(0).id());
+        }
     }
 
     private void setMenuEnabled(String id, boolean on) {
-        java.util.Set<String> enabled = new java.util.TreeSet<>(ctx.services().settings().enabledOptionalMenus());
-        if (on) {
-            enabled.add(id);
-        } else {
-            enabled.remove(id);
-        }
-        ctx.services().settings().setEnabledOptionalMenus(enabled);
-        buildNav();
+        var layout = layout();
+        saveLayout(on ? layout.show(id) : layout.hide(id));
         if (on) {
             show(id);
         } else if (id.equals(currentId)) {
-            show("dashboard");
+            show(visible.get(0).id());
         }
     }
 
