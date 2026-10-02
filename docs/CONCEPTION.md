@@ -174,11 +174,12 @@ Ajouts depuis le MVP :
 - `financeapp-core` : `budget/`, `goal/` (V2), `imports/`, `categorization/`,
   `stats/` (V3), `loan/`, `simulation/` (V4), `banksync/` (V5), `calendar/`,
   `subscription/`, `export/` (CSV), `tag/` (étiquettes), `update/` (nouvelles
-  versions), `text/` ; `settings/MenuLayout` (barre latérale).
+  versions), `text/` ; `settings/MenuLayout` (barre latérale) ;
+  `service/NetWorthService` (évolution du patrimoine).
 - `financeapp-infra` : `security/` (mot de passe maître, trousseau, V1.1) ;
-  migrations `V3` à `V9` (budgets et objectifs, imports et règles, crédits et
+  migrations `V3` à `V10` (budgets et objectifs, imports et règles, crédits et
   simulations, synchronisation, produits d'épargne, ventilation et étiquettes,
-  récurrences ventilées).
+  récurrences ventilées, étiquettes des récurrences).
 - `financeapp-banksync` : client Enable Banking (`EnableBankingClient`,
   `JwtSigner`, `PemKeys`) et `update/GitHubReleaseFeed`.
 - `financeapp-desktop` : `ui/security/` (déverrouillage, profils),
@@ -876,3 +877,31 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   (navigateur) ou « Plus tard » (cette version n'est plus signalée).
 - Une erreur réseau au démarrage est silencieuse ; elle est affichée en texte
   après « Vérifier maintenant ».
+
+## 23. V0.2.5 — Étiquettes des récurrences, évolution du patrimoine
+
+### Étiquettes des récurrences (migration `V10__recurring_tags.sql`)
+- `recurring_tags` (règle, étiquette), effacée en cascade avec la règle ou
+  l'étiquette (la règle est conservée). `RecurringRule.tagIds` ; pas
+  d'étiquette sur un virement récurrent (comme pour la ventilation).
+- Chaque occurrence validée ou ignorée crée une opération portant les
+  étiquettes de la règle : filtres et totaux par étiquette les comptent sans
+  saisie. Les échéances d'un crédit gardent les étiquettes de leur règle.
+- Saisie commune aux opérations et aux récurrences (`TagField` : texte libre
+  séparé par des virgules, étiquettes existantes proposées en un clic).
+
+### Évolution du patrimoine (`NetWorthService`, écran Épargne)
+- Patrimoine des comptes actifs de la devise de référence en **fin de mois**,
+  puis aujourd'hui ; répartition comptes courants / épargne.
+- Solde d'un compte à une date : dernière valeur constatée à cette date plus les
+  opérations postérieures (jusqu'à la date) ; à défaut, solde initial plus les
+  opérations jusqu'à la date. Un compte ne compte qu'à partir de sa date
+  d'ouverture ; opérations prévues et annulées exclues ; virements neutres.
+- Le dernier point reprend les soldes actuels : il est égal au patrimoine du
+  tableau de bord. Une seule lecture des opérations comptées.
+- Courbe : trait plein épais (patrimoine), tirets (épargne), pointillés
+  (comptes courants), légende et texte explicatif ; période 12 mois, 24 mois,
+  5 ans ou depuis l'ouverture du premier compte ; évolution signée depuis le
+  premier point. Comptes dans une autre devise : non comptés, signalés.
+- Limite : les valeurs passées d'un placement ne sont connues qu'aux dates
+  saisies (entre deux, la valeur précédente plus les versements).

@@ -423,3 +423,14 @@
 .nav-button.drop-before { -fx-border-color: -fa-accent transparent transparent transparent; -fx-border-width: 2 0 0 0; }
 .nav-button.drop-after { -fx-border-color: transparent transparent -fa-accent transparent; -fx-border-width: 0 0 2 0; }
 .nav-hint { -fx-text-fill: -fa-muted; -fx-font-size: 11px; -fx-padding: 4 8 0 8; }
+
+/* ---------- Evolution du patrimoine ---------- */
+.networth-chart .default-color0.chart-series-line { -fx-stroke: -fa-accent; -fx-stroke-width: 3px; }
+.networth-chart .default-color1.chart-series-line { -fx-stroke: -fa-positive; -fx-stroke-width: 2px; -fx-stroke-dash-array: 8 6; }
+.networth-chart .default-color2.chart-series-line { -fx-stroke: -fa-text-2; -fx-stroke-width: 2px; -fx-stroke-dash-array: 2 5; }
+.networth-chart .default-color0.chart-line-symbol { -fx-background-color: -fa-accent, transparent; -fx-background-radius: 4; -fx-padding: 3; }
+.networth-chart .default-color1.chart-line-symbol { -fx-background-color: -fa-positive, transparent; -fx-background-radius: 3; -fx-padding: 2; }
+.networth-chart .default-color2.chart-line-symbol { -fx-background-color: -fa-text-2, transparent; -fx-background-radius: 3; -fx-padding: 2; }
+.networth-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: -fa-accent; }
+.networth-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: -fa-positive; }
+.networth-chart .chart-legend-item-symbol.default-color2 { -fx-background-color: -fa-text-2; }

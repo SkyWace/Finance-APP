@@ -26,7 +26,7 @@ Barre latérale **organisable**, comme une barre des tâches : **« Organiser le
 | Transactions | **Ventilation** d'une opération sur plusieurs catégories, **étiquettes** (filtre et total par étiquette), **export CSV** (Excel / LibreOffice) des résultats de la recherche ; dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
 | Calendrier | **Filtre par compte** (solde du compte jour par jour) ; mois en grille : opérations réelles et prévues, solde en fin de journée (réel puis prévu), détail du jour |
 | Budgets | Plafond mensuel par catégorie, progression, alertes (proche / atteint / dépassé, en texte et symbole), reste réservé dans le disponible |
-| Épargne | Épargne détenue : **Livret A, LDDS, LEP, Livret Jeune, CEL, PEL, assurance-vie, PEA, PER, épargne salariale (PEE, PERCOL…), compte-titres, crypto-actifs**… ; valeur actuelle mise à jour à la main (relevé, valorisation) avec historique ; épargne disponible / à moyen et long terme ; part du patrimoine ; **marge sous le plafond** des livrets réglementés |
+| Épargne | Épargne détenue : **Livret A, LDDS, LEP, Livret Jeune, CEL, PEL, assurance-vie, PEA, PER, épargne salariale (PEE, PERCOL…), compte-titres, crypto-actifs**… ; valeur actuelle mise à jour à la main (relevé, valorisation) avec historique ; épargne disponible / à moyen et long terme ; part du patrimoine ; **marge sous le plafond** des livrets réglementés ; **évolution du patrimoine** (courbe en fin de mois : total, épargne, comptes courants ; 12 mois, 24 mois, 5 ans ou depuis le début) |
 | Objectifs | Objectifs d'épargne (montant, échéance), suivi via un compte ou manuel, épargne mensuelle nécessaire |
 | Abonnements | **Filtre par compte** ; coût mensuel et annuel, détection des paiements réguliers dans l'historique |
 | Analyses | **Filtre par compte** ; revenus/dépenses/épargne du mois et taux d'épargne vs mois précédent, 12 mois, catégories, comparaison (montants + %), **principaux commerçants**, **comparaison de deux périodes quelconques** |
@@ -35,7 +35,7 @@ Barre latérale **organisable**, comme une barre des tâches : **« Organiser le
 | Synchronisation *(prototype, désactivée par défaut)* | Lecture seule via **Enable Banking** avec votre propre compte (mode restreint gratuit) : authentification chez votre banque, aucun identifiant saisi, aucun serveur FinanceApp ; opérations vérifiées comme un import (doublons, rapprochements, « À valider ») ; révocation et effacement en un clic |
 | Règles | Catégorisation automatique locale (« libellé contenant TOTAL → Carburant »), proposée quand vous corrigez une catégorie |
 | À venir | **Filtre par compte** (virements compris) ; opérations prévues + occurrences récurrentes ; valider (date et montant réels) ou ignorer |
-| Récurrences | **Filtre par compte** ; hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel ; **ventilation** sur plusieurs catégories (loyer + charges…), reprise par chaque occurrence validée |
+| Récurrences | **Filtre par compte** ; hebdo, 2 semaines, mensuelle, trimestrielle, annuelle, tous les N jours/semaines/mois ; équivalents mensuel et annuel ; **ventilation** sur plusieurs catégories (loyer + charges…) et **étiquettes**, reprises par chaque occurrence validée |
 | Disponible réel | Échéance : fin de semaine, prochaine paie, fin du mois, date personnalisée ; **détail ligne à ligne** du calcul, budgets et objectifs réservés, « si aucune autre dépense variable » |
 | Prévisions | Courbe réel (plein) / prévu (pointillés), 7 jours à **48 mois**, point bas, alerte de solde négatif, dépenses courantes estimées (option) |
 | Simulations | **What If?** : achat financé à crédit, nouvelle charge ou rentrée, crédit, arrêt d'une récurrence ; disponible, reste à vivre et capacité d'épargne **avant / après**, mois par mois, courbe de solde, objectifs ; ne modifie jamais les données réelles |
@@ -180,7 +180,9 @@ mvn test
   récurrences ventilées (répartition au
   prorata à la validation), filtres par compte et épargne, détection des
   abonnements, recherche de nouvelles versions (une fois par jour, version
-  ignorée, désactivée par défaut), disposition des menus (ordre, menus
+  ignorée, désactivée par défaut), étiquettes des récurrences, évolution du
+  patrimoine (dates d'ouverture, valorisations, virements neutres, dernier
+  point égal au tableau de bord), disposition des menus (ordre, menus
   retirés, reprise de l'ancien réglage, menus d'une version ultérieure).
 - `financeapp-infra` : dépôts sur une vraie base SQLite **chiffrée**
   temporaire, atomicité des virements, contraintes d'intégrité, sauvegardes,
@@ -189,7 +191,8 @@ mvn test
   V1 en clair, import atomique et annulation (restauration des opérations
   prévues, réimport après annulation), crédits (taux exact, récurrence liée
   unique), scénarios et hypothèses (remplacement atomique, cascade),
-  ventilations et étiquettes (stockage, catégories protégées), épargne,
+  ventilations et étiquettes (stockage, catégories protégées, étiquettes des
+  récurrences), épargne,
   profils (registre, suppression, verrou d'un seul exemplaire).
 - `financeapp-banksync` : client Enable Banking contre un serveur HTTP local
   simulé qui vérifie la signature de chaque jeton ; correspondance des

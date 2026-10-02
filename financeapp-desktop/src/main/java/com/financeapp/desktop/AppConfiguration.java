@@ -179,6 +179,12 @@ public class AppConfiguration {
     }
 
     @Bean
+    com.financeapp.core.service.NetWorthService netWorthService(AccountService accounts, TransactionRepository transactions,
+                                                                SettingsService settings, Clock clock) {
+        return new com.financeapp.core.service.NetWorthService(accounts, transactions, settings, clock);
+    }
+
+    @Bean
     CategoryService categoryService(CategoryRepository categories) {
         return new CategoryService(categories);
     }
