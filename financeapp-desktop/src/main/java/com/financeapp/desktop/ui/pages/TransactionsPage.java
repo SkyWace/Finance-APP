@@ -82,6 +82,7 @@ public final class TransactionsPage extends Page {
     private Map<Long, Account> accounts = Map.of();
     private Map<Long, String> categoryNames = Map.of();
     private Map<Long, String> tagNames = Map.of();
+    private Map<Long, Integer> attachmentCounts = Map.of();
     private int limit = PAGE_SIZE;
     private TransactionQuery lastQuery;
 
@@ -227,6 +228,7 @@ public final class TransactionsPage extends Page {
                 Widgets.selected(tagFilter));
         lastQuery = query;
         List<Transaction> rows = ctx.services().transactions().search(query);
+        attachmentCounts = ctx.services().attachments().counts(rows.stream().map(Transaction::id).toList());
         table.getItems().setAll(rows);
         loadMore.setVisible(rows.size() >= limit);
         updateFooter(rows, query);
@@ -255,6 +257,12 @@ public final class TransactionsPage extends Page {
         }
         return "   " + t.tagIds().stream().map(id -> tagNames.getOrDefault(id, "")).filter(n -> !n.isEmpty())
                 .sorted(String.CASE_INSENSITIVE_ORDER).map(n -> "[" + n + "]").collect(Collectors.joining(" "));
+    }
+
+    /** "  · 2 justificatifs" apres le libelle, si l'operation en a. */
+    private String attachmentsText(Transaction t) {
+        int n = attachmentCounts.getOrDefault(t.id(), 0);
+        return n == 0 ? "" : "   · " + n + (n > 1 ? " justificatifs" : " justificatif");
     }
 
     /** Export CSV de TOUS les resultats de la recherche affichee (pas seulement les lignes chargees). */
@@ -329,7 +337,8 @@ public final class TransactionsPage extends Page {
         date.setMaxWidth(120);
 
         TableColumn<Transaction, String> label = new TableColumn<>("Libellé");
-        label.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().label() + tagsText(c.getValue())));
+        label.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().label() + tagsText(c.getValue())
+                + attachmentsText(c.getValue())));
         label.setPrefWidth(260);
 
         TableColumn<Transaction, String> category = new TableColumn<>("Catégorie");

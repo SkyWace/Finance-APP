@@ -434,3 +434,10 @@
 .networth-chart .chart-legend-item-symbol.default-color0 { -fx-background-color: -fa-accent; }
 .networth-chart .chart-legend-item-symbol.default-color1 { -fx-background-color: -fa-positive; }
 .networth-chart .chart-legend-item-symbol.default-color2 { -fx-background-color: -fa-text-2; }
+
+/* ---------- Justificatifs ---------- */
+.attachment-row {
+    -fx-padding: 6 8 6 8;
+    -fx-background-color: -fa-surface-2;
+    -fx-background-radius: 8;
+}

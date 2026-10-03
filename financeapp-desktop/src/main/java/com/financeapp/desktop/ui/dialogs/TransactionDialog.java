@@ -50,6 +50,7 @@ public final class TransactionDialog extends FormDialog<Transaction> {
     private final Button splitButton = new Button("Ventiler…");
     private final SplitEditor splitEditor;
     private final TagField tags;
+    private final com.financeapp.desktop.ui.common.AttachmentsPane attachments;
     private boolean statusTouched;
 
 
@@ -136,6 +137,10 @@ public final class TransactionDialog extends FormDialog<Transaction> {
         addRow("Statut", status);
         addRow("Étiquettes", tags.node());
         addRow("Commentaire", note);
+        attachments = new com.financeapp.desktop.ui.common.AttachmentsPane(ctx,
+                existing == null ? null : existing.id(), () -> getDialogPane().getScene().getWindow());
+        attachments.setOnResize(this::fitToContent);
+        addRow("Justificatifs", attachments.node());
         setOnShown(e -> (existing == null ? amount : label).requestFocus());
     }
 
@@ -204,8 +209,17 @@ public final class TransactionDialog extends FormDialog<Transaction> {
         if (draft.label() == null || draft.label().isBlank()) {
             throw new com.financeapp.core.service.BusinessException("Le libellé est obligatoire");
         }
-        return existing == null
+        Transaction saved = existing == null
                 ? ctx.services().transactions().create(draft)
                 : ctx.services().transactions().update(existing.id(), draft);
+        try {
+            attachments.commit(saved.id());
+        } catch (RuntimeException e) {
+            if (existing == null) {
+                ctx.services().transactions().delete(saved.id()); // pas d'operation a moitie enregistree
+            }
+            throw e;
+        }
+        return saved;
     }
 }

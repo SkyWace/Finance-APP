@@ -54,7 +54,8 @@ public record AppServices(
         SavingsService savings,
         com.financeapp.core.service.TagService tags,
         com.financeapp.core.service.UpdateService updates,
-        com.financeapp.core.service.NetWorthService netWorth) {
+        com.financeapp.core.service.NetWorthService netWorth,
+        com.financeapp.core.service.AttachmentService attachments) {
 
     public static AppServices from(ApplicationContext ctx) {
         return new AppServices(
@@ -84,6 +85,7 @@ public record AppServices(
                 ctx.getBean(SavingsService.class),
                 ctx.getBean(com.financeapp.core.service.TagService.class),
                 ctx.getBean(com.financeapp.core.service.UpdateService.class),
-                ctx.getBean(com.financeapp.core.service.NetWorthService.class));
+                ctx.getBean(com.financeapp.core.service.NetWorthService.class),
+                ctx.getBean(com.financeapp.core.service.AttachmentService.class));
     }
 }

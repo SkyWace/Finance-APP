@@ -100,6 +100,17 @@ class ImportRepositoryTest {
     }
 
     @Test
+    void undoingAnImportCountsThenRemovesTheAttachmentsOfItsOperations() {
+        ImportBatch batch = importOfx();
+        Transaction imported = db.inbox.items().getFirst().transaction();
+        db.attachments.attach(imported.id(), "ticket.pdf", "%PDF-1.4\nticket\n%%EOF".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        assertEquals(1, db.attachments.countInImport(batch.id()), "signale avant de defaire");
+
+        db.imports.undo(batch.id());
+        assertEquals(0, db.attachments.usage().count());
+    }
+
+    @Test
     void inboxValidationPersists() {
         importOfx();
         var carrefour = db.inbox.items().stream().filter(i -> i.transaction().label().contains("CARREFOUR")).findFirst().orElseThrow();

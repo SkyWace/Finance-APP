@@ -185,6 +185,13 @@ public class AppConfiguration {
     }
 
     @Bean
+    com.financeapp.core.service.AttachmentService attachmentService(JdbcClient jdbc, TransactionRepository transactions,
+                                                                    Clock clock) {
+        return new com.financeapp.core.service.AttachmentService(
+                new com.financeapp.infra.db.JdbcAttachmentRepository(jdbc), transactions, clock);
+    }
+
+    @Bean
     CategoryService categoryService(CategoryRepository categories) {
         return new CategoryService(categories);
     }

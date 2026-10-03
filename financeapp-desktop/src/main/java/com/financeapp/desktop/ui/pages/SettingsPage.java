@@ -200,6 +200,19 @@ public final class SettingsPage extends Page {
         return Widgets.section("Confidentialité", privacy, hint, local);
     }
 
+    /** Place occupee par les justificatifs : ils sont dans la base, donc dans chaque sauvegarde. */
+    private Label attachmentsUsage() {
+        var usage = ctx.services().attachments().usage();
+        Label label = Widgets.label(usage.count() == 0
+                ? "Justificatifs : aucun. Ceux que vous joindrez aux opérations seront chiffrés avec vos données "
+                        + "et inclus dans chaque sauvegarde."
+                : "Justificatifs : " + usage.count() + (usage.count() > 1 ? " fichiers, " : " fichier, ")
+                        + com.financeapp.desktop.ui.common.AttachmentsPane.size(usage.bytes())
+                        + " — chiffrés avec vos données et inclus dans chaque sauvegarde.", "muted");
+        label.setWrapText(true);
+        return label;
+    }
+
     private VBox backupSection() {
         SettingsService settings = ctx.services().settings();
         BackupService backups = ctx.services().backups();
@@ -261,6 +274,7 @@ public final class SettingsPage extends Page {
                 labeled("Nombre de sauvegardes automatiques conservées", keep),
                 Widgets.row(now, export, restore),
                 Widgets.label("Dossier : " + ctx.services().directories().backupsDir(), "muted"),
+                attachmentsUsage(),
                 list);
         if (backups.hasPendingRestore()) {
             Button cancel = new Button("Annuler la restauration");

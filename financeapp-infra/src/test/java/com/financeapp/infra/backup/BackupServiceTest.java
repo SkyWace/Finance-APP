@@ -184,4 +184,26 @@ class BackupServiceTest {
         assertEquals(0, BackupService.compareVersions("2", "2.0"));
         assertTrue(BackupService.compareVersions("1.1", "2") < 0);
     }
+
+    @Test
+    void attachmentsAreInTheBackupAndComeBackWithTheRestore() throws Exception {
+        var account = db.accounts.findAll().getFirst();
+        var t = db.transactions.create(new com.financeapp.core.service.TransactionDraft(account.id(), TODAY, "Facture",
+                new java.math.BigDecimal("80"), com.financeapp.core.transaction.TransactionType.EXPENSE,
+                com.financeapp.core.transaction.TransactionStatus.COMPLETED, null, null, List.of(), java.util.Set.of()));
+        byte[] pdf = "%PDF-1.4\nJUSTIFICATIF-SECRET\n%%EOF".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        var saved = db.attachments.attach(t.id(), "facture.pdf", pdf);
+
+        Path export = backups.exportTo(dir.resolve("avec-justificatif.db")).file();
+        assertFalse(new String(Files.readAllBytes(export), "ISO-8859-1").contains("JUSTIFICATIF-SECRET"),
+                "chiffre dans la sauvegarde");
+        db.attachments.delete(saved.id());
+
+        backups.scheduleRestore(export, null);
+        byte[] dek = db.key.copy();
+        db.key.lock();
+        assertTrue(BackupService.applyPendingRestore(db.dirs, tickingClock));
+        SqliteTestDb reopened = new SqliteTestDb(db.dirs.root(), TODAY, dek);
+        assertArrayEquals(pdf, reopened.attachments.content(saved.id()));
+    }
 }

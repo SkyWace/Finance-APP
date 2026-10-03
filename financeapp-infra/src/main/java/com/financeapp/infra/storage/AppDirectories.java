@@ -63,6 +63,14 @@ public record AppDirectories(Path root) {
         return root.resolve("data").resolve("pending-restore.db");
     }
 
+    /**
+     * Copies dechiffrees temporaires des justificatifs ouverts dans une autre application
+     * (PDF...). Videe au verrouillage, a la fermeture et au demarrage.
+     */
+    public Path openedAttachmentsDir() {
+        return root.resolve("data").resolve("ouverts");
+    }
+
     /** Verrou d'ouverture : un seul exemplaire de l'application a la fois sur ces donnees. */
     public Path lockFile() {
         return root.resolve("data").resolve("financeapp.lock");
