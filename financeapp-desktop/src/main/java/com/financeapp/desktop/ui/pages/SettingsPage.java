@@ -388,8 +388,9 @@ public final class SettingsPage extends Page {
                 javafx.scene.Node closeButton = dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.CLOSE);
                 closeButton.setVisible(false);
                 closeButton.setManaged(false);
-                Label summary = Widgets.label(details + "\nSur le site : « Restaurer une sauvegarde », puis le mot de passe "
-                        + "choisi. Si vous l'oubliez, la clé ci-dessous ouvrira ce profil web.", "hint");
+                Label summary = Widgets.label(details + "\nSur le site : Paramètres → « Importer depuis l'application "
+                        + "desktop » (ou « Importer une sauvegarde » sur l'écran d'accueil), puis le mot de passe choisi. "
+                        + "Si vous l'oubliez, la clé ci-dessous ouvrira ce profil web.", "hint");
                 summary.setWrapText(true);
                 summary.setMaxWidth(520);
                 dialog.getDialogPane().setContent(new VBox(14, summary, RecoveryKeyPanel.build(key, "Terminer", () -> {

@@ -3,8 +3,8 @@ import { isDuplicate, parseCsv, type CsvParseResult } from '../../domain/csv';
 import { formatDate, todayLocal } from '../../domain/dates';
 import { HORIZON_LABELS, type HorizonType } from '../../domain/types';
 import { saveTransaction } from '../../domain/operations';
-import { deleteCurrent, flush, mutate, renameCurrent, useData, useSession } from '../../store/session';
-import { changePassword, exportBackup, MIN_PASSWORD_LENGTH, renewRecoveryKey } from '../../store/vault';
+import { deleteCurrent, flush, lock, mutate, preferProfile, renameCurrent, useData, useSession } from '../../store/session';
+import { changePassword, exportBackup, importBackup, MIN_PASSWORD_LENGTH, renewRecoveryKey } from '../../store/vault';
 import { AccountSelect, Dialog, ErrorText, Money, download, useAction } from '../common';
 import { getTheme, setTheme, type ThemeChoice } from '../theme';
 
@@ -171,6 +171,8 @@ export function SettingsPage() {
   const [persisted, setPersisted] = useState<boolean | null>(null);
   const [usage, setUsage] = useState<string>('');
   const [error, run] = useAction();
+  const [importError, runImport] = useAction();
+  const [imported, setImported] = useState<{ id: string; name: string } | null>(null);
   useEffect(() => {
     navigator.storage?.persisted?.().then(setPersisted).catch(() => setPersisted(null));
     navigator.storage?.estimate?.().then((e) => setUsage(e.usage ? `${(e.usage / 1_048_576).toFixed(1)} Mo utilisés`
@@ -227,7 +229,7 @@ export function SettingsPage() {
         <h2>Sauvegardes</h2>
         <p>Vos données sont stockées <strong>uniquement dans ce navigateur</strong>, chiffrées avec votre mot de passe.
           Téléchargez régulièrement une sauvegarde : si le navigateur est réinitialisé ou si vous changez d'ordinateur,
-          c'est elle qui vous permettra de tout retrouver (écran d'accueil → « Restaurer une sauvegarde »).</p>
+          c'est elle qui vous permettra de tout retrouver (section ci-dessous, ou écran d'accueil → « Importer une sauvegarde »).</p>
         <div className="row">
           <button className="btn primary" onClick={() => run(async () => {
             await flush();
@@ -240,7 +242,41 @@ export function SettingsPage() {
           + 'manque de place : les sauvegardes sont d\'autant plus importantes.'} {usage}</p>
       </section>
       <section className="card section">
-        <h2>Import</h2>
+        <h2>Importer depuis l'application desktop</h2>
+        <ol style={{ margin: '0 0 12px', paddingLeft: 20 }}>
+          <li>Dans l'application desktop : <strong>Paramètres → Sauvegardes → « Exporter pour la version web… »</strong>,
+            choisissez un mot de passe et enregistrez le fichier <code>.json</code>.</li>
+          <li>Ici : choisissez ce fichier. Il devient un <strong>profil</strong> de ce navigateur (vos données actuelles
+            ne sont pas touchées).</li>
+          <li>Ouvrez ce profil avec le mot de passe choisi à l'étape 1.</li>
+        </ol>
+        {imported ? (
+          <div className="banner" role="status">
+            <span>Profil « {imported.name} » ajouté.</span>
+            <span className="spacer" />
+            <button className="btn primary" onClick={() => { preferProfile(imported.id); void lock(); }}>
+              Ouvrir ce profil maintenant</button>
+          </div>
+        ) : (
+          <button className="btn primary" onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,application/json';
+            input.onchange = () => {
+              const file = input.files?.[0];
+              if (file) {
+                void runImport(async () => setImported(await importBackup(await file.text())));
+              }
+            };
+            input.click();
+          }}>⇧ Choisir le fichier exporté…</button>
+        )}
+        <ErrorText text={importError} />
+        <p className="hint">Fonctionne aussi avec une sauvegarde téléchargée depuis ce site (autre navigateur, autre
+          ordinateur).</p>
+      </section>
+      <section className="card section">
+        <h2>Import d'un relevé bancaire</h2>
         <p>Ajoutez les opérations d'un relevé bancaire exporté en CSV. Un aperçu est montré avant tout import ; les
           lignes déjà présentes ne sont pas réimportées.</p>
         <button className="btn" disabled={data.accounts.length === 0} onClick={() => setDialog('csv')}>Importer un relevé

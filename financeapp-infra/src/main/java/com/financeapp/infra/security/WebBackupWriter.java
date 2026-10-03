@@ -21,7 +21,7 @@ import java.util.UUID;
 
 /**
  * Sauvegarde au format de la version web : un profil chiffre, restaurable dans le
- * navigateur avec "Restaurer une sauvegarde" puis le mot de passe choisi ici.
+ * navigateur ("Importer une sauvegarde") puis ouvert avec le mot de passe choisi ici.
  *
  * <p>Meme schema que le coffre web (WebCrypto) : cle de donnees AES-256 aleatoire ;
  * donnees chiffrees en AES-256-GCM (IV 12 octets, identifiant du profil en donnees

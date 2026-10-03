@@ -18,7 +18,7 @@ toutes mes dépenses futures prises en compte ? »*
   navigateur, avec les données chiffrées dans le navigateur (aucun serveur ne les voit) ;
   site statique à héberger où l'on veut. Voir [`web/README-WEB.md`](web/README-WEB.md).
   Pour y reprendre ses données : *Paramètres → Sauvegardes → Exporter pour la version
-  web…*, puis « Restaurer une sauvegarde » sur le site.
+  web…*, puis sur le site *Paramètres → Importer depuis l'application desktop*.
 
 ## Fonctionnalités
 

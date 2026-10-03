@@ -83,6 +83,19 @@ async function acquireTabLock(id: string): Promise<boolean> {
   });
 }
 
+/** Profil a proposer a l'ecran d'accueil (ex. juste importe depuis les Parametres). */
+let preferredProfileId: string | undefined;
+
+export function preferProfile(id: string): void {
+  preferredProfileId = id;
+}
+
+export function takePreferredProfile(): string | undefined {
+  const id = preferredProfileId;
+  preferredProfileId = undefined;
+  return id;
+}
+
 export class AlreadyOpenError extends Error {
   constructor() {
     super('Ce profil est déjà ouvert dans un autre onglet ou une autre fenêtre de ce navigateur. Fermez-le, puis '

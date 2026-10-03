@@ -19,8 +19,8 @@ public final class WebExportDialog extends FormDialog<char[]> {
 
     public WebExportDialog(UiContext ctx) {
         super(ctx, "Exporter pour la version web", "Choisir le fichier…");
-        Label intro = Widgets.label("Crée un fichier chiffré à ouvrir sur le site FinanceApp : écran d'accueil → "
-                + "« Restaurer une sauvegarde », puis le mot de passe choisi ici (il protégera le profil sur le site ; "
+        Label intro = Widgets.label("Crée un fichier chiffré à ouvrir sur le site FinanceApp : Paramètres → "
+                + "« Importer depuis l'application desktop », puis le mot de passe choisi ici (il protégera le profil sur le site ; "
                 + "il peut être différent de celui de l'application). Le profil y est ajouté, sans rien remplacer.",
                 "hint");
         intro.setWrapText(true);

@@ -33,8 +33,9 @@ conserver ses données même en cas de manque de place, mais il peut refuser.
 1. Dans l'application desktop : *Paramètres → Sauvegardes → Exporter pour la version web…*
    Choisissez un mot de passe (il protégera le profil sur le site), puis l'emplacement du
    fichier. Une clé de récupération s'affiche : notez-la.
-2. Sur le site : écran d'accueil → **Restaurer une sauvegarde** → choisissez le fichier,
-   puis le mot de passe choisi à l'étape 1.
+2. Sur le site : **Paramètres → Importer depuis l'application desktop → Choisir le fichier
+   exporté…** (ou, sur l'écran d'accueil, **Importer une sauvegarde (desktop ou site)…**),
+   puis ouvrez le profil ajouté avec le mot de passe choisi à l'étape 1.
 
 Le fichier est chiffré de bout en bout avec le même schéma que le site (il ne contient
 rien en clair). Sont repris : comptes, catégories, opérations, virements, récurrences,

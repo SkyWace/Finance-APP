@@ -23,7 +23,9 @@ export function LockScreen({ onCreated }: { onCreated: (recoveryKey: string) => 
     try {
       const list = await listProfiles();
       setProfiles(list);
-      setMode(list.length === 0 ? { kind: 'create' } : list.length === 1 ? { kind: 'unlock', profile: list[0] }
+      const preferredId = session.takePreferredProfile();
+      const preferred = list.find((p) => p.id === preferredId);
+      setMode(preferred ? { kind: 'unlock', profile: preferred } : list.length === 0 ? { kind: 'create' } : list.length === 1 ? { kind: 'unlock', profile: list[0] }
         : { kind: 'picker' });
     } catch {
       setProfiles([]);
@@ -70,12 +72,12 @@ export function LockScreen({ onCreated }: { onCreated: (recoveryKey: string) => 
           </div>
           <div className="stack">
             <button className="btn" onClick={() => { setError(''); setMode({ kind: 'create' }); }}>+ Ajouter un utilisateur</button>
-            <button className="link" onClick={restore}>Restaurer une sauvegarde…</button>
+            <button className="btn" onClick={restore}>⇧ Importer une sauvegarde (desktop ou site)…</button>
           </div>
         </>}
         {mode.kind === 'unlock' && <Unlock profile={mode.profile} onRecover={() => { setError('');
           setMode({ kind: 'recover', profile: mode.profile }); }} onSwitch={() => { setError(''); setMode({ kind: 'picker' }); }}
-        showSwitch={profiles.length > 1} />}
+        showSwitch={profiles.length > 1} onImport={restore} />}
         {mode.kind === 'recover' && <Recover profile={mode.profile} onBack={() => setMode({ kind: 'unlock', profile: mode.profile })} />}
         {mode.kind === 'create' && <Create first={profiles.length === 0} onCreated={onCreated}
           onBack={profiles.length > 0 ? () => setMode({ kind: 'picker' }) : undefined} onRestore={restore} />}
@@ -87,8 +89,8 @@ export function LockScreen({ onCreated }: { onCreated: (recoveryKey: string) => 
   );
 }
 
-function Unlock({ profile, onRecover, onSwitch, showSwitch }:
-  { profile: ProfileSummary; onRecover: () => void; onSwitch: () => void; showSwitch: boolean }) {
+function Unlock({ profile, onRecover, onSwitch, showSwitch, onImport }:
+  { profile: ProfileSummary; onRecover: () => void; onSwitch: () => void; showSwitch: boolean; onImport: () => void }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -110,7 +112,8 @@ function Unlock({ profile, onRecover, onSwitch, showSwitch }:
         <button className="btn primary" type="submit" disabled={busy || !password}>{busy ? 'Ouverture…' : 'Déverrouiller'}</button>
         <button type="button" className="link" onClick={onRecover}>Mot de passe oublié ? Utiliser la clé de récupération</button>
         {showSwitch ? <button type="button" className="link" onClick={onSwitch}>Changer d'utilisateur</button>
-          : <button type="button" className="link" onClick={onSwitch}>Ajouter un utilisateur ou restaurer une sauvegarde</button>}
+          : <button type="button" className="link" onClick={onSwitch}>Ajouter un utilisateur</button>}
+        <button type="button" className="btn" onClick={onImport}>⇧ Importer une sauvegarde (desktop ou site)…</button>
       </div>
     </form>
   );
@@ -185,7 +188,7 @@ function Create({ first, onCreated, onBack, onRestore }:
         <ErrorText text={error} />
         <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Création…' : 'Créer le profil'}</button>
         {onBack && <button type="button" className="link" onClick={onBack}>Retour</button>}
-        <button type="button" className="link" onClick={onRestore}>J'ai une sauvegarde : la restaurer…</button>
+        <button type="button" className="btn" onClick={onRestore}>⇧ Importer une sauvegarde (desktop ou site)…</button>
       </div>
     </form>
   );
