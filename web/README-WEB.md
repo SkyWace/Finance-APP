@@ -28,8 +28,25 @@ données du site, réinitialiser le navigateur ou passer sur un autre ordinateur
 disparaître : téléchargez régulièrement une sauvegarde. Le site demande au navigateur de
 conserver ses données même en cas de manque de place, mais il peut refuser.
 
-La version web et la version desktop ne partagent pas leurs données : ce sont deux
-applications indépendantes, avec les mêmes calculs.
+## Reprendre ses données de l'application desktop
+
+1. Dans l'application desktop : *Paramètres → Sauvegardes → Exporter pour la version web…*
+   Choisissez un mot de passe (il protégera le profil sur le site), puis l'emplacement du
+   fichier. Une clé de récupération s'affiche : notez-la.
+2. Sur le site : écran d'accueil → **Restaurer une sauvegarde** → choisissez le fichier,
+   puis le mot de passe choisi à l'étape 1.
+
+Le fichier est chiffré de bout en bout avec le même schéma que le site (il ne contient
+rien en clair). Sont repris : comptes, catégories, opérations, virements, récurrences,
+étiquettes, réglages ; les **soldes actuels sont identiques au centime**. Ne sont pas
+repris, car absents de la version web : budgets, objectifs, crédits (leurs échéances
+restent des récurrences), simulations, justificatifs, historique des valeurs d'épargne,
+règles de catégorisation. Le disponible réel du site ne déduit donc pas les budgets et
+objectifs. Une opération ventilée garde sa catégorie principale (détail en commentaire).
+Seuls les comptes dans la devise de référence sont repris.
+
+Il s'agit d'une copie à un instant donné : les deux versions ne se synchronisent pas
+ensuite.
 
 ## Développer
 
