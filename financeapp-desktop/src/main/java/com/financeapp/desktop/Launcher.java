@@ -13,6 +13,10 @@ public final class Launcher {
     }
 
     public static void main(String[] args) {
+        // Verification des mises a jour : passer par le proxy configure dans le systeme, s'il y en a un.
+        if (System.getProperty("java.net.useSystemProxies") == null) {
+            System.setProperty("java.net.useSystemProxies", "true");
+        }
         Application.launch(FinanceFxApplication.class, args);
     }
 }

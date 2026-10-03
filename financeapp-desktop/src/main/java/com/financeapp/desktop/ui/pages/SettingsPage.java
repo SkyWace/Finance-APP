@@ -325,7 +325,8 @@ public final class SettingsPage extends Page {
             }, r -> {
                 check.setDisable(false);
                 if (r.error() != null) {
-                    result.setText("Vérification impossible (pas de connexion ?) : " + r.error());
+                    result.setText("Vérification impossible : " + r.error()
+                            + ". Vérifiez la connexion à Internet, puis réessayez.");
                 } else if (r.release().isPresent()) {
                     var rel = r.release().get();
                     result.setText("Nouvelle version disponible : " + rel.version()

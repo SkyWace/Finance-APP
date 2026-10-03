@@ -867,10 +867,15 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
 - **Désactivée par défaut** (`update.check_enabled`). Activée dans
   *Paramètres → Mises à jour*, elle se fait au plus une fois par jour, au
   démarrage ; « Vérifier maintenant » est toujours possible.
-- Une seule requête HTTPS GET vers l'API publique des versions du dépôt
-  (`app.update-repository`, vide = aucune connexion). Rien n'est envoyé hormis
-  ce qu'implique la requête elle-même (adresse IP, en-tête `User-Agent`
-  générique) : **aucune donnée financière, aucun identifiant**.
+- Une requête HTTPS GET vers l'API publique des versions du dépôt
+  (`app.update-repository`, vide = aucune connexion). Si l'API ne répond pas
+  (délai de 20 s dépassé, limite de requêtes, hôte filtré), une requête HEAD sur
+  la page publique `github.com/<dépôt>/releases/latest` : la version est lue dans
+  sa redirection (`…/releases/tag/vX.Y.Z`, refusée si elle sort du dépôt).
+  HTTP/1.1 (certains antivirus et proxys bloquent HTTP/2) et proxy du système
+  (`java.net.useSystemProxies`). Rien n'est envoyé hormis ce qu'implique la
+  requête elle-même (adresse IP, en-tête `User-Agent` générique) : **aucune
+  donnée financière, aucun identifiant**.
 - Les brouillons et préversions sont ignorés ; le lien affiché n'est accepté que
   s'il pointe vers la page des versions du dépôt. Rien n'est téléchargé ni
   installé automatiquement : un bandeau propose « Voir la nouvelle version »
