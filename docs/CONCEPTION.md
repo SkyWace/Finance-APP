@@ -942,3 +942,36 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   autres** (groupe du type de compte), chacune avec son nombre de comptes et
   son sous-total par devise, puis le total général ; bouton « Ajouter une
   épargne » (même fenêtre que l'écran Épargne).
+
+## 25. Version web (dossier `web/`)
+
+- **Objectif** : la même application dans un navigateur, sans renoncer au principe
+  « données locales par défaut ». Le site est **statique** (HTML, JS, CSS) : il n'existe
+  ni serveur d'application ni base en ligne ; l'hébergeur ne voit aucune donnée.
+- **Pile** : TypeScript, React 19, Vite. Aucune bibliothèque de graphiques ni de
+  cryptographie (SVG et WebCrypto du navigateur). Aucune ressource externe.
+- **Domaine** (`web/src/domain`) : portage fidèle du cœur Java : montants en centimes
+  entiers, dates civiles sans fuseau, moteur de récurrences (occurrences calculées depuis
+  la date de départ, fins de mois), opérations à venir (retards 14 jours), disponible
+  réel (mêmes sections et mêmes règles), prévision jour par jour, prochaine paie.
+  Les scénarios chiffrés du cahier des charges (1 600 €, 86 €) sont testés à l'identique.
+- **Coffre** (`web/src/store/vault.ts`) : IndexedDB. Clé de données AES-256-GCM aléatoire
+  enveloppée par le mot de passe (PBKDF2-SHA-256, 600 000 itérations, sel 16 octets) et
+  par une clé de récupération de 160 bits ; données chiffrées en un bloc (AES-GCM, IV
+  aléatoire, identifiant du profil en données authentifiées), réécrit après chaque
+  modification. En mémoire, la clé n'est pas exportable ; elle ne l'est que le temps de
+  l'envelopper à nouveau (changement de mot de passe, récupération).
+- **Session** : un profil par onglet (Web Locks), verrouillage manuel ou après
+  inactivité, enregistrement en série et erreur d'enregistrement affichée.
+- **Sauvegarde** : fichier JSON contenant le profil chiffré tel quel ; l'import ajoute un
+  profil et n'écrase jamais un profil existant.
+- **Sécurité du site** : politique de sécurité du contenu stricte (aucune connexion
+  sortante), refus d'affichage dans un cadre, en-têtes fournis pour l'hébergement
+  (`web/public/_headers`, exemples nginx et Apache dans `web/README-WEB.md`). HTTPS
+  obligatoire (WebCrypto).
+- **Limites** : données liées au navigateur et à l'appareil (sauvegardes à télécharger),
+  pas de synchronisation entre appareils, pas d'échange de données avec la version
+  desktop. Fonctions non portées dans cette première version : budgets, objectifs,
+  abonnements, analyses, crédits, simulations, ventilation, justificatifs, OFX/QIF.
+- **Intégration continue** : `.github/workflows/web.yml` (tests, construction, site en
+  artefact `financeapp-web`).

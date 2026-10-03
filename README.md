@@ -14,6 +14,9 @@ toutes mes dépenses futures prises en compte ? »*
   protégée par un mot de passe maître (Argon2id) ; aucune télémétrie.
 - Conception détaillée (architecture, risques, schéma, étapes) :
   [`docs/CONCEPTION.md`](docs/CONCEPTION.md).
+- **Version web** (dossier [`web/`](web/README-WEB.md)) : la même application dans le
+  navigateur, avec les données chiffrées dans le navigateur (aucun serveur ne les voit) ;
+  site statique à héberger où l'on veut. Voir [`web/README-WEB.md`](web/README-WEB.md).
 
 ## Fonctionnalités
 
@@ -216,6 +219,7 @@ financeapp-core      domaine, moteurs (Recurrence, AvailableBalance, Forecast, I
 financeapp-infra     SQLite chiffré + Spring JDBC, migrations Flyway, sauvegardes, mot de passe maître
 financeapp-banksync  adaptateur Enable Banking (optionnel, lecture seule) et recherche de nouvelles versions — seul module qui accède au réseau
 financeapp-desktop   JavaFX (vues en code, thèmes sombre et clair en CSS) + Spring Boot (injection, configuration)
+web/                 version navigateur : TypeScript + React, mêmes calculs, coffre chiffré WebCrypto (indépendante du Java)
 ```
 
 Montants : `BigDecimal` en mémoire (arrondi `HALF_EVEN`, échelle de la
