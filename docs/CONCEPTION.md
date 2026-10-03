@@ -175,11 +175,11 @@ Ajouts depuis le MVP :
   `stats/` (V3), `loan/`, `simulation/` (V4), `banksync/` (V5), `calendar/`,
   `subscription/`, `export/` (CSV), `tag/` (étiquettes), `update/` (nouvelles
   versions), `text/` ; `settings/MenuLayout` (barre latérale) ;
-  `service/NetWorthService` (évolution du patrimoine).
+  `service/NetWorthService` (évolution du patrimoine), `attachment/` (justificatifs).
 - `financeapp-infra` : `security/` (mot de passe maître, trousseau, V1.1) ;
-  migrations `V3` à `V10` (budgets et objectifs, imports et règles, crédits et
+  migrations `V3` à `V11` (budgets et objectifs, imports et règles, crédits et
   simulations, synchronisation, produits d'épargne, ventilation et étiquettes,
-  récurrences ventilées, étiquettes des récurrences).
+  récurrences ventilées, étiquettes des récurrences, justificatifs).
 - `financeapp-banksync` : client Enable Banking (`EnableBankingClient`,
   `JwtSigner`, `PemKeys`) et `update/GitHubReleaseFeed`.
 - `financeapp-desktop` : `ui/security/` (déverrouillage, profils),
@@ -905,3 +905,40 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   premier point. Comptes dans une autre devise : non comptés, signalés.
 - Limite : les valeurs passées d'un placement ne sont connues qu'aux dates
   saisies (entre deux, la valeur précédente plus les versements).
+
+## 24. V0.3.0 — Justificatifs joints, comptes regroupés
+
+### Justificatifs (`Attachment`, `AttachmentService`, migration `V11__attachments.sql`)
+- Table `attachments` (opération, nom, type, taille, date d'ajout, contenu
+  `BLOB`), effacée en cascade avec l'opération. Le contenu est **dans la base
+  chiffrée** : chiffré sur le disque, inclus dans chaque sauvegarde (`VACUUM
+  INTO`) et restauré avec elle, sans gestion de clé supplémentaire. Les listes
+  ne lisent que les métadonnées ; le contenu est lu à la demande.
+- Formats acceptés reconnus **au contenu** (signature en début de fichier) et
+  non à l'extension : PDF, JPEG, PNG, GIF, WebP, HEIC. 10 Mo maximum par
+  fichier, 20 par opération. Nom nettoyé (sans dossier ni caractères
+  interdits, 120 caractères, extension du format réel).
+- Saisie dans la fenêtre de l'opération (`AttachmentsPane`) : bouton ou
+  glisser-déposer ; ajouts et retraits appliqués **à l'enregistrement**
+  (« Annuler » les annule) ; si l'enregistrement des justificatifs échoue pour
+  une nouvelle opération, l'opération n'est pas gardée.
+- Consultation : PNG, JPEG, GIF affichés dans l'application, **sans fichier
+  sur le disque**. PDF, WebP, HEIC : copie déchiffrée dans
+  `data/ouverts/<aléatoire>/` du profil, ouverte avec l'application du
+  système ; le dossier est vidé au verrouillage, à la fermeture, au
+  changement d'utilisateur et à l'ouverture du profil (un fichier encore
+  ouvert ailleurs est effacé à la purge suivante). « Enregistrer… » : copie
+  non chiffrée choisie par l'utilisateur.
+- Les noms et contenus ne sont jamais écrits dans les journaux.
+- Défaire un import supprime ses opérations, donc leurs justificatifs : la
+  confirmation indique combien seront supprimés.
+- Liste des opérations : « · 2 justificatifs » après le libellé (une requête
+  groupée par page). Paramètres → Sauvegardes : nombre et taille totale.
+- Limite : les justificatifs alourdissent la base et chaque sauvegarde
+  conservée (rotation).
+
+### Comptes regroupés
+- Écran Comptes : sections **Comptes courants**, **Épargne**, **Espèces et
+  autres** (groupe du type de compte), chacune avec son nombre de comptes et
+  son sous-total par devise, puis le total général ; bouton « Ajouter une
+  épargne » (même fenêtre que l'écran Épargne).

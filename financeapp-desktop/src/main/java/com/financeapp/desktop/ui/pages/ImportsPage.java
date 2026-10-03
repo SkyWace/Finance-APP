@@ -67,9 +67,14 @@ public final class ImportsPage extends Page {
                 Button undo = new Button("Défaire cet import");
                 undo.getStyleClass().addAll("ghost", "compact");
                 undo.setOnAction(e -> {
+                    long attached = ctx.services().attachments().countInImport(b.id());
+                    String warning = attached == 0 ? "" : "\n\nAttention : " + attached
+                            + (attached > 1 ? " justificatifs joints à ces opérations seront aussi supprimés"
+                                    : " justificatif joint à ces opérations sera aussi supprimé")
+                            + ". Enregistrez-les d'abord (« Enregistrer… » dans l'opération) si vous voulez les garder.";
                     if (Dialogs.confirm(window(), "Défaire l'import", "Supprimer les " + b.created()
                             + " nouvelle(s) opération(s) de cet import (y compris si vous les avez modifiées depuis) et remettre "
-                            + b.reconciled() + " opération(s) rapprochée(s) à l'état « prévu » ?", "Défaire l'import")) {
+                            + b.reconciled() + " opération(s) rapprochée(s) à l'état « prévu » ?" + warning, "Défaire l'import")) {
                         try {
                             ctx.services().imports().undo(b.id());
                             ctx.events().fireChanged();

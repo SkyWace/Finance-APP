@@ -118,6 +118,8 @@ public final class SecuritySession implements SecurityControls {
                 }
                 profileLock = acquired.get();
             }
+            // Copies de justificatifs laissees par une session precedente (arret brutal...)
+            com.financeapp.desktop.ui.common.OpenedFiles.purge(chosen.directories().openedAttachmentsDir());
             BackupService.applyPendingRestore(chosen.directories(), Clock.systemDefaultZone());
         } catch (java.io.IOException | RuntimeException e) {
             log.error("Preparation du profil impossible", e);
@@ -144,6 +146,7 @@ public final class SecuritySession implements SecurityControls {
     }
 
     private void releaseProfileLock() {
+        purgeOpenedFiles();
         if (profileLock != null) {
             try {
                 profileLock.close();
@@ -151,6 +154,13 @@ public final class SecuritySession implements SecurityControls {
                 log.warn("Liberation du verrou du profil impossible", e);
             }
             profileLock = null;
+        }
+    }
+
+    /** Efface les copies dechiffrees des justificatifs ouverts dans une autre application. */
+    private void purgeOpenedFiles() {
+        if (profile != null) {
+            com.financeapp.desktop.ui.common.OpenedFiles.purge(profile.directories().openedAttachmentsDir());
         }
     }
 
@@ -169,6 +179,7 @@ public final class SecuritySession implements SecurityControls {
             return;
         }
         key.lock();
+        purgeOpenedFiles();
         closeSecondaryWindows();
         showLockScreen();
         log.info("Application verrouillee");

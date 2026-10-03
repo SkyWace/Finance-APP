@@ -22,8 +22,8 @@ Barre latérale **organisable**, comme une barre des tâches : **« Organiser le
 | Écran | Contenu |
 |---|---|
 | Tableau de bord | Patrimoine, comptes courants, épargne, **disponible réel** (cliquable), revenus/dépenses du mois, à venir, prévision 30 jours, prochaines et dernières opérations |
-| Comptes | Création, solde initial, type, couleur, inclusion dans le disponible, archivage |
-| Transactions | **Ventilation** d'une opération sur plusieurs catégories, **étiquettes** (filtre et total par étiquette), **export CSV** (Excel / LibreOffice) des résultats de la recherche ; dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
+| Comptes | Rangés en **comptes courants**, **épargne** et **espèces et autres**, chacun avec son sous-total, puis le total ; création (compte ou épargne), solde initial, type, couleur, inclusion dans le disponible, archivage |
+| Transactions | **Justificatifs joints** (factures, tickets : PDF ou images, 10 Mo max, par bouton ou glisser-déposer), chiffrés avec les données et inclus dans les sauvegardes ; **ventilation** d'une opération sur plusieurs catégories, **étiquettes** (filtre et total par étiquette), **export CSV** (Excel / LibreOffice) des résultats de la recherche ; dépenses, revenus, **virements internes** (neutres pour le patrimoine), statuts prévu / en attente / effectué / annulé, **recherche avancée** (texte, compte, catégorie, période, montant, statut) avec total et moyenne des résultats |
 | Calendrier | **Filtre par compte** (solde du compte jour par jour) ; mois en grille : opérations réelles et prévues, solde en fin de journée (réel puis prévu), détail du jour |
 | Budgets | Plafond mensuel par catégorie, progression, alertes (proche / atteint / dépassé, en texte et symbole), reste réservé dans le disponible |
 | Épargne | Épargne détenue : **Livret A, LDDS, LEP, Livret Jeune, CEL, PEL, assurance-vie, PEA, PER, épargne salariale (PEE, PERCOL…), compte-titres, crypto-actifs**… ; valeur actuelle mise à jour à la main (relevé, valorisation) avec historique ; épargne disponible / à moyen et long terme ; part du patrimoine ; **marge sous le plafond** des livrets réglementés ; **évolution du patrimoine** (courbe en fin de mois : total, épargne, comptes courants ; 12 mois, 24 mois, 5 ans ou depuis le début) |
@@ -67,6 +67,11 @@ Chaque personne qui utilise l'application sur l'ordinateur a son **propre profil
   est alors effacée de la mémoire.
 - Chaque sauvegarde `.db` est accompagnée d'un fichier `.key` (sans secret en
   clair) : gardez-les ensemble pour pouvoir restaurer sur un autre ordinateur.
+- **Justificatifs** : stockés dans la base chiffrée (donc dans les sauvegardes).
+  Une image s'affiche dans l'application sans copie sur le disque ; un PDF
+  s'ouvre avec le lecteur de l'ordinateur via une copie temporaire, effacée au
+  verrouillage, à la fermeture et au démarrage suivant. « Enregistrer… » crée
+  une copie **non chiffrée** à l'endroit choisi.
 
 Détails et limites : [`docs/CONCEPTION.md`](docs/CONCEPTION.md), section 11.
 
@@ -182,7 +187,8 @@ mvn test
   abonnements, recherche de nouvelles versions (une fois par jour, version
   ignorée, désactivée par défaut), étiquettes des récurrences, évolution du
   patrimoine (dates d'ouverture, valorisations, virements neutres, dernier
-  point égal au tableau de bord), disposition des menus (ordre, menus
+  point égal au tableau de bord), justificatifs (format reconnu au contenu,
+  taille, nombre, nom nettoyé, suppression avec l'opération), disposition des menus (ordre, menus
   retirés, reprise de l'ancien réglage, menus d'une version ultérieure).
 - `financeapp-infra` : dépôts sur une vraie base SQLite **chiffrée**
   temporaire, atomicité des virements, contraintes d'intégrité, sauvegardes,
@@ -192,7 +198,9 @@ mvn test
   prévues, réimport après annulation), crédits (taux exact, récurrence liée
   unique), scénarios et hypothèses (remplacement atomique, cascade),
   ventilations et étiquettes (stockage, catégories protégées, étiquettes des
-  récurrences), épargne,
+  récurrences), justificatifs (chiffrés dans la base et la sauvegarde,
+  restaurés, conservés à la modification, signalés puis supprimés quand on
+  défait un import), épargne,
   profils (registre, suppression, verrou d'un seul exemplaire).
 - `financeapp-banksync` : client Enable Banking contre un serveur HTTP local
   simulé qui vérifie la signature de chaque jeton ; correspondance des

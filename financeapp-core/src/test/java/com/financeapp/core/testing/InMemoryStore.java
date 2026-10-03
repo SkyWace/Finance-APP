@@ -72,6 +72,49 @@ public final class InMemoryStore {
     private final Map<Long, Loan> loanMap = new LinkedHashMap<>();
     private final Map<Long, com.financeapp.core.account.AccountValuation> valuationMap = new LinkedHashMap<>();
 
+    private final Map<Long, com.financeapp.core.attachment.Attachment> attachmentMap = new LinkedHashMap<>();
+    private final Map<Long, byte[]> attachmentContent = new HashMap<>();
+
+    /** Justificatifs ; ceux d'une operation supprimee disparaissent avec elle (comme la cascade SQL). */
+    public final com.financeapp.core.port.AttachmentRepository attachments = new com.financeapp.core.port.AttachmentRepository() {
+        private java.util.stream.Stream<com.financeapp.core.attachment.Attachment> live() {
+            return attachmentMap.values().stream().filter(a -> transactionMap.containsKey(a.transactionId()));
+        }
+        public com.financeapp.core.attachment.Attachment insert(com.financeapp.core.attachment.Attachment a, byte[] content) {
+            long id = ids.getAndIncrement();
+            var saved = new com.financeapp.core.attachment.Attachment(id, a.transactionId(), a.fileName(), a.type(),
+                    a.size(), a.addedAt());
+            attachmentMap.put(id, saved);
+            attachmentContent.put(id, content.clone());
+            return saved;
+        }
+        public List<com.financeapp.core.attachment.Attachment> findByTransaction(long transactionId) {
+            return live().filter(a -> a.transactionId() == transactionId).toList();
+        }
+        public Optional<com.financeapp.core.attachment.Attachment> findById(long id) {
+            return live().filter(a -> a.id() == id).findFirst();
+        }
+        public Optional<byte[]> content(long id) {
+            return findById(id).map(a -> attachmentContent.get(id).clone());
+        }
+        public void delete(long id) {
+            attachmentMap.remove(id);
+            attachmentContent.remove(id);
+        }
+        public Map<Long, Integer> countByTransactions(java.util.Collection<Long> transactionIds) {
+            Map<Long, Integer> counts = new HashMap<>();
+            live().filter(a -> transactionIds.contains(a.transactionId()))
+                    .forEach(a -> counts.merge(a.transactionId(), 1, Integer::sum));
+            return counts;
+        }
+        public long countInImportBatch(long batchId) {
+            return live().filter(a -> Long.valueOf(batchId).equals(batchByTx.get(a.transactionId()))).count();
+        }
+        public long[] usage() {
+            return new long[]{live().count(), live().mapToLong(com.financeapp.core.attachment.Attachment::size).sum()};
+        }
+    };
+
     public final com.financeapp.core.port.ValuationRepository valuations = new com.financeapp.core.port.ValuationRepository() {
         public List<com.financeapp.core.account.AccountValuation> findByAccount(long accountId) {
             return valuationMap.values().stream().filter(v -> v.accountId() == accountId)

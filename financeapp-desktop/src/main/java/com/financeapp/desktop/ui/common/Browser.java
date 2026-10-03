@@ -29,6 +29,19 @@ public final class Browser {
         }
     }
 
+    /** Ouvre un fichier local avec l'application associee du systeme (lecteur PDF...). */
+    public static boolean openFile(java.nio.file.Path file) {
+        if (hostServices == null) {
+            return false;
+        }
+        try {
+            hostServices.showDocument(file.toUri().toString());
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
     public static void copy(String text) {
         ClipboardContent content = new ClipboardContent();
         content.putString(text);
