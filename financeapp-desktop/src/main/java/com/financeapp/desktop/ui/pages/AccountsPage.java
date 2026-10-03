@@ -1,6 +1,7 @@
 package com.financeapp.desktop.ui.pages;
 
 import com.financeapp.core.account.Account;
+import com.financeapp.core.account.AccountType;
 import com.financeapp.core.money.Money;
 import com.financeapp.desktop.ui.common.Dialogs;
 import com.financeapp.desktop.ui.common.Formats;
@@ -44,22 +45,47 @@ public final class AccountsPage extends Page {
         Button add = new Button("+  Nouveau compte");
         add.getStyleClass().add("primary");
         add.setOnAction(e -> edit(null));
-        HBox toolbar = Widgets.row(add, Widgets.spacer(), showArchived);
+        Button addSavings = new Button("+  Ajouter une épargne");
+        addSavings.getStyleClass().add("secondary");
+        addSavings.setTooltip(new javafx.scene.control.Tooltip("Livret A, LDDS, PEL, assurance-vie, PEA, PER…"));
+        addSavings.setOnAction(e -> new com.financeapp.desktop.ui.dialogs.SavingsAccountDialog(ctx).showAndWait()
+                .ifPresent(a -> ctx.events().fireChanged()));
+        HBox toolbar = Widgets.row(add, addSavings, Widgets.spacer(), showArchived);
 
-        VBox list = new VBox(8);
-        Map<Currency, Money> totals = new LinkedHashMap<>();
+        // Comptes courants, epargne, puis especes et autres : chacun avec son sous-total.
+        Map<AccountType.Group, List<Account>> groups = new java.util.EnumMap<>(AccountType.Group.class);
         for (Account a : accounts) {
             if (a.archived() && !showArchived.isSelected()) {
                 continue;
             }
-            Money balance = balances.get(a.id());
-            if (!a.archived()) {
-                totals.merge(a.currency(), balance, Money::plus);
-            }
-            list.getChildren().add(accountRow(a, balance, f));
+            AccountType.Group g = a.type().group() == AccountType.Group.OTHER ? AccountType.Group.CASH : a.type().group();
+            groups.computeIfAbsent(g, k -> new java.util.ArrayList<>()).add(a);
         }
-        if (list.getChildren().isEmpty()) {
-            list.getChildren().add(Widgets.emptyState("Aucun compte. Créez votre premier compte pour commencer."));
+        content.getChildren().setAll(toolbar);
+        Map<Currency, Money> totals = new LinkedHashMap<>();
+        for (AccountType.Group g : List.of(AccountType.Group.CURRENT, AccountType.Group.SAVINGS, AccountType.Group.CASH)) {
+            List<Account> members = groups.getOrDefault(g, List.of());
+            if (members.isEmpty()) {
+                continue;
+            }
+            VBox list = new VBox(8);
+            Map<Currency, Money> subtotals = new LinkedHashMap<>();
+            for (Account a : members) {
+                Money balance = balances.get(a.id());
+                if (!a.archived()) {
+                    subtotals.merge(a.currency(), balance, Money::plus);
+                    totals.merge(a.currency(), balance, Money::plus);
+                }
+                list.getChildren().add(accountRow(a, balance, f));
+            }
+            subtotals.forEach((cur, subtotal) -> list.getChildren().add(Widgets.row(
+                    Widgets.label("Sous-total " + groupTitle(g).toLowerCase(java.util.Locale.ROOT)
+                            + (subtotals.size() > 1 ? " (" + cur.getCurrencyCode() + ")" : ""), "muted"),
+                    Widgets.spacer(), Widgets.label(f.money(subtotal), "op-label"))));
+            content.getChildren().add(Widgets.section(groupTitle(g) + " · " + members.size(), list));
+        }
+        if (groups.isEmpty()) {
+            content.getChildren().add(Widgets.emptyState("Aucun compte. Créez votre premier compte pour commencer."));
         }
         VBox totalBox = new VBox(4);
         totals.forEach((cur, total) -> {
@@ -70,9 +96,18 @@ public final class AccountsPage extends Page {
         totalBox.getStyleClass().add("card");
 
         Label hint = Widgets.label("Les comptes marqués « inclus dans le disponible » (par défaut : courants, joints, espèces, "
-                + "cartes prépayées) servent au calcul du disponible réel et des prévisions.", "muted");
+                + "cartes prépayées) servent au calcul du disponible réel et des prévisions. Détail de l'épargne "
+                + "(plafonds, valeurs saisies, évolution du patrimoine) : écran Épargne.", "muted");
         hint.setWrapText(true);
-        content.getChildren().setAll(toolbar, list, totalBox, hint);
+        content.getChildren().addAll(totalBox, hint);
+    }
+
+    private static String groupTitle(AccountType.Group g) {
+        return switch (g) {
+            case CURRENT -> "Comptes courants";
+            case SAVINGS -> "Épargne";
+            case CASH, OTHER -> "Espèces et autres";
+        };
     }
 
     private HBox accountRow(Account a, Money balance, Formats f) {
