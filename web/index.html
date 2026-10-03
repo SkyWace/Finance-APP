@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Aucune ressource externe, aucune connexion : les donnees financieres ne quittent jamais le navigateur.
+      (Les en-tetes HTTP equivalents sont fournis pour l'hebergement : voir README-WEB.)
+    -->
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="description" content="FinanceApp : vos finances personnelles, chiffrées dans votre navigateur." />
+    <meta name="theme-color" content="#12161f" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <title>FinanceApp</title>
+  </head>
+  <body>
+    <noscript>FinanceApp a besoin de JavaScript pour fonctionner.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

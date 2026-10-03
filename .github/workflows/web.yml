@@ -1,0 +1,45 @@
+# Site web (version navigateur) : tests puis construction du site statique.
+#
+# - A chaque envoi touchant web/ (ou lancement manuel : Actions > "Site web" > Run workflow),
+#   le site construit est telechargeable dans les artefacts de l'execution (financeapp-web) :
+#   il suffit de copier son contenu chez l'hebergeur (voir web/README-WEB.md).
+name: Site web
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['web/**', '.github/workflows/web.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Dependances
+        run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      - name: Construction
+        run: npm run build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: financeapp-web
+          path: web/dist/
+          if-no-files-found: error
