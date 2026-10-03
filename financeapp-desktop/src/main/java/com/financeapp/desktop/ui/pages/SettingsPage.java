@@ -10,6 +10,7 @@ import com.financeapp.desktop.ui.common.UiContext;
 import com.financeapp.desktop.ui.common.Widgets;
 import com.financeapp.desktop.ui.dialogs.ChangePasswordDialog;
 import com.financeapp.desktop.ui.dialogs.PasswordPromptDialog;
+import com.financeapp.desktop.ui.dialogs.WebExportDialog;
 import com.financeapp.desktop.ui.security.RecoveryKeyPanel;
 import com.financeapp.infra.backup.BackupInfo;
 import com.financeapp.infra.backup.BackupService;
@@ -234,6 +235,10 @@ public final class SettingsPage extends Page {
         Button export = new Button("Exporter une sauvegarde…");
         export.getStyleClass().add("secondary");
         export.setOnAction(e -> exportBackup());
+        Button exportWeb = new Button("Exporter pour la version web…");
+        exportWeb.getStyleClass().add("ghost");
+        exportWeb.setTooltip(new javafx.scene.control.Tooltip("Fichier chiffré à restaurer sur le site FinanceApp"));
+        exportWeb.setOnAction(e -> exportForWeb());
         Button restore = new Button("Restaurer depuis un fichier…");
         restore.getStyleClass().add("ghost");
         restore.setOnAction(e -> {
@@ -273,6 +278,7 @@ public final class SettingsPage extends Page {
                 auto,
                 labeled("Nombre de sauvegardes automatiques conservées", keep),
                 Widgets.row(now, export, restore),
+                exportWeb,
                 Widgets.label("Dossier : " + ctx.services().directories().backupsDir(), "muted"),
                 attachmentsUsage(),
                 list);
@@ -347,6 +353,56 @@ public final class SettingsPage extends Page {
                 Widgets.label(p.name() + " — version " + p.version(), "op-label"),
                 Widgets.label("Données : " + ctx.services().directories().root(), "muted"),
                 Widgets.label("Journaux techniques (sans données financières) : " + ctx.services().directories().logsDir(), "muted"));
+    }
+
+    /** Fichier chiffre au format de la version web, avec sa cle de recuperation. */
+    private void exportForWeb() {
+        new WebExportDialog(ctx).showAndWait().ifPresent(password -> {
+            try {
+                FileChooser chooser = new FileChooser();
+                chooser.setTitle("Exporter pour la version web");
+                chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Sauvegarde web (*.json)", "*.json"));
+                chooser.setInitialFileName(ctx.services().properties().id() + "-web-"
+                        + DateTimeFormatter.ofPattern("yyyy-MM-dd").format(ctx.services().planning().today()) + ".json");
+                File file = chooser.showSaveDialog(window());
+                if (file == null) {
+                    return;
+                }
+                var export = ctx.services().webExport().export();
+                var result = new com.financeapp.infra.security.WebBackupWriter()
+                        .write(ctx.security().profileName(), export.json(), password);
+                java.nio.file.Files.writeString(file.toPath(), result.json(), java.nio.charset.StandardCharsets.UTF_8);
+                var r = export.report();
+                String details = r.accounts() + " compte(s), " + r.transactions() + " opération(s), " + r.rules()
+                        + " récurrence(s), " + r.categories() + " catégorie(s) exportés dans « " + file.getName() + " »."
+                        + (r.skippedAccounts() > 0 ? "\nNon exportés (autre devise) : " + r.skippedAccounts()
+                                + " compte(s), " + r.skippedTransactions() + " opération(s), " + r.skippedRules()
+                                + " récurrence(s)." : "")
+                        + (r.splitsSimplified() > 0 ? "\n" + r.splitsSimplified()
+                                + " ventilation(s) simplifiée(s) : détail dans le commentaire." : "");
+                char[] key = result.recoveryKey().toCharArray();
+                javafx.scene.control.Dialog<Void> dialog = new javafx.scene.control.Dialog<>();
+                dialog.setTitle("Exporté pour la version web");
+                Dialogs.style(dialog.getDialogPane(), window(), dialog);
+                dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
+                javafx.scene.Node closeButton = dialog.getDialogPane().lookupButton(javafx.scene.control.ButtonType.CLOSE);
+                closeButton.setVisible(false);
+                closeButton.setManaged(false);
+                Label summary = Widgets.label(details + "\nSur le site : « Restaurer une sauvegarde », puis le mot de passe "
+                        + "choisi. Si vous l'oubliez, la clé ci-dessous ouvrira ce profil web.", "hint");
+                summary.setWrapText(true);
+                summary.setMaxWidth(520);
+                dialog.getDialogPane().setContent(new VBox(14, summary, RecoveryKeyPanel.build(key, "Terminer", () -> {
+                    java.util.Arrays.fill(key, '\0');
+                    dialog.close();
+                })));
+                dialog.showAndWait();
+            } catch (IOException | java.security.GeneralSecurityException | RuntimeException ex) {
+                Dialogs.error(window(), ex);
+            } finally {
+                java.util.Arrays.fill(password, '\0');
+            }
+        });
     }
 
     private void exportBackup() {

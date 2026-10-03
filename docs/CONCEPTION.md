@@ -969,9 +969,19 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   sortante), refus d'affichage dans un cadre, en-têtes fournis pour l'hébergement
   (`web/public/_headers`, exemples nginx et Apache dans `web/README-WEB.md`). HTTPS
   obligatoire (WebCrypto).
+- **Export desktop → web** (`WebExportService` dans le cœur, `WebBackupWriter` dans
+  l'infrastructure) : le desktop produit directement une sauvegarde au format web
+  (même schéma : PBKDF2-HMAC-SHA-256 600 000 itérations sur le mot de passe normalisé
+  NFC en UTF-8, AES-256-GCM, identifiant du profil en données authentifiées, clé de
+  récupération au même format), avec la seule cryptographie du JDK ; le site la restaure
+  sans code spécifique. Interopérabilité vérifiée par un test web qui ouvre un fichier
+  produit par Java (mot de passe accentué, clé de récupération). Soldes actuels conservés
+  au centime (solde initial ajusté, valeurs d'épargne comprises) ; comptes d'une autre
+  devise, budgets, objectifs, crédits, simulations, justificatifs non repris ; ventilation
+  ramenée à la catégorie principale (détail en commentaire).
 - **Limites** : données liées au navigateur et à l'appareil (sauvegardes à télécharger),
-  pas de synchronisation entre appareils, pas d'échange de données avec la version
-  desktop. Fonctions non portées dans cette première version : budgets, objectifs,
+  pas de synchronisation entre appareils ; l'export desktop → web est une copie à un
+  instant donné, sans retour du web vers le desktop. Fonctions non portées dans cette première version : budgets, objectifs,
   abonnements, analyses, crédits, simulations, ventilation, justificatifs, OFX/QIF.
 - **Intégration continue** : `.github/workflows/web.yml` (tests, construction, site en
   artefact `financeapp-web`).

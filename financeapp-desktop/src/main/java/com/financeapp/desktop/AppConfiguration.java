@@ -192,6 +192,14 @@ public class AppConfiguration {
     }
 
     @Bean
+    com.financeapp.core.service.WebExportService webExportService(AccountService accounts, CategoryService categories,
+            TransactionRepository transactions, RecurringService recurring, com.financeapp.core.service.TagService tags,
+            SettingsService settings) {
+        return new com.financeapp.core.service.WebExportService(accounts, categories, transactions, recurring, tags,
+                settings);
+    }
+
+    @Bean
     CategoryService categoryService(CategoryRepository categories) {
         return new CategoryService(categories);
     }
