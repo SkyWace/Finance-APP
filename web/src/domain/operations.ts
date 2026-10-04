@@ -2,8 +2,8 @@ import { isValidDate, type IsoDate } from './dates';
 import type { Cents } from './money';
 import { isCustom, occurrences } from './recurrence';
 import {
-  ACCOUNT_TYPES, type Account, type AccountType, type Category, type CategoryKind, type FinanceData,
-  type Frequency, type RecurringRule, type Transaction, type TransactionStatus, type TransactionType,
+  ACCOUNT_TYPES, type Account, type AccountType, type Budget, type Category, type CategoryKind, type FinanceData,
+  type Frequency, type RecurringRule, type SavingsGoal, type Transaction, type TransactionStatus, type TransactionType,
 } from './types';
 
 /** Erreur de saisie : son message est montre tel quel a l'utilisateur. */
@@ -119,6 +119,9 @@ export function deleteAccount(data: FinanceData, id: number): void {
   if (data.transactions.some((t) => t.accountId === id || t.transferAccountId === id)
     || data.rules.some((r) => r.accountId === id || r.toAccountId === id)) {
     fail('Ce compte a des opérations ou des récurrences : archivez-le plutôt (l\'historique est conservé)');
+  }
+  if (data.goals.some((g) => g.linkedAccountId === id)) {
+    fail('Un objectif d\'épargne suit ce compte : modifiez ou supprimez d\'abord cet objectif');
   }
   data.accounts = data.accounts.filter((a) => a.id !== id);
 }
@@ -402,6 +405,9 @@ export function deleteCategory(data: FinanceData, id: number): void {
   if (categoryUsage(data, id) > 0) {
     fail('Catégorie utilisée par des opérations : archivez-la plutôt');
   }
+  if (data.budgets.some((b) => b.categoryId === id)) {
+    fail('Cette catégorie a un budget : supprimez d\'abord le budget');
+  }
   data.categories = data.categories.filter((c) => c.id !== id);
 }
 
@@ -421,4 +427,94 @@ export function categoryPath(data: FinanceData, id: number | null): string {
   }
   const parent = c.parentId === null ? undefined : data.categories.find((x) => x.id === c.parentId);
   return parent ? `${parent.name} › ${c.name}` : c.name;
+}
+
+// ------------------------------------------------------------------ budgets
+
+export interface BudgetDraft {
+  categoryId: number | null;
+  limit: Cents;
+  reserveInAvailable: boolean;
+}
+
+/** Un budget par categorie de depenses, plafond strictement positif. */
+export function saveBudget(data: FinanceData, draft: BudgetDraft, id?: number): Budget {
+  const category = data.categories.find((c) => c.id === draft.categoryId) ?? fail('Choisissez une catégorie');
+  if (category.kind === 'INCOME') {
+    fail('Un budget porte sur une catégorie de dépenses');
+  }
+  if (!Number.isSafeInteger(draft.limit) || draft.limit <= 0) {
+    fail('Le montant du budget doit être strictement positif');
+  }
+  if (data.budgets.some((b) => b.active && b.categoryId === category.id && b.id !== id)) {
+    fail('Cette catégorie a déjà un budget');
+  }
+  if (id === undefined) {
+    const budget: Budget = { id: nextId(data), categoryId: category.id, limit: draft.limit,
+      reserveInAvailable: draft.reserveInAvailable, active: true };
+    data.budgets.push(budget);
+    return budget;
+  }
+  const budget = data.budgets.find((b) => b.id === id) ?? fail('Budget introuvable');
+  Object.assign(budget, { categoryId: category.id, limit: draft.limit, reserveInAvailable: draft.reserveInAvailable });
+  return budget;
+}
+
+export function deleteBudget(data: FinanceData, id: number): void {
+  data.budgets = data.budgets.filter((b) => b.id !== id);
+}
+
+// ------------------------------------------------------------------ objectifs d'epargne
+
+export interface GoalDraft {
+  name: string;
+  target: Cents;
+  targetDate?: IsoDate;
+  linkedAccountId?: number;
+  manualSaved: Cents;
+  reserveInAvailable: boolean;
+}
+
+export function saveGoal(data: FinanceData, draft: GoalDraft, id?: number): SavingsGoal {
+  const name = requireLabel(draft.name, "Le nom de l'objectif");
+  if (!Number.isSafeInteger(draft.target) || draft.target <= 0) {
+    fail('Le montant visé doit être strictement positif');
+  }
+  if (!Number.isSafeInteger(draft.manualSaved) || draft.manualSaved < 0) {
+    fail('Le montant épargné ne peut pas être négatif');
+  }
+  const targetDate = draft.targetDate ? requireDate(draft.targetDate, "L'échéance") : undefined;
+  if (draft.linkedAccountId !== undefined) {
+    requireAccount(data, draft.linkedAccountId, 'Compte introuvable');
+  }
+  const fields = { name, target: draft.target, targetDate, linkedAccountId: draft.linkedAccountId,
+    manualSaved: draft.manualSaved, reserveInAvailable: draft.reserveInAvailable };
+  if (id === undefined) {
+    const goal: SavingsGoal = { id: nextId(data), ...fields, archived: false };
+    data.goals.push(goal);
+    return goal;
+  }
+  const goal = data.goals.find((g) => g.id === id) ?? fail('Objectif introuvable');
+  Object.assign(goal, fields);
+  return goal;
+}
+
+/** Ajoute (ou retire, si negatif) un montant a un objectif suivi a la main. */
+export function addContribution(data: FinanceData, id: number, amount: Cents): void {
+  const goal = data.goals.find((g) => g.id === id) ?? fail('Objectif introuvable');
+  if (goal.linkedAccountId !== undefined) {
+    fail('Cet objectif suit le solde d\'un compte : enregistrez plutôt un virement vers ce compte');
+  }
+  if (goal.manualSaved + amount < 0) {
+    fail('Le montant épargné ne peut pas devenir négatif');
+  }
+  goal.manualSaved += amount;
+}
+
+export function setGoalArchived(data: FinanceData, id: number, archived: boolean): void {
+  (data.goals.find((g) => g.id === id) ?? fail('Objectif introuvable')).archived = archived;
+}
+
+export function deleteGoal(data: FinanceData, id: number): void {
+  data.goals = data.goals.filter((g) => g.id !== id);
 }

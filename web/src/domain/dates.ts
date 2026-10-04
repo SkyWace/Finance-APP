@@ -120,3 +120,9 @@ export function formatMonthYear(s: IsoDate): string {
   const [y, m] = parts(s);
   return `${MONTHS[m - 1].slice(0, 4).replace(/\.$/, '')}${MONTHS[m - 1].length > 4 ? '.' : ''} ${String(y).slice(2)}`;
 }
+
+/** "octobre 2026" */
+export function formatLongMonth(s: IsoDate): string {
+  const [y, m] = parts(s);
+  return `${MONTHS[m - 1]} ${y}`;
+}

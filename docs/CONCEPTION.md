@@ -982,11 +982,69 @@ les rapprochements et « À valider ». Détails, choix et points restant à val
   sans code spécifique. Interopérabilité vérifiée par un test web qui ouvre un fichier
   produit par Java (mot de passe accentué, clé de récupération). Soldes actuels conservés
   au centime (solde initial ajusté, valeurs d'épargne comprises) ; comptes d'une autre
-  devise, budgets, objectifs, crédits, simulations, justificatifs non repris ; ventilation
-  ramenée à la catégorie principale (détail en commentaire).
+  devise, crédits, simulations, justificatifs non repris ; ventilation ramenée à la
+  catégorie principale (détail en commentaire). Budgets et objectifs : voir section 26.
 - **Limites** : données liées au navigateur et à l'appareil (sauvegardes à télécharger),
-  pas de synchronisation entre appareils ; l'export desktop → web est une copie à un
-  instant donné, sans retour du web vers le desktop. Fonctions non portées dans cette première version : budgets, objectifs,
-  abonnements, analyses, crédits, simulations, ventilation, justificatifs, OFX/QIF.
+  pas de synchronisation automatique entre appareils (échange par fichier, section 26).
+  Fonctions non portées : abonnements, analyses, crédits, simulations, ventilation,
+  justificatifs, OFX/QIF.
 - **Intégration continue** : `.github/workflows/web.yml` (tests, construction, site en
   artefact `financeapp-web`).
+
+## 26. Budgets et objectifs sur le web, retour web → desktop
+
+### Budgets et objectifs d'épargne sur le site
+- `web/src/domain/budgets.ts` : portage de `BudgetEngine`, `BudgetService`,
+  `SavingsGoalCalculator` et `SavingsGoalService`. Même périmètre (catégorie et
+  sous-catégories, opérations effectuées ou en attente, dépenses prévues du mois sans double
+  comptage, retards rattachés au mois en cours), même réservation dans le disponible réel
+  (reste au prorata des jours, mois suivants au prorata de la limite ; effort mensuel des
+  objectifs par mois entamé), mêmes libellés de lignes et même ordre.
+- **Arrondis identiques** : `Money.divide` du desktop arrondit d'abord à 4 décimales de
+  centime puis au centime (HALF_EVEN deux fois) ; `divideMoney` reproduit ce double
+  arrondi (un arrondi unique donnerait parfois un centime d'écart).
+- **Parité vérifiée** : `WebParityTest` (infra) construit un jeu de données (budgets avec
+  sous-catégories, dépenses prévues et récurrentes, objectifs liés à un compte, manuels,
+  sans échéance, archivés, atteints), exporte les données et les résultats du desktop
+  (disponible réel sur cinq échéances, budgets sur trois mois, objectifs) ;
+  `web/src/domain/parity.test.ts` refait les calculs et doit trouver les mêmes montants
+  au centime.
+- L'export desktop → web reprend désormais budgets et objectifs : le disponible réel du
+  site est le même que celui de l'application (une opération ventilée garde sa catégorie
+  principale : le suivi d'un budget peut alors différer).
+- Écrans *Budgets* (mois choisi, alertes, barre et pourcentage écrits, état avec symbole)
+  et *Objectifs d'épargne* (versement, archivage), aperçu des budgets sur le tableau de bord.
+
+### Import dans l'application des saisies faites sur le site
+- `WebBackupReader` (infra) : vérifie le format, lit le nom du profil sans mot de passe,
+  puis déchiffre avec le mot de passe du profil web (même schéma que `WebBackupWriter`,
+  JDK uniquement ; itérations bornées, taille de fichier limitée). Lecture JSON par
+  `Json.parse` (cœur, sans dépendance, profondeur bornée, nombres entiers seulement).
+- `WebImportService` (cœur) — **rien d'ambigu n'est importé en silence** :
+  - chaque compte du site est associé à un compte de l'application (même nom par
+    défaut), créé, ou ignoré ;
+  - une opération exportée par l'application garde son identifiant sur le site : même
+    identifiant, même compte et même montant ou libellé → inchangée : ignorée ; prévue
+    ici et effectuée sur le site : passe à « effectuée » (rapprochement, annulable) ;
+    modifiée sur le site : signalée, non importée (à reporter à la main) ;
+  - échéance récurrente validée ou ignorée sur le site : rattachée à la même occurrence
+    de la règle (même identifiant et même libellé), sinon importée comme opération simple ;
+    déjà traitée ici : doublon signalé ;
+  - opération identique déjà présente (compte, date, montant, libellé) : ignorée ; même
+    montant à ±3 jours : doublon possible, décoché ; opération prévue de même montant et
+    libellé équivalent à ±10 jours : réalisée ;
+  - deux opérations identiques saisies sur le site restent deux opérations (chaque
+    opération de l'application ne correspond qu'à une seule) ;
+  - virement vers un compte non importé : dépense ou revenu, à confirmer ;
+  - catégories : code stable, sinon même chemin, sinon créées ; étiquettes par nom.
+- Enregistrement par `ImportRepository` (un lot par compte, format `WEB`, migration
+  `V12__web_import.sql`) : défaire l'import depuis l'écran *Imports* supprime les
+  opérations créées et remet « prévues » les opérations réalisées. Les opérations
+  importées ne passent pas par l'Inbox « à valider » (l'utilisateur les a saisies lui-même).
+- **Vérification de bout en bout** : `web/src/store/webBackupForDesktop.test.ts` part des
+  données exportées par le desktop, simule des saisies sur le site (achats identiques,
+  nouvelle catégorie, échéance validée, échéance ignorée, opération prévue réalisée,
+  opération modifiée, virement, nouveau compte, opération prévue) et produit une vraie
+  sauvegarde WebCrypto ; `WebImportTest` la déchiffre, l'importe et retrouve exactement
+  les soldes et le disponible réel du site ; un second import n'ajoute rien ; défaire
+  l'import rend l'état initial.

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { emptyData } from '../domain/defaults';
+import { emptyData, upgradeData } from '../domain/defaults';
 import type { FinanceData } from '../domain/types';
 import * as vault from './vault';
 
@@ -50,17 +50,6 @@ export function useData(): FinanceData {
   return s.data;
 }
 
-/** Complete les donnees d'une version anterieure. */
-function migrate(data: FinanceData): FinanceData {
-  const base = emptyData();
-  return {
-    ...data,
-    settings: { ...base.settings, ...data.settings },
-    rules: data.rules.map((r) => ({ ...r, tags: r.tags ?? [] })),
-    transactions: data.transactions.map((t) => ({ ...t, tags: t.tags ?? [] })),
-  };
-}
-
 /**
  * Un profil ne s'ouvre que dans un seul onglet a la fois (deux onglets ecriraient
  * l'un sur l'autre). Web Locks : liberes automatiquement a la fermeture de l'onglet.
@@ -107,7 +96,7 @@ async function enter(opened: vault.OpenVault<FinanceData>): Promise<void> {
   if (!(await acquireTabLock(opened.id))) {
     throw new AlreadyOpenError();
   }
-  current = { ...opened, data: migrate(opened.data) };
+  current = { ...opened, data: upgradeData(opened.data) };
   set({ profile: { id: opened.id, name: opened.name }, data: current.data, saveError: undefined });
   void vault.requestPersistence();
 }

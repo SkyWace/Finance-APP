@@ -38,7 +38,7 @@ import java.util.Locale;
 public final class ImportService {
 
     /** Origine d'un lot : fichier (CSV, OFX, QIF) ou synchronisation bancaire. */
-    public enum Format { CSV, OFX, QIF, BANK_SYNC }
+    public enum Format { CSV, OFX, QIF, BANK_SYNC, WEB }
 
     /** Choix de l'utilisateur pour une ligne de l'apercu. */
     public record Decision(ImportCandidate candidate, boolean include, Long categoryId) {

@@ -18,7 +18,10 @@ toutes mes dépenses futures prises en compte ? »*
   navigateur, avec les données chiffrées dans le navigateur (aucun serveur ne les voit) ;
   site statique à héberger où l'on veut. Voir [`web/README-WEB.md`](web/README-WEB.md).
   Pour y reprendre ses données : *Paramètres → Sauvegardes → Exporter pour la version
-  web…*, puis sur le site *Paramètres → Importer depuis l'application desktop*.
+  web…*, puis sur le site *Paramètres → Importer depuis l'application desktop*. Dans
+  l'autre sens, les opérations saisies sur le site (téléphone…) reviennent dans
+  l'application : sauvegarde téléchargée depuis le site, puis *Paramètres → Sauvegardes →
+  Importer depuis la version web…* (aperçu, doublons signalés, import annulable).
 
 ## Fonctionnalités
 
@@ -197,7 +200,10 @@ mvn test
   retirés, reprise de l'ancien réglage, menus d'une version ultérieure).
 - `financeapp-infra` : dépôts sur une vraie base SQLite **chiffrée**
   temporaire, atomicité des virements, contraintes d'intégrité, sauvegardes,
-  rotation, restauration (y compris depuis une autre installation), mot de
+  rotation, restauration (y compris depuis une autre installation), échanges avec la
+  version web (mêmes résultats au centime que le site pour le disponible réel, les
+  budgets et les objectifs ; sauvegarde produite par le site déchiffrée et importée :
+  soldes et disponible identiques, réimport sans effet, annulation), mot de
   passe maître, récupération, trousseau altéré ou perdu, migration des données
   V1 en clair, import atomique et annulation (restauration des opérations
   prévues, réimport après annulation), crédits (taux exact, récurrence liée
@@ -213,6 +219,8 @@ mvn test
   (serveur local : préversions ignorées, liens hors du dépôt refusés).
 - `financeapp-desktop` : démarrage complet du contexte Spring (sans
   interface), verrouillage/déverrouillage.
+- `web/` : `npm test` (calculs, coffre chiffré, CSV, budgets et objectifs, fichiers
+  échangés avec l'application desktop dans les deux sens).
 
 ## Architecture
 

@@ -392,7 +392,8 @@ public final class InMemoryStore {
     };
 
     public final ImportRepository imports = new ImportRepository() {
-        public ImportBatch commit(ImportBatch batch, List<ImportedTransaction> created, List<Reconciliation> reconciliations) {
+        public ImportBatch commit(ImportBatch batch, List<ImportedTransaction> created, List<Reconciliation> reconciliations,
+                                  boolean review) {
             ImportBatch saved = batch.withId(ids.getAndIncrement());
             batchMap.put(saved.id(), saved);
             for (ImportedTransaction it : created) {

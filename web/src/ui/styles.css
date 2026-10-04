@@ -282,3 +282,15 @@ table.data td.num, table.data th.num { text-align: right; }
 
 .tag-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .privacy-hidden { letter-spacing: .1em; }
+
+/* Budgets et objectifs : barre + pourcentage ecrit (jamais la couleur seule) */
+.progress { flex: 1; height: 10px; border-radius: 999px; background: var(--fa-hover); overflow: hidden; min-width: 80px; }
+.progress > span { display: block; height: 100%; border-radius: 999px; background: var(--fa-accent); }
+.progress.positive > span { background: var(--fa-positive); }
+.progress.warning > span { background: var(--fa-warning); }
+.progress.negative > span { background: var(--fa-negative); }
+.progress-row { margin: 8px 0 6px; flex-wrap: nowrap; }
+.progress-row .percent { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; }
+.small-text { font-size: 12px; }
+.budget-compact { padding: 10px 0; border-bottom: 1px solid var(--fa-border); }
+.budget-compact:last-child { border-bottom: 0; }

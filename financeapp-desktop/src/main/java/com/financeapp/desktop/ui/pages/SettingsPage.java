@@ -239,6 +239,11 @@ public final class SettingsPage extends Page {
         exportWeb.getStyleClass().add("ghost");
         exportWeb.setTooltip(new javafx.scene.control.Tooltip("Fichier chiffré à restaurer sur le site FinanceApp"));
         exportWeb.setOnAction(e -> exportForWeb());
+        Button importWeb = new Button("Importer depuis la version web…");
+        importWeb.getStyleClass().add("ghost");
+        importWeb.setTooltip(new javafx.scene.control.Tooltip(
+                "Reprendre les opérations saisies sur le site (sauvegarde téléchargée depuis le site)"));
+        importWeb.setOnAction(e -> importFromWeb());
         Button restore = new Button("Restaurer depuis un fichier…");
         restore.getStyleClass().add("ghost");
         restore.setOnAction(e -> {
@@ -278,7 +283,7 @@ public final class SettingsPage extends Page {
                 auto,
                 labeled("Nombre de sauvegardes automatiques conservées", keep),
                 Widgets.row(now, export, restore),
-                exportWeb,
+                Widgets.row(exportWeb, importWeb),
                 Widgets.label("Dossier : " + ctx.services().directories().backupsDir(), "muted"),
                 attachmentsUsage(),
                 list);
@@ -357,6 +362,64 @@ public final class SettingsPage extends Page {
     }
 
     /** Fichier chiffre au format de la version web, avec sa cle de recuperation. */
+    /** Resultat du dechiffrement (hors du fil de l'interface : la derivation du mot de passe prend du temps). */
+    private record WebFile(com.financeapp.infra.security.WebBackupReader.Content content, String error) {
+    }
+
+    private void importFromWeb() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Sauvegarde téléchargée depuis le site");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Sauvegarde du site (*.json)", "*.json"));
+        File file = chooser.showOpenDialog(window());
+        if (file == null) {
+            return;
+        }
+        String text;
+        String profile;
+        try {
+            if (file.length() > com.financeapp.infra.security.WebBackupReader.MAX_FILE_SIZE) {
+                throw new com.financeapp.infra.security.WebBackupReader.NotAWebBackupException(
+                        "Fichier trop volumineux pour une sauvegarde du site.");
+            }
+            text = java.nio.file.Files.readString(file.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            profile = com.financeapp.infra.security.WebBackupReader.profileName(text);
+        } catch (com.financeapp.infra.security.WebBackupReader.NotAWebBackupException ex) {
+            Dialogs.error(window(), new com.financeapp.core.service.BusinessException(ex.getMessage()));
+            return;
+        } catch (java.io.IOException | java.io.UncheckedIOException ex) {
+            Dialogs.error(window(), new com.financeapp.core.service.BusinessException(
+                    "Impossible de lire ce fichier (ce n'est pas une sauvegarde du site ?)."));
+            return;
+        }
+        com.financeapp.desktop.ui.dialogs.PasswordPromptDialog.ask(window(), "Importer depuis la version web",
+                "Mot de passe du profil « " + profile + " » sur le site (celui qui protège ce profil dans le "
+                        + "navigateur).").ifPresent(password -> UiAsync.load(() -> {
+            try {
+                return new WebFile(com.financeapp.infra.security.WebBackupReader.read(text, password), null);
+            } catch (java.security.GeneralSecurityException ex) {
+                return new WebFile(null, "Mot de passe incorrect, ou fichier modifié depuis son téléchargement.");
+            } catch (com.financeapp.infra.security.WebBackupReader.NotAWebBackupException ex) {
+                return new WebFile(null, ex.getMessage());
+            } finally {
+                java.util.Arrays.fill(password, '\0');
+            }
+        }, loaded -> {
+            if (loaded.error() != null) {
+                Dialogs.error(window(), new com.financeapp.core.service.BusinessException(loaded.error()));
+                return;
+            }
+            new com.financeapp.desktop.ui.dialogs.WebImportDialog(ctx, profile, loaded.content().dataJson(), file.getName())
+                    .showAndWait().ifPresent(r -> {
+                        ctx.events().fireChanged();
+                        Dialogs.info(window(), "Import terminé", r.created() + " opération(s) ajoutée(s), " + r.realized()
+                                + " opération(s) prévue(s) passée(s) à « effectuée »"
+                                + (r.accountsCreated() > 0 ? ", " + r.accountsCreated() + " compte(s) créé(s)" : "")
+                                + (r.categoriesCreated() > 0 ? ", " + r.categoriesCreated() + " catégorie(s) créée(s)" : "")
+                                + ".\nPour annuler : écran Imports → « Défaire cet import ».");
+                    });
+        }));
+    }
+
     private void exportForWeb() {
         new WebExportDialog(ctx).showAndWait().ifPresent(password -> {
             try {
@@ -375,7 +438,8 @@ public final class SettingsPage extends Page {
                 java.nio.file.Files.writeString(file.toPath(), result.json(), java.nio.charset.StandardCharsets.UTF_8);
                 var r = export.report();
                 String details = r.accounts() + " compte(s), " + r.transactions() + " opération(s), " + r.rules()
-                        + " récurrence(s), " + r.categories() + " catégorie(s) exportés dans « " + file.getName() + " »."
+                        + " récurrence(s), " + r.categories() + " catégorie(s), " + r.budgets() + " budget(s), "
+                        + r.goals() + " objectif(s) exportés dans « " + file.getName() + " »."
                         + (r.skippedAccounts() > 0 ? "\nNon exportés (autre devise) : " + r.skippedAccounts()
                                 + " compte(s), " + r.skippedTransactions() + " opération(s), " + r.skippedRules()
                                 + " récurrence(s)." : "")

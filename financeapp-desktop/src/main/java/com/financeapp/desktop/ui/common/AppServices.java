@@ -56,7 +56,8 @@ public record AppServices(
         com.financeapp.core.service.UpdateService updates,
         com.financeapp.core.service.NetWorthService netWorth,
         com.financeapp.core.service.AttachmentService attachments,
-        com.financeapp.core.service.WebExportService webExport) {
+        com.financeapp.core.service.WebExportService webExport,
+        com.financeapp.core.service.WebImportService webImport) {
 
     public static AppServices from(ApplicationContext ctx) {
         return new AppServices(
@@ -88,6 +89,7 @@ public record AppServices(
                 ctx.getBean(com.financeapp.core.service.UpdateService.class),
                 ctx.getBean(com.financeapp.core.service.NetWorthService.class),
                 ctx.getBean(com.financeapp.core.service.AttachmentService.class),
-                ctx.getBean(com.financeapp.core.service.WebExportService.class));
+                ctx.getBean(com.financeapp.core.service.WebExportService.class),
+                ctx.getBean(com.financeapp.core.service.WebImportService.class));
     }
 }

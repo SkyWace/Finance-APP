@@ -1,8 +1,10 @@
 package com.financeapp.core.service;
 
 import com.financeapp.core.account.Account;
+import com.financeapp.core.budget.Budget;
 import com.financeapp.core.category.Category;
 import com.financeapp.core.export.Json;
+import com.financeapp.core.goal.SavingsGoal;
 import com.financeapp.core.money.Money;
 import com.financeapp.core.port.TransactionQuery;
 import com.financeapp.core.port.TransactionRepository;
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
 
 /**
  * Donnees du profil au format de la version web (FinanceData, version 1) : comptes,
- * categories, operations, recurrences, etiquettes et reglages. Le resultat est ensuite
+ * categories, operations, recurrences, etiquettes, budgets, objectifs d'epargne et reglages. Le resultat est ensuite
  * chiffre au format des sauvegardes web (infra).
  *
  * <p>Adaptations, toutes signalees dans le compte rendu :
@@ -43,8 +45,8 @@ import java.util.stream.Collectors;
 public final class WebExportService {
 
     /** Ce qui a ete exporte et ce qui ne l'a pas ete. */
-    public record Report(int accounts, int categories, int transactions, int rules, int skippedAccounts,
-                         int skippedTransactions, int skippedRules, int splitsSimplified) {
+    public record Report(int accounts, int categories, int transactions, int rules, int budgets, int goals,
+                         int skippedAccounts, int skippedTransactions, int skippedRules, int splitsSimplified) {
     }
 
     /** Donnees au format web (JSON) et compte rendu. */
@@ -56,15 +58,20 @@ public final class WebExportService {
     private final TransactionRepository transactions;
     private final RecurringService recurring;
     private final TagService tags;
+    private final BudgetService budgets;
+    private final SavingsGoalService goals;
     private final SettingsService settings;
 
     public WebExportService(AccountService accounts, CategoryService categories, TransactionRepository transactions,
-                            RecurringService recurring, TagService tags, SettingsService settings) {
+                            RecurringService recurring, TagService tags, BudgetService budgets,
+                            SavingsGoalService goals, SettingsService settings) {
         this.accounts = accounts;
         this.categories = categories;
         this.transactions = transactions;
         this.recurring = recurring;
         this.tags = tags;
+        this.budgets = budgets;
+        this.goals = goals;
         this.settings = settings;
     }
 
@@ -215,6 +222,40 @@ public final class WebExportService {
             rulesOut.add(o);
         }
 
+        // --- Budgets et objectifs (devise de reference) ----------------------------
+        List<Map<String, Object>> budgetsOut = new ArrayList<>();
+        for (Budget b : budgets.findAll()) {
+            if (!b.limit().currency().equals(currency)) {
+                continue;
+            }
+            maxId = Math.max(maxId, b.id());
+            Map<String, Object> o = new LinkedHashMap<>();
+            o.put("id", b.id());
+            o.put("categoryId", b.categoryId());
+            o.put("limit", b.limit().toMinorUnits());
+            o.put("reserveInAvailable", b.reserveInAvailable());
+            o.put("active", b.active());
+            budgetsOut.add(o);
+        }
+        List<Map<String, Object>> goalsOut = new ArrayList<>();
+        for (SavingsGoal g : goals.findAll()) {
+            if (!g.target().currency().equals(currency)
+                    || (g.linkedAccountId() != null && !kept.contains(g.linkedAccountId()))) {
+                continue;
+            }
+            maxId = Math.max(maxId, g.id());
+            Map<String, Object> o = new LinkedHashMap<>();
+            o.put("id", g.id());
+            o.put("name", g.name());
+            o.put("target", g.target().toMinorUnits());
+            o.put("targetDate", g.targetDate() == null ? null : g.targetDate().toString());
+            o.put("linkedAccountId", g.linkedAccountId());
+            o.put("manualSaved", g.manualSaved().toMinorUnits());
+            o.put("reserveInAvailable", g.reserveInAvailable());
+            o.put("archived", g.archived());
+            goalsOut.add(o);
+        }
+
         Map<String, Object> settingsOut = new LinkedHashMap<>();
         settingsOut.put("defaultHorizon", settings.defaultHorizon().name());
         settingsOut.put("includeCertainIncome", settings.includeCertainIncome());
@@ -229,8 +270,11 @@ public final class WebExportService {
         data.put("categories", categoriesOut);
         data.put("transactions", txOut);
         data.put("rules", rulesOut);
+        data.put("budgets", budgetsOut);
+        data.put("goals", goalsOut);
         return new Export(Json.write(data), new Report(accountsOut.size(), categoriesOut.size(),
-                txOut.size(), rulesOut.size(), skippedAccounts, skippedTx, skippedRules, simplified));
+                txOut.size(), rulesOut.size(), budgetsOut.size(), goalsOut.size(), skippedAccounts, skippedTx,
+                skippedRules, simplified));
     }
 
     private static Long mainCategory(List<SplitLine> splits) {

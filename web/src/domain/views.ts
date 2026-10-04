@@ -1,4 +1,5 @@
 import { computeAvailable, type AvailableResult } from './available';
+import { reservations } from './budgets';
 import { endOfMonth, plusDays, startOfMonth, type IsoDate } from './dates';
 import { computeForecast, type Forecast } from './forecast';
 import { availableScope, balances, groupOf, resolveHorizon, upcoming, upcomingForDisplay, type Horizon } from './ledger';
@@ -14,7 +15,7 @@ export function availableFor(data: FinanceData, today: IsoDate, type: HorizonTyp
     horizonEnd: horizon.end,
     balances: availableScope(data).map((a) => ({ accountId: a.id, name: a.name, balance: b.get(a.id) ?? 0 })),
     planned: upcoming(data, today, horizon.end),
-    reservations: [],
+    reservations: reservations(data, today, horizon.end),
     includeCertainIncome: data.settings.includeCertainIncome,
   });
   return { horizon, result };

@@ -5,9 +5,11 @@ import { TransactionDialog } from './components/dialogs';
 import { NavContext, type PageId } from './nav';
 import { AccountsPage } from './pages/AccountsPage';
 import { AvailablePage } from './pages/AvailablePage';
+import { BudgetsPage } from './pages/BudgetsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ForecastPage } from './pages/ForecastPage';
+import { GoalsPage } from './pages/GoalsPage';
 import { RecurringPage } from './pages/RecurringPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TransactionsPage } from './pages/TransactionsPage';
@@ -22,6 +24,8 @@ const PAGES: { id: PageId; icon: string; label: string }[] = [
   { id: 'available', icon: '◎', label: 'Disponible réel' },
   { id: 'forecast', icon: '↗', label: 'Prévisions' },
   { id: 'recurring', icon: '↻', label: 'Récurrences' },
+  { id: 'budgets', icon: '▤', label: 'Budgets' },
+  { id: 'goals', icon: '⚑', label: "Objectifs d'épargne" },
   { id: 'categories', icon: '▦', label: 'Catégories' },
   { id: 'settings', icon: '⚙', label: 'Paramètres' },
 ];
@@ -140,6 +144,8 @@ export function Shell() {
             {page === 'available' && <AvailablePage />}
             {page === 'forecast' && <ForecastPage />}
             {page === 'recurring' && <RecurringPage />}
+            {page === 'budgets' && <BudgetsPage />}
+            {page === 'goals' && <GoalsPage />}
             {page === 'categories' && <CategoriesPage />}
             {page === 'settings' && <SettingsPage />}
           </main>

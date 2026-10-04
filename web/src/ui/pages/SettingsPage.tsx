@@ -242,6 +242,18 @@ export function SettingsPage() {
           + 'manque de place : les sauvegardes sont d\'autant plus importantes.'} {usage}</p>
       </section>
       <section className="card section">
+        <h2>Renvoyer vos saisies vers l'application desktop</h2>
+        <ol style={{ margin: '0 0 12px', paddingLeft: 20 }}>
+          <li>Ici : <strong>« Télécharger une sauvegarde chiffrée »</strong> (section ci-dessus).</li>
+          <li>Dans l'application desktop : <strong>Paramètres → Sauvegardes → « Importer depuis la version web… »</strong>,
+            puis le mot de passe de ce profil.</li>
+          <li>Un aperçu montre les opérations nouvelles : seules celles absentes de l'application sont ajoutées, les cas
+            douteux sont signalés et décochés. L'import se défait depuis l'écran Imports de l'application.</li>
+        </ol>
+        <p className="hint">Les deux versions ne se synchronisent pas toutes seules : ce sont des copies que vous
+          rapprochez quand vous le souhaitez, sans passer par Internet.</p>
+      </section>
+      <section className="card section">
         <h2>Importer depuis l'application desktop</h2>
         <ol style={{ margin: '0 0 12px', paddingLeft: 20 }}>
           <li>Dans l'application desktop : <strong>Paramètres → Sauvegardes → « Exporter pour la version web… »</strong>,

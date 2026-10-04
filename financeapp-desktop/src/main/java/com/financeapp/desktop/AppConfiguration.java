@@ -194,9 +194,10 @@ public class AppConfiguration {
     @Bean
     com.financeapp.core.service.WebExportService webExportService(AccountService accounts, CategoryService categories,
             TransactionRepository transactions, RecurringService recurring, com.financeapp.core.service.TagService tags,
+            com.financeapp.core.service.BudgetService budgets, com.financeapp.core.service.SavingsGoalService goals,
             SettingsService settings) {
         return new com.financeapp.core.service.WebExportService(accounts, categories, transactions, recurring, tags,
-                settings);
+                budgets, goals, settings);
     }
 
     @Bean
@@ -265,6 +266,14 @@ public class AppConfiguration {
     @Bean
     CategorizationRuleRepository categorizationRuleRepository(JdbcClient jdbc) {
         return new JdbcCategorizationRuleRepository(jdbc);
+    }
+
+    @Bean
+    com.financeapp.core.service.WebImportService webImportService(AccountService accounts, CategoryService categories,
+            TransactionRepository transactions, RecurringService recurring, com.financeapp.core.service.TagService tags,
+            ImportRepository imports, SettingsService settings) {
+        return new com.financeapp.core.service.WebImportService(accounts, categories, transactions, recurring, tags,
+                imports, settings);
     }
 
     @Bean

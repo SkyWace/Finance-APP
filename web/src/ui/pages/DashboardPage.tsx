@@ -1,3 +1,4 @@
+import { budgetProgress } from '../../domain/budgets';
 import { formatLongDate, formatShortDate } from '../../domain/dates';
 import { HORIZON_LABELS } from '../../domain/types';
 import { forecastFor, dashboard } from '../../domain/views';
@@ -5,6 +6,7 @@ import { useData } from '../../store/session';
 import { BalanceChart } from '../components/BalanceChart';
 import { Empty, Money, useToday } from '../common';
 import { useNav } from '../nav';
+import { BudgetCard } from './BudgetsPage';
 
 export function DashboardPage() {
   const data = useData();
@@ -25,6 +27,7 @@ export function DashboardPage() {
     );
   }
   const d = dashboard(data, today);
+  const budgets = budgetProgress(data, today, today);
   const forecast = forecastFor(data, today, 30, 30);
   const accounts = new Map(data.accounts.map((a) => [a.id, a.name]));
   return (
@@ -93,6 +96,13 @@ export function DashboardPage() {
           <button className="link" onClick={() => nav.go('upcoming')}>Tout voir ›</button>
         </section>
       </div>
+      {budgets.length > 0 && (
+        <section className="card section">
+          <h2>Budgets du mois</h2>
+          {budgets.slice(0, 4).map((p) => <BudgetCard p={p} compact key={p.budget.id} />)}
+          <button className="link" onClick={() => nav.go('budgets')}>Tous les budgets ›</button>
+        </section>
+      )}
       <section className="card section">
         <h2>Dernières opérations</h2>
         {d.recent.length === 0 ? <Empty>Aucune opération pour l'instant.</Empty> : (

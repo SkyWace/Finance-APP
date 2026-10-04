@@ -30,11 +30,11 @@ public final class WebExportDialog extends FormDialog<char[]> {
         addRow("Mot de passe", password);
         addRow("Confirmation", confirm);
         Label limits = Widgets.label("Sont repris : comptes, catégories, opérations, virements, récurrences, étiquettes, "
-                + "réglages ; les soldes actuels sont identiques. Ne sont pas repris (absents de la version web) : budgets, "
-                + "objectifs, crédits (leurs échéances restent en récurrences), simulations, justificatifs, historique des "
-                + "valeurs d'épargne, règles de catégorisation. Une opération ventilée garde sa catégorie principale, le "
-                + "détail est ajouté au commentaire. Seuls les comptes dans la devise de référence sont exportés. Le "
-                + "disponible réel du site ne déduit donc pas les budgets ni les objectifs.", "hint");
+                + "budgets, objectifs d'épargne, réglages ; les soldes actuels et le disponible réel sont identiques. "
+                + "Ne sont pas repris (absents de la version web) : crédits (leurs échéances restent en récurrences), "
+                + "simulations, justificatifs, historique des valeurs d'épargne, règles de catégorisation. Une opération "
+                + "ventilée garde sa catégorie principale, le détail est ajouté au commentaire (le suivi d'un budget peut "
+                + "alors différer légèrement). Seuls les comptes dans la devise de référence sont exportés.", "hint");
         limits.setWrapText(true);
         limits.setMaxWidth(480);
         addFullRow(limits);

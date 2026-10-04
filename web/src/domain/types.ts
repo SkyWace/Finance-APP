@@ -138,6 +138,35 @@ export interface RecurringRule {
   tags: string[];
 }
 
+/**
+ * Budget mensuel d'une categorie de depenses (sous-categories comprises).
+ * @property limit plafond mensuel, en centimes (positif)
+ * @property reserveInAvailable reserver le reste du budget dans le disponible reel
+ */
+export interface Budget {
+  id: number;
+  categoryId: number;
+  limit: Cents;
+  reserveInAvailable: boolean;
+  active: boolean;
+}
+
+/**
+ * Objectif d'epargne.
+ * @property linkedAccountId compte dont le solde represente l'epargne accumulee ; absent = montant tenu a la main
+ * @property reserveInAvailable reserver chaque mois l'effort necessaire dans le disponible reel
+ */
+export interface SavingsGoal {
+  id: number;
+  name: string;
+  target: Cents;
+  targetDate?: IsoDate;
+  linkedAccountId?: number;
+  manualSaved: Cents;
+  reserveInAvailable: boolean;
+  archived: boolean;
+}
+
 export type HorizonType = 'END_OF_WEEK' | 'NEXT_PAYDAY' | 'END_OF_MONTH' | 'CUSTOM_DATE';
 
 export const HORIZON_LABELS: Record<HorizonType, string> = {
@@ -163,6 +192,8 @@ export interface FinanceData {
   categories: Category[];
   transactions: Transaction[];
   rules: RecurringRule[];
+  budgets: Budget[];
+  goals: SavingsGoal[];
 }
 
 /** Operation a venir : operation "prevue" ou occurrence de recurrence non traitee. */

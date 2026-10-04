@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { upgradeData } from '../domain/defaults';
 import { balances } from '../domain/ledger';
 import type { FinanceData } from '../domain/types';
 import { dashboard } from '../domain/views';
@@ -19,7 +20,9 @@ describe('import d\'un export desktop', () => {
     const profile = await importBackup(FIXTURE);
     expect(profile.name).toBe('Profil principal');
     const opened = await unlock<FinanceData>(profile.id, PASSWORD);
-    const data = opened.data;
+    // Fichier d'une version anterieure (sans budgets ni objectifs) : complete a l'ouverture.
+    const data = upgradeData(opened.data);
+    expect(data.budgets).toEqual([]);
     const byName = new Map(data.accounts.map((a) => [a.name, a]));
     const b = balances(data);
     expect(b.get(byName.get('Compte courant')!.id)).toBe(78000);

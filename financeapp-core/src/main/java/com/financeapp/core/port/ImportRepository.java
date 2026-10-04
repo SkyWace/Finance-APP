@@ -15,7 +15,16 @@ public interface ImportRepository {
      *
      * @return le lot enregistre (avec son identifiant)
      */
-    ImportBatch commit(ImportBatch batch, List<ImportedTransaction> created, List<Reconciliation> reconciliations);
+    default ImportBatch commit(ImportBatch batch, List<ImportedTransaction> created, List<Reconciliation> reconciliations) {
+        return commit(batch, created, reconciliations, true);
+    }
+
+    /**
+     * @param review marquer les operations creees "a valider" (Inbox) ; faux pour des operations
+     *               deja saisies par l'utilisateur lui-meme (version web)
+     */
+    ImportBatch commit(ImportBatch batch, List<ImportedTransaction> created, List<Reconciliation> reconciliations,
+                       boolean review);
 
     List<ImportBatch> findAll();
 

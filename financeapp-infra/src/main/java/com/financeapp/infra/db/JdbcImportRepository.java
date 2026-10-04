@@ -42,7 +42,8 @@ public final class JdbcImportRepository implements ImportRepository {
     }
 
     @Override
-    public ImportBatch commit(ImportBatch batch, List<ImportedTransaction> created, List<Reconciliation> reconciliations) {
+    public ImportBatch commit(ImportBatch batch, List<ImportedTransaction> created, List<Reconciliation> reconciliations,
+                              boolean review) {
         return tx.execute(status -> {
             KeyHolder keys = new GeneratedKeyHolder();
             jdbc.sql("""
@@ -60,8 +61,9 @@ public final class JdbcImportRepository implements ImportRepository {
             long batchId = JdbcKeys.id(keys);
             for (ImportedTransaction it : created) {
                 Transaction t = transactions.insert(it.transaction());
-                jdbc.sql("UPDATE transactions SET import_batch_id = :batch, external_id = :ext, needs_review = 1 WHERE id = :id")
-                        .param("batch", batchId).param("ext", it.externalId()).param("id", t.id()).update();
+                jdbc.sql("UPDATE transactions SET import_batch_id = :batch, external_id = :ext, needs_review = :review WHERE id = :id")
+                        .param("batch", batchId).param("ext", it.externalId()).param("review", review ? 1 : 0)
+                        .param("id", t.id()).update();
             }
             for (Reconciliation r : reconciliations) {
                 jdbc.sql("""

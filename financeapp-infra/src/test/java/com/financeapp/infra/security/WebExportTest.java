@@ -74,7 +74,7 @@ class WebExportTest {
                 null, List.of(), tags));
 
         WebExportService.Export export = new WebExportService(db.accounts, db.categories, db.transactionRepo,
-                db.recurring, db.tags, db.settings).export();
+                db.recurring, db.tags, db.budgets, db.goals, db.settings).export();
         WebExportService.Report r = export.report();
         assertEquals(2, r.accounts());
         assertEquals(1, r.skippedAccounts(), "compte en francs suisses");

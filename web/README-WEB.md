@@ -39,15 +39,26 @@ conserver ses données même en cas de manque de place, mais il peut refuser.
 
 Le fichier est chiffré de bout en bout avec le même schéma que le site (il ne contient
 rien en clair). Sont repris : comptes, catégories, opérations, virements, récurrences,
-étiquettes, réglages ; les **soldes actuels sont identiques au centime**. Ne sont pas
-repris, car absents de la version web : budgets, objectifs, crédits (leurs échéances
-restent des récurrences), simulations, justificatifs, historique des valeurs d'épargne,
-règles de catégorisation. Le disponible réel du site ne déduit donc pas les budgets et
-objectifs. Une opération ventilée garde sa catégorie principale (détail en commentaire).
-Seuls les comptes dans la devise de référence sont repris.
+étiquettes, budgets, objectifs d'épargne, réglages ; les **soldes actuels et le disponible
+réel sont identiques au centime**. Ne sont pas repris, car absents de la version web :
+crédits (leurs échéances restent des récurrences), simulations, justificatifs, historique
+des valeurs d'épargne, règles de catégorisation. Une opération ventilée garde sa catégorie
+principale (détail en commentaire). Seuls les comptes dans la devise de référence sont
+repris.
 
-Il s'agit d'une copie à un instant donné : les deux versions ne se synchronisent pas
-ensuite.
+## Renvoyer ses saisies vers l'application desktop
+
+1. Sur le site : *Paramètres → Sauvegardes → Télécharger une sauvegarde chiffrée*.
+2. Dans l'application desktop : *Paramètres → Sauvegardes → Importer depuis la version
+   web…*, puis le mot de passe du profil sur le site.
+3. Associez chaque compte du site à un compte de l'application (même nom par défaut),
+   à créer, ou à ignorer. L'aperçu montre les opérations **nouvelles** (cochées), les
+   opérations prévues **réalisées** sur le site, les **doublons possibles** et les
+   opérations **modifiées** sur le site (signalés, décochés), et celles **déjà présentes**.
+4. *Importer*. L'import se défait depuis l'écran *Imports* de l'application.
+
+Les deux versions ne se synchronisent pas toutes seules : ce sont des copies que l'on
+rapproche par fichier, quand on le souhaite, sans passer par Internet.
 
 ## Développer
 
@@ -57,7 +68,7 @@ Prérequis : Node.js 22+.
 cd web
 npm ci
 npm run dev        # http://localhost:5173
-npm test           # tests (calculs, chiffrement, CSV)
+npm test           # tests (calculs, chiffrement, CSV, budgets, échanges avec le desktop)
 npm run build      # site statique dans web/dist/
 ```
 
@@ -125,8 +136,9 @@ Tableau de bord, comptes (comptes courants, épargne, espèces), transactions (d
 revenus, virements internes, statuts, catégories, étiquettes, recherche et filtres,
 export CSV), à venir (valider ou ignorer une échéance), récurrences, disponible réel
 (fin de semaine, prochaine paie, fin du mois, date choisie, détail ligne à ligne),
-prévisions jusqu'à 24 mois, catégories, import de relevé CSV avec aperçu, plusieurs
-profils, thèmes sombre et clair, mode confidentialité, utilisable sur téléphone.
+prévisions jusqu'à 24 mois, budgets mensuels par catégorie, objectifs d'épargne (réservés
+dans le disponible réel si on le souhaite), catégories, import de relevé CSV avec aperçu,
+plusieurs profils, thèmes sombre et clair, mode confidentialité, utilisable sur téléphone.
 
-Pas encore dans la version web : budgets, objectifs, abonnements, analyses, crédits,
-simulations, ventilation, justificatifs, import OFX/QIF.
+Pas encore dans la version web : abonnements, analyses, crédits, simulations, ventilation,
+justificatifs, import OFX/QIF.

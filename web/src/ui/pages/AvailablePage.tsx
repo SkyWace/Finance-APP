@@ -63,8 +63,8 @@ export function AvailablePage() {
         </section>
       ))}
       <p className="hint">Calcul : solde actuel des comptes inclus − dépenses prévues jusqu'à l'échéance (retards
-        compris) ± virements vers l'épargne + revenus prévus jugés certains. Un virement entre deux comptes inclus est
-        neutre.</p>
+        compris) ± virements vers l'épargne − reste des budgets et effort des objectifs marqués « à réserver » + revenus
+        prévus jugés certains. Un virement entre deux comptes inclus est neutre.</p>
     </>
   );
 }
