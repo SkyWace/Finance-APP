@@ -71,6 +71,8 @@ public final class TransactionsPage extends Page {
     private final ComboBox<Choice<Set<TransactionStatus>>> statusFilter = new ComboBox<>();
     private final ComboBox<Period> periodFilter = new ComboBox<>();
     private final TextField search = new TextField();
+    /** Solde du compte filtre (visible seulement quand un compte est choisi). */
+    private final HBox balanceBox = new HBox(22);
     private final ComboBox<Choice<Long>> categoryFilter = new ComboBox<>();
     private final ComboBox<Choice<Long>> tagFilter = new ComboBox<>();
     private final TextField minAmount = new TextField();
@@ -137,7 +139,13 @@ public final class TransactionsPage extends Page {
         Button export = action("⇪  Exporter (CSV)…", "ghost", this::exportCsv);
         export.setTooltip(new javafx.scene.control.Tooltip("Exporte toutes les opérations de la recherche en cours "
                 + "(filtres compris) dans un fichier CSV pour Excel ou LibreOffice"));
-        HBox actions = Widgets.row(expense, income, transfer, Widgets.spacer(), export, search);
+        balanceBox.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        HBox actions = Widgets.row(expense, income, transfer, Widgets.spacer(), balanceBox, export, search);
+        // Boutons et montants gardent leur taille : seule la recherche se reduit si la fenetre est etroite.
+        actions.getChildren().stream().filter(n -> n instanceof javafx.scene.control.Control && n != search)
+                .forEach(n -> ((javafx.scene.control.Control) n).setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE));
+        balanceBox.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        search.setMinWidth(120);
         javafx.scene.layout.FlowPane filters = new javafx.scene.layout.FlowPane(8, 8, Widgets.label("Filtres", "muted"),
                 accountFilter, categoryFilter, tagFilter, periodFilter, fromDate, toDate, statusFilter, minAmount, maxAmount);
         filters.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
@@ -187,6 +195,7 @@ public final class TransactionsPage extends Page {
             accountFilter.getSelectionModel().selectFirst();
         }
         accountFilter.setOnAction(e -> resetAndRefresh());
+        updateBalance(Widgets.selected(accountFilter));
 
         Long selectedCategory = Widgets.selected(categoryFilter);
         categoryFilter.setOnAction(null);
@@ -233,6 +242,48 @@ public final class TransactionsPage extends Page {
         loadMore.setVisible(rows.size() >= limit);
         updateFooter(rows, query);
         table.refresh();
+    }
+
+    /**
+     * Solde actuel du compte filtre (operations effectuees et en attente) et solde prevu en fin
+     * de mois (operations prevues et echeances recurrentes du compte, retards compris).
+     */
+    private void updateBalance(Long accountId) {
+        balanceBox.getChildren().clear();
+        Account account = accountId == null ? null : accounts.get(accountId);
+        balanceBox.setVisible(account != null);
+        balanceBox.setManaged(account != null);
+        if (account == null) {
+            return;
+        }
+        Formats f = ctx.formats();
+        Money current = ctx.services().accounts().balanceOf(account.id());
+        LocalDate endOfMonth = ctx.services().planning().today().with(TemporalAdjusters.lastDayOfMonth());
+        Money planned = ctx.services().planning().upcoming(endOfMonth).stream()
+                .filter(i -> i.accountId() == account.id() && i.amount().isSameCurrency(current))
+                .map(com.financeapp.core.planning.PlannedItem::amount)
+                .reduce(Money.zero(current.currency()), Money::plus);
+        balanceBox.getChildren().addAll(
+                balanceFigure("Solde actuel", current,
+                        "Solde de « " + account.name() + " » : opérations effectuées et en attente, jusqu'à aujourd'hui"),
+                balanceFigure("Fin du mois prévu", current.plus(planned),
+                        "Solde actuel + opérations prévues et échéances récurrentes de ce compte d'ici le "
+                                + Formats.date(endOfMonth) + " (retards compris) : "
+                                + f.signed(planned)));
+    }
+
+    /** Montant avec son signe ecrit (jamais la couleur seule). */
+    private VBox balanceFigure(String title, Money amount, String tooltip) {
+        Label value = Widgets.label(ctx.formats().signed(amount), "account-balance",
+                amount.isNegative() ? "amount-negative" : "amount-positive");
+        Label caption = Widgets.label(title.toUpperCase(Formats.LOCALE), "kpi-title");
+        caption.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        value.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        VBox box = new VBox(1, caption, value);
+        box.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        box.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        javafx.scene.control.Tooltip.install(box, new javafx.scene.control.Tooltip(tooltip));
+        return box;
     }
 
     /** "Ventilée : Courses + Maison" pour une operation ventilee, sinon sa categorie. */

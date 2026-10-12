@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { exportCsv } from '../../domain/csv';
 import { endOfMonth, formatDate, plusDays, plusMonths, startOfMonth } from '../../domain/dates';
 import { parseAmount } from '../../domain/money';
+import { balances, upcoming } from '../../domain/ledger';
 import { allTags, categoryPath } from '../../domain/operations';
 import { STATUS_LABELS, type Transaction, type TransactionStatus } from '../../domain/types';
 import { useData } from '../../store/session';
@@ -58,6 +59,10 @@ export function TransactionsPage() {
   const earned = counted.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
   const accounts = new Map(data.accounts.map((a) => [a.id, a.name]));
   const tags = allTags(data);
+  // Compte filtre : solde actuel et solde prevu en fin de mois (operations prevues et echeances, retards compris)
+  const current = accountId === undefined ? 0 : balances(data).get(accountId) ?? 0;
+  const endOfMonthBalance = accountId === undefined ? 0 : current + upcoming(data, today, endOfMonth(today))
+    .filter((i) => i.accountId === accountId).reduce((s, i) => s + i.amount, 0);
 
   return (
     <>
@@ -66,6 +71,12 @@ export function TransactionsPage() {
         <button className="btn" onClick={() => nav.newOperation('INCOME')}>+ Revenu</button>
         <button className="btn" onClick={() => nav.newOperation('TRANSFER')}>⇄ Virement</button>
         <span className="spacer" />
+        {accountId !== undefined && <>
+          <div className="account-figure" title="Opérations effectuées et en attente de ce compte, jusqu'à aujourd'hui">
+            <div className="title">Solde actuel</div><Money cents={current} signed tone /></div>
+          <div className="account-figure" title="Solde actuel + opérations prévues et échéances récurrentes de ce compte d'ici la fin du mois (retards compris)">
+            <div className="title">Fin du mois prévu</div><Money cents={endOfMonthBalance} signed tone /></div>
+        </>}
         <button className="btn ghost" disabled={results.length === 0}
           onClick={() => download(`operations-${today}.csv`, exportCsv(data, results), 'text/csv;charset=utf-8')}>
           ⇪ Exporter (CSV)</button>
